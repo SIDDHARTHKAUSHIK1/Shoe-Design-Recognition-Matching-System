@@ -380,6 +380,22 @@ document.addEventListener("DOMContentLoaded", () => {
     elements.matchesList.innerHTML = "";
     elements.resultsLoading.style.display = "none";
 
+    // Non-footwear guard: No shoe or slipper found
+    if (data.is_footwear_detected === false || data.detected_category === "none") {
+      if (elements.detectedCategoryBadge) {
+        elements.detectedCategoryBadge.style.display = "inline-flex";
+        if (elements.detectedCatIcon) elements.detectedCatIcon.textContent = "🚫";
+        if (elements.detectedCatText) elements.detectedCatText.textContent = "No Shoe / Slipper Detected";
+      }
+      elements.resultsEmpty.style.display = "block";
+      elements.resultsEmpty.querySelector("h4").textContent = "🚫 No Shoe or Slipper Detected";
+      elements.resultsEmpty.querySelector("p").textContent = data.message || "The uploaded image does not appear to contain a shoe or slipper. Please upload a clear photo of footwear.";
+      elements.matchesList.style.display = "none";
+      elements.resultsMetaText.textContent = "Non-footwear image uploaded";
+      showToast("No shoe or slipper detected in image", "warning");
+      return;
+    }
+
     // Render detected category badge
     if (data.detected_category && elements.detectedCategoryBadge) {
       elements.detectedCategoryBadge.style.display = "inline-flex";
@@ -1141,8 +1157,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const level = (log.confidence_pct >= 85) ? "HIGH" : (log.confidence_pct >= 70) ? "MODERATE" : "LOW";
       const color = (log.confidence_pct >= 85) ? "green" : (log.confidence_pct >= 70) ? "yellow" : "red";
+      const isNone = (log.detected_category === "none");
       const isSlipper = (log.detected_category === "slipper");
-      const catBadge = isSlipper ? '<span style="color: #60a5fa; font-weight: 600; font-size: 0.8rem;">🩴 Slipper</span>' : '<span style="color: #34d399; font-weight: 600; font-size: 0.8rem;">👟 Shoe</span>';
+      const catBadge = isNone ? '<span style="color: #f87171; font-weight: 600; font-size: 0.8rem;">🚫 None</span>' :
+                       (isSlipper ? '<span style="color: #60a5fa; font-weight: 600; font-size: 0.8rem;">🩴 Slipper</span>' : '<span style="color: #34d399; font-weight: 600; font-size: 0.8rem;">👟 Shoe</span>');
 
       tr.innerHTML = `
         <td style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-muted);">${log.created_at}</td>

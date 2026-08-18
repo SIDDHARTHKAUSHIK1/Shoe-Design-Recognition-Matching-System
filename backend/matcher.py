@@ -72,14 +72,44 @@ class ShoeMatcher:
         # 2. Run zero-shot category classification (invisible to user, automatic differentiation)
         detected_category, cat_prob = self.classifier.classify_category(query_image_input)
         category_confidence_pct = round(cat_prob * 100.0, 1)
+
+        # 3. Guard against non-footwear images (e.g. random pictures, faces, objects, animals)
+        if detected_category == "none":
+            latency_ms = (time.time() - t0) * 1000
+            stats = db.get_catalog_stats()
+            
+            if query_image_save_path:
+                db.log_query(
+                    query_image_path=query_image_save_path,
+                    top_match_id="NO_FOOTWEAR",
+                    top_match_name="No Shoe or Slipper Detected",
+                    confidence_pct=0.0,
+                    latency_ms=latency_ms,
+                    results=[],
+                    detected_category="none"
+                )
+            
+            return {
+                "success": True,
+                "query_image_path": query_image_save_path,
+                "detected_category": "none",
+                "is_footwear_detected": False,
+                "category_confidence_pct": category_confidence_pct,
+                "total_catalog_designs": stats.get("total_designs", 0),
+                "total_catalog_vectors": self.vector_store.total_vectors,
+                "matches": [],
+                "latency_ms": round(latency_ms, 2),
+                "message": "No shoe or slipper detected in the uploaded image. Please upload a clear photo of footwear."
+            }
         
-        # 3. Check if catalog has vectors
+        # 4. Check if catalog has vectors
         if self.vector_store.total_vectors == 0:
             latency_ms = (time.time() - t0) * 1000
             return {
                 "success": True,
                 "query_image_path": query_image_save_path,
                 "detected_category": detected_category,
+                "is_footwear_detected": True,
                 "category_confidence_pct": category_confidence_pct,
                 "total_catalog_designs": 0,
                 "total_catalog_vectors": 0,
@@ -88,7 +118,7 @@ class ShoeMatcher:
                 "message": "Catalog is currently empty. Please add reference designs first."
             }
 
-        # 4. Retrieve a wider candidate pool from FAISS to allow category filtering
+        # 5. Retrieve a wider candidate pool from FAISS to allow category filtering
         raw_k = min(max(top_k * 10, 30), self.vector_store.total_vectors)
         scores, faiss_ids = self.vector_store.search(query_embedding, top_k=raw_k)
         
@@ -186,6 +216,7 @@ class ShoeMatcher:
             "success": True,
             "query_image_path": query_image_save_path,
             "detected_category": detected_category,
+            "is_footwear_detected": True,
             "category_confidence_pct": category_confidence_pct,
             "total_catalog_designs": catalog_stats["total_designs"],
             "total_catalog_vectors": self.vector_store.total_vectors,

@@ -13,30 +13,39 @@ logger = logging.getLogger(__name__)
 
 # Prompt Ensembles for robust zero-shot classification
 SHOE_PROMPTS = [
-    "a photo of a shoe",
-    "a photo of a sneaker",
-    "a photo of a leather dress shoe or oxford",
-    "a photo of a boot or high top shoe",
-    "a photo of an athletic running shoe",
-    "a photo of a formal closed shoe",
-    "a closed-toe shoe"
+    "a photo of a shoe or sneaker",
+    "a photo of footwear, sneakers, dress shoes, boots, or loafers",
+    "a photo of a closed-toe shoe or athletic shoe",
+    "shoes on a white background",
+    "a photo of a leather shoe or boot"
 ]
 
 SLIPPER_PROMPTS = [
-    "a photo of a slipper",
-    "a photo of a house slipper or bedroom slipper",
-    "a photo of a slide sandal or slip-on slide",
-    "a photo of a flip-flop sandal",
-    "a photo of an open-toe slipper",
-    "a photo of a fuzzy indoor slipper",
-    "an open back slipper or sandal"
+    "a photo of a slipper or slide sandal",
+    "a photo of house slippers, bedroom slippers, or flip-flops",
+    "a photo of open-toe slippers, slides, or sandals",
+    "slippers or flip-flops",
+    "a photo of indoor comfort slippers"
+]
+
+NON_FOOTWEAR_PROMPTS = [
+    "a photo of a person, human face, portrait, man, woman, or child",
+    "a photo of an animal, dog, cat, bird, horse, or wildlife",
+    "a photo of a car, automobile, truck, motorcycle, or vehicle",
+    "a photo of a computer, laptop, smartphone, TV, screen, or electronics",
+    "a photo of food, pizza, fruit, vegetables, beverage, or meal",
+    "a photo of furniture, chair, table, sofa, bed, or interior room",
+    "a photo of a building, house, street, city architecture, landscape, sky, or nature",
+    "a photo of clothes, shirt, pants, jacket, watch, bag, or hat",
+    "a photo of a random non-footwear object, blank surface, or abstract graphic",
+    "nothing, noise, abstract pattern, or empty background"
 ]
 
 
 class ZeroShotCategoryClassifier:
     """
-    Zero-shot classifier that differentiates between 'shoe' and 'slipper'
-    using CLIP text-image embeddings without requiring labeled training examples.
+    Zero-shot classifier that detects whether an image is a 'shoe', 'slipper',
+    or 'none' (non-footwear / random image) using CLIP text-image alignment.
     """
     _instance: Optional["ZeroShotCategoryClassifier"] = None
 
@@ -74,9 +83,14 @@ class ZeroShotCategoryClassifier:
             slipper_embs = self.model.encode(SLIPPER_PROMPTS, convert_to_numpy=True)
             slipper_vec = np.mean(slipper_embs, axis=0)
             self.slipper_vec = slipper_vec / (np.linalg.norm(slipper_vec) + 1e-9)
+
+            non_fw_embs = self.model.encode(NON_FOOTWEAR_PROMPTS, convert_to_numpy=True)
+            non_fw_vec = np.mean(non_fw_embs, axis=0)
+            self.non_footwear_vec = non_fw_vec / (np.linalg.norm(non_fw_vec) + 1e-9)
         else:
             self.shoe_vec = None
             self.slipper_vec = None
+            self.non_footwear_vec = None
 
     def _preprocess_image(self, image_input: Union[str, Path, bytes, io.BytesIO, Image.Image]) -> Image.Image:
         if isinstance(image_input, (str, Path)):
@@ -97,11 +111,11 @@ class ZeroShotCategoryClassifier:
 
     def classify_category(self, image_input: Union[str, Path, bytes, io.BytesIO, Image.Image]) -> Tuple[str, float]:
         """
-        Classify input image into 'shoe' or 'slipper' with probability score.
+        Classify input image into 'shoe', 'slipper', or 'none' (non-footwear).
 
         Returns:
             Tuple[str, float]: (detected_category, confidence_probability)
-                               e.g. ("shoe", 0.982) or ("slipper", 0.945)
+                               e.g. ("shoe", 0.982), ("slipper", 0.945), or ("none", 0.0)
         """
         img = self._preprocess_image(image_input)
 
@@ -112,19 +126,38 @@ class ZeroShotCategoryClassifier:
 
                 sim_shoe = float(np.dot(img_emb, self.shoe_vec))
                 sim_slipper = float(np.dot(img_emb, self.slipper_vec))
+                sim_non_fw = float(np.dot(img_emb, self.non_footwear_vec))
 
                 # Softmax with scaling factor
-                logits = np.array([sim_shoe, sim_slipper]) * 20.0
+                logits = np.array([sim_shoe, sim_slipper, sim_non_fw]) * 22.0
                 exp_l = np.exp(logits - np.max(logits))
                 probs = exp_l / np.sum(exp_l)
 
                 prob_shoe = float(probs[0])
                 prob_slipper = float(probs[1])
+                prob_non_fw = float(probs[2])
 
-                if prob_shoe >= prob_slipper:
-                    return "shoe", round(prob_shoe, 4)
+                max_footwear_sim = max(sim_shoe, sim_slipper)
+                margin = max_footwear_sim - sim_non_fw
+
+                # Non-footwear conditions:
+                # 1. Non-footwear class has the highest softmax probability
+                # 2. Footwear similarity margin over non-footwear is too small (<= 0.012)
+                # 3. Both shoe and slipper similarities are below absolute baseline
+                if prob_non_fw >= prob_shoe and prob_non_fw >= prob_slipper:
+                    return "none", round(prob_non_fw, 4)
+                
+                if margin <= 0.012 or max_footwear_sim < 0.19:
+                    return "none", round(prob_non_fw, 4)
+
+                # Re-normalize between shoe and slipper
+                sub_probs = np.array([prob_shoe, prob_slipper])
+                sub_probs = sub_probs / (np.sum(sub_probs) + 1e-9)
+
+                if sub_probs[0] >= sub_probs[1]:
+                    return "shoe", round(float(sub_probs[0]), 4)
                 else:
-                    return "slipper", round(prob_slipper, 4)
+                    return "slipper", round(float(sub_probs[1]), 4)
             except Exception as e:
                 logger.error(f"Error in zero-shot classification: {e}")
 
