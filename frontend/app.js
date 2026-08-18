@@ -15,7 +15,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // DOM Elements
   const elements = {
-    // Navigation
+    // Sidebar & Navigation
+    sidebar: document.getElementById("sidebar"),
+    btnToggleSidebar: document.getElementById("btn-toggle-sidebar"),
+    btnTopbarToggle: document.getElementById("btn-topbar-toggle"),
     navButtons: document.querySelectorAll(".nav-item"),
     tabPanes: document.querySelectorAll(".tab-pane"),
     pageTitle: document.getElementById("page-title"),
@@ -87,10 +90,23 @@ document.addEventListener("DOMContentLoaded", () => {
   // Initialization & Stats
   // ==========================================
   async function init() {
+    restoreSidebarState();
     setupEventListeners();
     await fetchStats();
     await fetchCatalog();
     await fetchLogs();
+  }
+
+  function toggleSidebar() {
+    if (!elements.sidebar) return;
+    const isCollapsed = elements.sidebar.classList.toggle("collapsed");
+    localStorage.setItem("sidebar_collapsed", isCollapsed ? "true" : "false");
+  }
+
+  function restoreSidebarState() {
+    if (localStorage.getItem("sidebar_collapsed") === "true" && elements.sidebar) {
+      elements.sidebar.classList.add("collapsed");
+    }
   }
 
   async function fetchStats() {
@@ -174,6 +190,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
     });
+
+    // Sidebar Toggle (Full View Slider Mode)
+    if (elements.btnToggleSidebar) elements.btnToggleSidebar.addEventListener("click", toggleSidebar);
+    if (elements.btnTopbarToggle) elements.btnTopbarToggle.addEventListener("click", toggleSidebar);
 
     // Clear and Match Buttons
     if (elements.btnClearQuery) elements.btnClearQuery.addEventListener("click", resetQueryStudio);
