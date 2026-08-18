@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  shoe-match-app:
+    build: .
+    container_name: shoe_design_matcher
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./storage:/app/storage
+      - ./dataset:/app/dataset
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - EMBEDDING_MODEL=facebook/dinov2-small
+    restart: unless-stopped

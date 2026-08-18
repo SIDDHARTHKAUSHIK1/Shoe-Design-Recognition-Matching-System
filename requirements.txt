@@ -1,0 +1,16 @@
+# Core Deep Learning & Vector Search
+torch>=2.0.0
+torchvision>=0.15.0
+transformers>=4.35.0
+faiss-cpu>=1.7.4
+open-clip-torch>=2.20.0
+scikit-learn>=1.2.0
+numpy>=1.24.0
+pillow>=9.5.0
+
+# Backend & Web API
+fastapi>=0.100.0
+uvicorn>=0.22.0
+python-multipart>=0.0.6
+pydantic>=2.0.0
+requests>=2.31.0

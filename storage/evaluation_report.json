@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-08-18 16:17:17",
+  "total_images_evaluated": 49,
+  "total_distinct_designs": 24,
+  "metrics": {
+    "top_1_accuracy_pct": 91.84,
+    "top_3_accuracy_pct": 97.96,
+    "mean_reciprocal_rank": 0.9498,
+    "average_query_latency_ms": 0.03,
+    "avg_same_design_similarity": 0.9287,
+    "avg_diff_design_similarity": 0.6958,
+    "similarity_margin": 0.2329
+  },
+  "recommendations": {
+    "high_confidence_threshold_pct": 85.0,
+    "moderate_confidence_threshold_pct": 70.0,
+    "notes": "With DINOv2 self-supervised visual features, matching images of the same design demonstrate strong similarity separation from unrelated designs."
+  }
+}

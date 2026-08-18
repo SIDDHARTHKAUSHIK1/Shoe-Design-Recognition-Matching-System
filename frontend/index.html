@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShoeMatch AI — Visual Design Recognition & Similarity Search</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2.5 13.5C2.5 13.5 6 10 9 10C12 10 13 13 16 13C19 13 21.5 10.5 21.5 10.5V17.5C21.5 19 20 20 18.5 20H4C2.5 20 2.5 18.5 2.5 17.5V13.5Z"/>
+            <path d="M7 10V6C7 4.5 8.5 3 10.5 3H12C13 3 14 3.8 14 5V10"/>
+            <path d="M3 16H21"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>ShoeMatch<span class="badge-ai">PRO</span></h1>
+          <p class="brand-sub">Visual Catalog AI Engine</p>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="match-tab" id="nav-match">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <span>Visual Match Studio</span>
+        </button>
+
+        <button class="nav-item" data-tab="catalog-tab" id="nav-catalog">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          <span>Design Catalog</span>
+          <span class="pill-count" id="nav-catalog-count">0</span>
+        </button>
+
+        <button class="nav-item" data-tab="logs-tab" id="nav-logs">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <span>Audit Logs</span>
+        </button>
+      </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Top Bar Header -->
+      <header class="top-bar">
+        <div class="page-title-area">
+          <h2 id="page-title">Visual Match Studio</h2>
+          <p id="page-description">Upload a shoe photo to query the factory reference catalog and inspect Top-3 ranked matches.</p>
+        </div>
+        <div class="top-bar-actions">
+          <button class="btn btn-primary" id="btn-open-add-modal">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>Add New Design</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- TAB 1: Visual Match Studio -->
+      <section class="tab-pane active" id="match-tab">
+        <div class="match-grid">
+          <!-- Left Column: Query Upload Card -->
+          <div class="card query-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <h3>1. Query Photo</h3>
+                <span class="card-hint">Drop an image, paste from clipboard, or browse</span>
+              </div>
+              <button class="btn-text-sm" id="btn-clear-query" style="display: none;">Clear</button>
+            </div>
+
+            <!-- Upload Area -->
+            <div class="drop-zone" id="query-dropzone">
+              <input type="file" id="query-file-input" accept="image/jpeg,image/png,image/webp" hidden>
+              
+              <div class="drop-prompt" id="drop-prompt">
+                <div class="upload-icon-circle">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                </div>
+                <h4>Drag & Drop Shoe Photo Here</h4>
+                <p>Supports phone photos, prototype renders, or QC shots (JPEG, PNG, WEBP)</p>
+                <button class="btn btn-secondary btn-sm" id="btn-browse-file" type="button">Browse Files</button>
+              </div>
+
+              <!-- Query Image Preview -->
+              <div class="query-preview-wrapper" id="query-preview-container" style="display: none;">
+                <img id="query-preview-img" src="" alt="Query Shoe Preview">
+                <div class="preview-overlay">
+                  <span class="preview-badge">Query Target</span>
+                  <button class="btn-icon" id="btn-change-image" title="Change Image">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Area -->
+            <div class="query-actions">
+              <button class="btn btn-primary btn-block btn-lg" id="btn-run-match" disabled>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <span>Find Matches in Catalog</span>
+              </button>
+            </div>
+
+            <!-- Confidence Legend -->
+            <div class="threshold-legend">
+              <div class="legend-title">Confidence Scale:</div>
+              <div class="legend-items">
+                <div class="legend-pill green">
+                  <span class="pill-dot"></span>
+                  <span>≥ 85% Strong Match</span>
+                </div>
+                <div class="legend-pill yellow">
+                  <span class="pill-dot"></span>
+                  <span>70–84% Variant</span>
+                </div>
+                <div class="legend-pill red">
+                  <span class="pill-dot"></span>
+                  <span>&lt; 70% Unique Design</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Top 3 Results Stream -->
+          <div class="card results-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <h3>2. Top 3 Catalog Matches</h3>
+                <span class="card-hint" id="results-meta-text">Awaiting query image</span>
+              </div>
+              <div class="latency-badge" id="latency-badge" style="display: none;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span id="latency-text">0 ms</span>
+              </div>
+            </div>
+
+            <!-- Empty State -->
+            <div class="results-empty" id="results-empty">
+              <div class="empty-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="11" cy="11" r="8"/>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                  <path d="M11 8v6M8 11h6"/>
+                </svg>
+              </div>
+              <h4>No Query Executed Yet</h4>
+              <p>Upload a shoe image on the left and click "Find Matches in Catalog" to view side-by-side rankings.</p>
+            </div>
+
+            <!-- Loading State -->
+            <div class="results-loading" id="results-loading" style="display: none;">
+              <div class="spinner"></div>
+              <h4>Extracting DINOv2 Visual Embeddings...</h4>
+              <p>Computing exact cosine similarity against FAISS vector index</p>
+            </div>
+
+            <!-- Matches List Container (Top 3) -->
+            <div class="matches-list" id="matches-list" style="display: none;">
+              <!-- Match cards injected dynamically by app.js -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: Design Catalog Explorer -->
+      <section class="tab-pane" id="catalog-tab">
+        <div class="catalog-header-bar">
+          <div class="search-box">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="catalog-search-input" placeholder="Search by SKU, model name, category...">
+          </div>
+          <div class="catalog-filters">
+            <select id="catalog-category-filter">
+              <option value="ALL">All Categories</option>
+              <option value="Sneaker">Sneaker</option>
+              <option value="Running Shoe">Running Shoe</option>
+              <option value="Casual Trainer">Casual Trainer</option>
+              <option value="Classic Oxford">Classic Oxford</option>
+              <option value="Hiking Boot">Hiking Boot</option>
+            </select>
+            <button class="btn btn-secondary" id="btn-refresh-catalog">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+              <span>Refresh</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Catalog Grid -->
+        <div class="catalog-grid" id="catalog-grid">
+          <!-- Populated by JavaScript -->
+        </div>
+      </section>
+
+      <!-- TAB 3: Audit Logs -->
+      <section class="tab-pane" id="logs-tab">
+        <div class="card logs-card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3>Query History & Inference Audit Log</h3>
+              <p class="card-hint">Chronological audit trail of all uploaded shoes and matching results.</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btn-refresh-logs">Refresh Logs</button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table" id="logs-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Query Photo</th>
+                  <th>Top Matched Design</th>
+                  <th>Confidence</th>
+                  <th>Level</th>
+                  <th>Latency</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="logs-tbody">
+                <!-- Log rows injected by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL: Add New Design -->
+  <div class="modal-backdrop" id="add-modal" style="display: none;">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-icon-badge">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          </div>
+          <div>
+            <h3>Add New Shoe Design to Catalog</h3>
+            <p class="modal-subtitle">Register new model, warehouse shelf coordinates, and multi-angle reference photos.</p>
+          </div>
+        </div>
+        <button class="btn-close" id="btn-close-add-modal">&times;</button>
+      </div>
+
+      <form id="add-design-form" class="modal-body">
+        <div class="form-group" style="background: rgba(59, 130, 246, 0.08); padding: 12px; border-radius: var(--radius-sm); border: 1px dashed rgba(59, 130, 246, 0.3); margin-bottom: 16px;">
+          <label for="template-selector" style="color: #93c5fd; font-weight: 700;">⚡ Quick-Fill Design Template Preset:</label>
+          <select id="template-selector" onchange="applyDesignTemplate(this.value)">
+            <option value="">-- Select Design Template Preset (Optional) --</option>
+            <option value="monk_loafer">Monk Strap Leather Loafer (VIP Sample Vault - Shelf 1)</option>
+            <option value="pro_runner">Pro Speed Track Runner (Building A - Rack A-08)</option>
+            <option value="brogue_oxford">Heritage Brogue Oxford (Building A - Shelf 3)</option>
+            <option value="trail_boot">All-Terrain Hiking Boot (Building B - Rack E-01)</option>
+            <option value="minimal_trainer">Minimalist Leather Street Sneaker (Building A - Rack A-03)</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="new-design-id">Design SKU / ID *</label>
+            <input type="text" id="new-design-id" placeholder="e.g. SHOE-025" required>
+          </div>
+          <div class="form-group">
+            <label for="new-design-name">Model / Design Name *</label>
+            <input type="text" id="new-design-name" placeholder="e.g. Apex HyperKnit V2" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="new-design-category">Category</label>
+            <select id="new-design-category">
+              <option value="Sneaker">Sneaker</option>
+              <option value="Running Shoe">Running Shoe</option>
+              <option value="Casual Trainer">Casual Trainer</option>
+              <option value="Slip-On Loafer">Slip-On Loafer</option>
+              <option value="Classic Oxford">Classic Oxford</option>
+              <option value="Hiking Boot">Hiking Boot</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="new-design-creator">Created By</label>
+            <input type="text" id="new-design-creator" value="Design Studio" required>
+          </div>
+        </div>
+
+        <!-- Warehouse Shelf Location & Production Specs -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="new-design-shelf">
+              <span class="label-with-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Company Shelf Location *
+              </span>
+            </label>
+            <input type="text" id="new-design-shelf" placeholder="e.g. Building A - Rack 03 - Shelf B-02" value="Building A - Section 1 - Rack B-01 - Shelf 1" required>
+          </div>
+          <div class="form-group">
+            <label for="new-design-status">Production / Sample Status</label>
+            <select id="new-design-status">
+              <option value="Active Sample Room">Active Sample Room</option>
+              <option value="Production Line Floor">Production Line Floor</option>
+              <option value="QC Archive">QC Archive</option>
+              <option value="Master Craftsman Vault">Master Craftsman Vault</option>
+              <option value="R&D Prototype Rack">R&D Prototype Rack</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="new-design-materials">Materials & Construction</label>
+            <input type="text" id="new-design-materials" placeholder="e.g. Full Grain Leather / Vibram Outsole" value="Full Grain Leather / Durable Rubber Sole">
+          </div>
+          <div class="form-group">
+            <label for="new-design-season">Season / Collection</label>
+            <input type="text" id="new-design-season" placeholder="e.g. Fall/Winter 2026" value="Collection 2026">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="new-design-desc">Description / Factory Specs</label>
+          <textarea id="new-design-desc" rows="2" placeholder="Material, sole type, stitching notes..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Upload Multi-Angle Reference Photos * (Side, Top, Sole, 3/4, Heel)</label>
+          <div class="drop-zone-sm" id="modal-dropzone">
+            <input type="file" id="modal-files-input" multiple accept="image/*" hidden>
+            <div class="drop-prompt-sm">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <span>Click or Drag & Drop Multiple Photos (3–10 photos recommended)</span>
+            </div>
+          </div>
+          <div class="modal-previews" id="modal-previews"></div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-add">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-submit-add">
+            <span>Index Design (Incremental Add)</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Shoe Inspection & Warehouse Shelf Location Preview -->
+  <div class="modal-backdrop" id="detail-modal" style="display: none;">
+    <div class="modal-dialog modal-xl shoe-preview-modal">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-icon-badge preview-badge">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <div>
+            <h3 id="detail-title">Shoe Inspection & Factory Shelf Location</h3>
+            <span class="preview-sku-tag" id="detail-sku-badge">SKU: SHOE-001 &bull; Sneaker</span>
+          </div>
+        </div>
+        <button class="btn-close" id="btn-close-detail-modal">&times;</button>
+      </div>
+
+      <div class="modal-body" id="detail-modal-body">
+        <!-- Injected dynamically by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
