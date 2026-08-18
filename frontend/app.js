@@ -10,7 +10,9 @@ document.addEventListener("DOMContentLoaded", () => {
     catalog: [],
     logs: [],
     benchmarkData: null,
-    modalFiles: []
+    modalFiles: [],
+    cameraStream: null,
+    cameraFacingMode: "environment"
   };
 
   // DOM Elements
@@ -34,6 +36,8 @@ document.addEventListener("DOMContentLoaded", () => {
     queryPreviewImg: document.getElementById("query-preview-img"),
     btnBrowseFile: document.getElementById("btn-browse-file"),
     btnChangeImage: document.getElementById("btn-change-image"),
+    btnOpenCamera: document.getElementById("btn-open-camera"),
+    btnRecaptureCamera: document.getElementById("btn-recapture-camera"),
     btnClearQuery: document.getElementById("btn-clear-query"),
     btnRunMatch: document.getElementById("btn-run-match"),
     resultsEmpty: document.getElementById("results-empty"),
@@ -42,6 +46,15 @@ document.addEventListener("DOMContentLoaded", () => {
     resultsMetaText: document.getElementById("results-meta-text"),
     latencyBadge: document.getElementById("latency-badge"),
     latencyText: document.getElementById("latency-text"),
+
+    // Camera Modal
+    cameraModal: document.getElementById("camera-modal"),
+    btnCloseCamera: document.getElementById("btn-close-camera"),
+    btnSnapPhoto: document.getElementById("btn-snap-photo"),
+    btnSwitchCamera: document.getElementById("btn-switch-camera"),
+    cameraVideo: document.getElementById("camera-video"),
+    cameraCanvas: document.getElementById("camera-canvas"),
+    cameraLoadingNotice: document.getElementById("camera-loading-notice"),
 
     // Catalog
     catalogSearchInput: document.getElementById("catalog-search-input"),
@@ -228,6 +241,23 @@ document.addEventListener("DOMContentLoaded", () => {
     if (elements.btnCloseAddModal) elements.btnCloseAddModal.addEventListener("click", closeAddModal);
     if (elements.btnCancelAdd) elements.btnCancelAdd.addEventListener("click", closeAddModal);
     if (elements.btnCloseDetailModal) elements.btnCloseDetailModal.addEventListener("click", () => elements.detailModal.style.display = "none");
+
+    // Camera Capture Events
+    if (elements.btnOpenCamera) {
+      elements.btnOpenCamera.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openCameraModal();
+      });
+    }
+    if (elements.btnRecaptureCamera) {
+      elements.btnRecaptureCamera.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openCameraModal();
+      });
+    }
+    if (elements.btnCloseCamera) elements.btnCloseCamera.addEventListener("click", closeCameraModal);
+    if (elements.btnSnapPhoto) elements.btnSnapPhoto.addEventListener("click", snapPhotoFromCamera);
+    if (elements.btnSwitchCamera) elements.btnSwitchCamera.addEventListener("click", switchCamera);
 
     // Modal Drag and Drop
     if (elements.modalDropzone) {
@@ -1084,6 +1114,105 @@ document.addEventListener("DOMContentLoaded", () => {
       showToast("Could not load image from log", "error");
     }
   };
+
+  // ==========================================
+  // Live Camera Capture
+  // ==========================================
+  async function openCameraModal() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      showToast("Camera access is not supported by your browser.", "error");
+      return;
+    }
+
+    if (elements.cameraModal) elements.cameraModal.style.display = "flex";
+    if (elements.cameraLoadingNotice) elements.cameraLoadingNotice.style.display = "block";
+
+    await startCameraStream();
+  }
+
+  async function startCameraStream() {
+    if (state.cameraStream) {
+      state.cameraStream.getTracks().forEach(track => track.stop());
+      state.cameraStream = null;
+    }
+
+    try {
+      const constraints = {
+        video: {
+          facingMode: state.cameraFacingMode,
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      state.cameraStream = stream;
+      if (elements.cameraVideo) {
+        elements.cameraVideo.srcObject = stream;
+        await elements.cameraVideo.play();
+      }
+      if (elements.cameraLoadingNotice) elements.cameraLoadingNotice.style.display = "none";
+
+      // Show switch camera button if multiple cameras exist
+      if (navigator.mediaDevices.enumerateDevices && elements.btnSwitchCamera) {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === "videoinput");
+        if (videoDevices.length > 1) {
+          elements.btnSwitchCamera.style.display = "inline-flex";
+        }
+      }
+    } catch (err) {
+      console.error("Camera access error:", err);
+      showToast("Camera permission denied or camera not available.", "error");
+      closeCameraModal();
+    }
+  }
+
+  function closeCameraModal() {
+    if (state.cameraStream) {
+      state.cameraStream.getTracks().forEach(track => track.stop());
+      state.cameraStream = null;
+    }
+    if (elements.cameraVideo) {
+      elements.cameraVideo.srcObject = null;
+    }
+    if (elements.cameraModal) {
+      elements.cameraModal.style.display = "none";
+    }
+  }
+
+  async function switchCamera() {
+    state.cameraFacingMode = (state.cameraFacingMode === "environment") ? "user" : "environment";
+    await startCameraStream();
+  }
+
+  function snapPhotoFromCamera() {
+    if (!elements.cameraVideo || !state.cameraStream) return;
+
+    const video = elements.cameraVideo;
+    const canvas = elements.cameraCanvas || document.createElement("canvas");
+    const width = video.videoWidth || 640;
+    const height = video.videoHeight || 480;
+
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, width, height);
+
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        showToast("Failed to capture image snapshot.", "error");
+        return;
+      }
+      const file = new File([blob], `camera_snap_${Date.now()}.jpg`, { type: "image/jpeg" });
+      closeCameraModal();
+      setQueryFile(file);
+      showToast("Photo captured from live camera!", "success");
+      // Automatically execute visual match
+      setTimeout(() => executeVisualMatch(), 300);
+    }, "image/jpeg", 0.92);
+  }
 
   // ==========================================
   // Toast Notifications
