@@ -46,6 +46,9 @@ document.addEventListener("DOMContentLoaded", () => {
     resultsMetaText: document.getElementById("results-meta-text"),
     latencyBadge: document.getElementById("latency-badge"),
     latencyText: document.getElementById("latency-text"),
+    detectedCategoryBadge: document.getElementById("detected-category-badge"),
+    detectedCatIcon: document.getElementById("detected-cat-icon"),
+    detectedCatText: document.getElementById("detected-cat-text"),
 
     // Camera Modal
     cameraModal: document.getElementById("camera-modal"),
@@ -331,6 +334,7 @@ document.addEventListener("DOMContentLoaded", () => {
     elements.matchesList.style.display = "none";
     elements.resultsMetaText.textContent = "Awaiting query image";
     elements.latencyBadge.style.display = "none";
+    if (elements.detectedCategoryBadge) elements.detectedCategoryBadge.style.display = "none";
   }
 
   async function executeVisualMatch() {
@@ -342,6 +346,7 @@ document.addEventListener("DOMContentLoaded", () => {
     elements.resultsLoading.style.display = "block";
     elements.btnRunMatch.disabled = true;
     elements.resultsMetaText.textContent = "Searching catalog...";
+    if (elements.detectedCategoryBadge) elements.detectedCategoryBadge.style.display = "none";
 
     const formData = new FormData();
     formData.append("file", state.selectedQueryFile);
@@ -375,16 +380,26 @@ document.addEventListener("DOMContentLoaded", () => {
     elements.matchesList.innerHTML = "";
     elements.resultsLoading.style.display = "none";
 
+    // Render detected category badge
+    if (data.detected_category && elements.detectedCategoryBadge) {
+      elements.detectedCategoryBadge.style.display = "inline-flex";
+      const isSlipper = data.detected_category.toLowerCase() === "slipper";
+      if (elements.detectedCatIcon) elements.detectedCatIcon.textContent = isSlipper ? "🩴" : "👟";
+      if (elements.detectedCatText) elements.detectedCatText.textContent = `Detected: ${isSlipper ? 'Slipper' : 'Shoe'} (${data.category_confidence_pct || 95}%)`;
+    }
+
     if (!data.matches || data.matches.length === 0) {
       elements.resultsEmpty.style.display = "block";
-      elements.resultsEmpty.querySelector("h4").textContent = "No Matches Found";
-      elements.resultsEmpty.querySelector("p").textContent = "Catalog might be empty. Please add reference designs.";
+      const catName = data.detected_category ? data.detected_category.toUpperCase() : "Category";
+      elements.resultsEmpty.querySelector("h4").textContent = `No ${catName} Matches in Catalog`;
+      elements.resultsEmpty.querySelector("p").textContent = data.message || "No reference designs exist for this category in the catalog.";
       return;
     }
 
     elements.resultsEmpty.style.display = "none";
     elements.matchesList.style.display = "flex";
-    elements.resultsMetaText.textContent = `Found Top 3 Matches (${data.total_catalog_designs} catalog designs)`;
+    const catLabel = data.detected_category ? `${data.detected_category.toUpperCase()} Matches` : "Matches";
+    elements.resultsMetaText.textContent = `Found Top 3 ${catLabel} (${data.total_catalog_designs} catalog designs)`;
 
     // Latency badge
     elements.latencyBadge.style.display = "inline-flex";
@@ -915,20 +930,70 @@ document.addEventListener("DOMContentLoaded", () => {
       materials: "Italian White Nappa Leather / Margom Cupsole",
       season: "Core Collection 2026",
       desc: "Minimalist silhouette featuring calfskin lining and stitched rubber cupsole."
+    },
+    cloud_slide: {
+      name: "Comfort Cloud Slide Sandal",
+      category: "Slide Sandal",
+      shelf: "Warehouse B - Rack 01 - Shelf S-01",
+      status: "Active Sample Room",
+      materials: "Hydrophobic EVA Foam / Anti-Slip Contoured Footbed",
+      season: "Summer 2026",
+      desc: "Ultra-cushioned open-toe recovery slide designed for maximum comfort."
+    },
+    breeze_flipflop: {
+      name: "Breeze Ergonomic Flip-Flop",
+      category: "Flip-Flop",
+      shelf: "Warehouse B - Rack 01 - Shelf S-02",
+      status: "Active Sample Room",
+      materials: "Natural Gum Rubber / Soft Woven Strap / Arch Support",
+      season: "Summer 2026",
+      desc: "Lightweight dual-density ergonomic flip-flop with textured grip footbed."
+    },
+    cozy_slipper: {
+      name: "Cozy Velvet Bedroom Slipper",
+      category: "House Slipper",
+      shelf: "Warehouse B - Rack 02 - Shelf S-03",
+      status: "Active Sample Room",
+      materials: "Plush Velvet / Memory Foam Cushion / Non-Marking TPR Sole",
+      season: "Winter 2026",
+      desc: "Warm memory foam indoor slipper with fleece lining and quiet indoor sole."
+    },
+    urban_mule: {
+      name: "Urban Suede Mule Slide",
+      category: "Mule Slipper",
+      shelf: "Warehouse B - Rack 02 - Shelf S-04",
+      status: "Active Sample Room",
+      materials: "Perforated Suede / Natural Cork Footbed / Rubber Outsole",
+      season: "Collection 2026",
+      desc: "Open-back slip-on mule slide with breathable suede upper and orthopedic cork sole."
     }
   };
 
-  window.applyDesignTemplate = function(templateKey) {
-    if (!templateKey || !DESIGN_TEMPLATES[templateKey]) return;
-    const t = DESIGN_TEMPLATES[templateKey];
-    if (document.getElementById("new-design-name")) document.getElementById("new-design-name").value = t.name;
-    if (document.getElementById("new-design-category")) document.getElementById("new-design-category").value = t.category;
-    if (document.getElementById("new-design-shelf")) document.getElementById("new-design-shelf").value = t.shelf;
-    if (document.getElementById("new-design-status")) document.getElementById("new-design-status").value = t.status;
-    if (document.getElementById("new-design-materials")) document.getElementById("new-design-materials").value = t.materials;
-    if (document.getElementById("new-design-season")) document.getElementById("new-design-season").value = t.season;
-    if (document.getElementById("new-design-desc")) document.getElementById("new-design-desc").value = t.desc;
-    showToast(`Template '${t.name}' applied! Now upload photos.`, "info");
+  window.applyDesignTemplate = function(key) {
+    if (!key || !DESIGN_TEMPLATES[key]) return;
+    const tpl = DESIGN_TEMPLATES[key];
+
+    const randomNum = Math.floor(Math.random() * 800) + 100;
+    const prefix = (tpl.category === "Slide Sandal" || tpl.category === "Flip-Flop" || tpl.category === "House Slipper" || tpl.category === "Mule Slipper") ? "SLIP" : "SHOE";
+    const idInput = document.getElementById("new-design-id");
+    const nameInput = document.getElementById("new-design-name");
+    const catInput = document.getElementById("new-design-category");
+    const shelfInput = document.getElementById("new-design-shelf");
+    const statusInput = document.getElementById("new-design-status");
+    const matInput = document.getElementById("new-design-materials");
+    const seasonInput = document.getElementById("new-design-season");
+    const descInput = document.getElementById("new-design-desc");
+
+    if (idInput) idInput.value = `${prefix}-${randomNum}`;
+    if (nameInput) nameInput.value = tpl.name;
+    if (catInput) catInput.value = tpl.category;
+    if (shelfInput) shelfInput.value = tpl.shelf;
+    if (statusInput) statusInput.value = tpl.status;
+    if (matInput) matInput.value = tpl.materials;
+    if (seasonInput) seasonInput.value = tpl.season;
+    if (descInput) descInput.value = tpl.desc;
+
+    showToast(`Template '${tpl.name}' applied!`, "info");
   };
 
   // ==========================================
@@ -1076,21 +1141,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const level = (log.confidence_pct >= 85) ? "HIGH" : (log.confidence_pct >= 70) ? "MODERATE" : "LOW";
       const color = (log.confidence_pct >= 85) ? "green" : (log.confidence_pct >= 70) ? "yellow" : "red";
+      const isSlipper = (log.detected_category === "slipper");
+      const catBadge = isSlipper ? '<span style="color: #60a5fa; font-weight: 600; font-size: 0.8rem;">🩴 Slipper</span>' : '<span style="color: #34d399; font-weight: 600; font-size: 0.8rem;">👟 Shoe</span>';
 
       tr.innerHTML = `
         <td style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-muted);">${log.created_at}</td>
         <td>
           <img src="${log.query_image_path}" class="log-thumb" alt="Query" onerror="this.src='/static/placeholder.jpg'">
         </td>
+        <td>${catBadge}</td>
         <td>
           <strong>${log.top_match_name || "No Match"}</strong>
           <br><span style="font-size: 0.72rem; font-family: var(--font-mono); color: var(--text-muted);">${log.top_match_id || "--"}</span>
         </td>
         <td style="font-family: var(--font-mono); font-weight: 700; font-size: 0.95rem;">
           <span style="color: var(--color-${color});">${log.confidence_pct}%</span>
-        </td>
-        <td>
-          <span class="score-level-badge ${color}">${level}</span>
+          <br><span class="score-level-badge ${color}" style="font-size: 0.68rem; padding: 1px 6px;">${level}</span>
         </td>
         <td style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);">${log.latency_ms} ms</td>
         <td>

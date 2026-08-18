@@ -199,16 +199,31 @@ def ingest_catalog_from_dataset():
         logger.warning(f"Dataset directory {DATASET_DIR} does not exist.")
         return
 
-    # Check for subdirectories (structured format)
+    # Check for subdirectories (structured format: dataset/shoes/... and dataset/slippers/...)
     subdirs = [d for d in DATASET_DIR.iterdir() if d.is_dir()]
     
-    if subdirs:
-        logger.info(f"Found {len(subdirs)} structured design folders in dataset.")
-        for idx, sdir in enumerate(subdirs, start=1):
-            design_id = f"SHOE-{idx:03d}"
+    design_folders = []
+    for d in subdirs:
+        if d.name.lower() in ("shoes", "shoe"):
+            for inner in d.iterdir():
+                if inner.is_dir():
+                    design_folders.append((inner, "shoe"))
+        elif d.name.lower() in ("slippers", "slipper"):
+            for inner in d.iterdir():
+                if inner.is_dir():
+                    design_folders.append((inner, "slipper"))
+        else:
+            cat = "slipper" if db.normalize_category(d.name) == "slipper" else "shoe"
+            design_folders.append((d, cat))
+    
+    if design_folders:
+        logger.info(f"Found {len(design_folders)} structured design folders in dataset.")
+        for idx, (sdir, cat_type) in enumerate(design_folders, start=1):
+            prefix = "SLIP" if cat_type == "slipper" else "SHOE"
+            design_id = f"{prefix}-{idx:03d}"
             name = sdir.name.replace("_", " ").title()
-            category = SAMPLE_CATEGORIES[idx % len(SAMPLE_CATEGORIES)]
-            description = f"Factory catalog design: {name} with multi-angle reference photos."
+            category = "Slide Sandal" if cat_type == "slipper" else "Sneaker"
+            description = f"Factory catalog {cat_type} design: {name} with multi-angle reference photos."
             
             img_files = []
             for img_file in sdir.glob("*.*"):

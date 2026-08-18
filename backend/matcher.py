@@ -14,6 +14,7 @@ from backend.config import (
     CONFIDENCE_MODERATE_THRESHOLD,
 )
 from backend.engine import EmbeddingEngine
+from backend.classifier import ZeroShotCategoryClassifier
 from backend.vector_store import VectorStore
 from backend import database as db
 
@@ -37,12 +38,13 @@ def classify_match_level(confidence_pct: float) -> Tuple[str, str, str]:
 
 class ShoeMatcher:
     """
-    Coordinates feature extraction, FAISS vector search, metadata enrichment,
-    and Top-3 ranked results formulation.
+    Coordinates feature extraction, zero-shot category classification (shoe vs. slipper),
+    FAISS vector search, metadata enrichment, and Top-3 category-filtered ranked results.
     """
 
     def __init__(self):
         self.engine = EmbeddingEngine.get_instance()
+        self.classifier = ZeroShotCategoryClassifier.get_instance()
         self.vector_store = VectorStore.get_instance()
 
     def match_image(
@@ -52,7 +54,7 @@ class ShoeMatcher:
         top_k: int = TOP_K_MATCHES
     ) -> Dict[str, Any]:
         """
-        Execute end-to-end visual matching for an uploaded shoe image.
+        Execute end-to-end visual matching with automatic shoe vs. slipper differentiation.
         
         Args:
             query_image_input: Image filepath, bytes, or PIL Image.
@@ -60,19 +62,25 @@ class ShoeMatcher:
             top_k: Number of ranked design matches to return (default 3).
             
         Returns:
-            Dict containing query metadata, top_k matches ranked best to third-best, and latency.
+            Dict containing detected category, confidence, top_k matches ranked best to third-best, and latency.
         """
         t0 = time.time()
         
         # 1. Extract visual embedding
         query_embedding = self.engine.get_embedding(query_image_input)
         
-        # 2. Check if catalog has vectors
+        # 2. Run zero-shot category classification (invisible to user, automatic differentiation)
+        detected_category, cat_prob = self.classifier.classify_category(query_image_input)
+        category_confidence_pct = round(cat_prob * 100.0, 1)
+        
+        # 3. Check if catalog has vectors
         if self.vector_store.total_vectors == 0:
             latency_ms = (time.time() - t0) * 1000
             return {
                 "success": True,
                 "query_image_path": query_image_save_path,
+                "detected_category": detected_category,
+                "category_confidence_pct": category_confidence_pct,
                 "total_catalog_designs": 0,
                 "total_catalog_vectors": 0,
                 "matches": [],
@@ -80,15 +88,14 @@ class ShoeMatcher:
                 "message": "Catalog is currently empty. Please add reference designs first."
             }
 
-        # 3. Retrieve more raw neighbors to ensure we have top_k DISTINCT designs
-        # (Since one design can have 3-10 angle photos in the index)
-        raw_k = min(max(top_k * 5, 20), self.vector_store.total_vectors)
+        # 4. Retrieve a wider candidate pool from FAISS to allow category filtering
+        raw_k = min(max(top_k * 10, 30), self.vector_store.total_vectors)
         scores, faiss_ids = self.vector_store.search(query_embedding, top_k=raw_k)
         
         raw_scores = scores[0] if len(scores) > 0 else []
         raw_ids = faiss_ids[0] if len(faiss_ids) > 0 else []
         
-        # 4. Group by design ID and select the highest-scoring angle per design
+        # 5. Filter candidates strictly to the detected category and group by design ID
         seen_designs = {}
         for score, faiss_id in zip(raw_scores, raw_ids):
             if faiss_id < 0:
@@ -97,12 +104,14 @@ class ShoeMatcher:
             ref_meta = db.get_reference_image_by_faiss_id(int(faiss_id))
             if not ref_meta:
                 continue
+
+            ref_category = ref_meta.get("category", "")
+            # Filter strictly: only designs whose normalized category matches detected category
+            if db.normalize_category(ref_category) != detected_category:
+                continue
                 
             design_id = ref_meta["design_id"]
             cosine_score = float(score)
-            
-            # Confidence percentage scaled from cosine similarity
-            # Cosine similarity for normalized vectors is [-1.0, 1.0], typical vision similarity is >0.2
             confidence_pct = max(0.0, min(100.0, cosine_score * 100.0))
             
             if design_id not in seen_designs or cosine_score > seen_designs[design_id]["cosine_similarity"]:
@@ -118,19 +127,18 @@ class ShoeMatcher:
                     "faiss_id": int(faiss_id)
                 }
 
-        # 5. Sort distinct designs by similarity descending and pick top_k
+        # 6. Sort distinct same-category designs by similarity descending and pick top_k
         sorted_matches = sorted(
             seen_designs.values(),
             key=lambda x: x["cosine_similarity"],
             reverse=True
         )[:top_k]
 
-        # 6. Format top matches with rankings, alert levels, and complete reference photos
+        # 7. Format top matches with rankings, alert levels, and complete reference photos
         ranked_matches = []
         for rank_idx, match in enumerate(sorted_matches, start=1):
             level_code, level_label, color_code = classify_match_level(match["confidence_pct"])
             
-            # Get full design details including all angle photos
             full_design = db.get_design(match["design_id"]) or {}
             all_refs = full_design.get("reference_images", [])
             
@@ -156,7 +164,7 @@ class ShoeMatcher:
 
         latency_ms = (time.time() - t0) * 1000
         
-        # 7. Audit log to SQLite
+        # 8. Audit log to SQLite with detected category
         top_match = ranked_matches[0] if ranked_matches else None
         db.log_query(
             query_image_path=query_image_save_path or "memory_query.jpg",
@@ -164,16 +172,24 @@ class ShoeMatcher:
             top_match_name=top_match["design_name"] if top_match else None,
             confidence_pct=top_match["confidence_pct"] if top_match else 0.0,
             latency_ms=latency_ms,
-            results=ranked_matches
+            results=ranked_matches,
+            detected_category=detected_category
         )
         
         catalog_stats = db.get_catalog_stats()
         
+        message = None
+        if len(ranked_matches) == 0:
+            message = f"Detected category '{detected_category}' ({category_confidence_pct}%), but no matching reference designs exist in the catalog for this category."
+        
         return {
             "success": True,
             "query_image_path": query_image_save_path,
+            "detected_category": detected_category,
+            "category_confidence_pct": category_confidence_pct,
             "total_catalog_designs": catalog_stats["total_designs"],
             "total_catalog_vectors": self.vector_store.total_vectors,
             "matches": ranked_matches,
-            "latency_ms": round(latency_ms, 2)
+            "latency_ms": round(latency_ms, 2),
+            "message": message
         }

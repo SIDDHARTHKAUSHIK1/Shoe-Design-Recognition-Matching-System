@@ -23,6 +23,19 @@ def get_db_connection() -> sqlite3.Connection:
     return conn
 
 
+def normalize_category(cat: Optional[str]) -> str:
+    """
+    Normalize any footwear category or style into 'shoe' or 'slipper'.
+    """
+    if not cat:
+        return "shoe"
+    c = cat.strip().lower()
+    slipper_keywords = ["slipper", "slide", "flip", "flop", "sandal", "mule", "clog", "thong", "chappal", "croc"]
+    if any(k in c for k in slipper_keywords):
+        return "slipper"
+    return "shoe"
+
+
 def init_db():
     """Initialize database tables if they do not exist."""
     with get_db_connection() as conn:
@@ -56,6 +69,11 @@ def init_db():
                 cursor.execute(f"ALTER TABLE designs ADD COLUMN {col} {col_def};")
             except sqlite3.OperationalError:
                 pass
+
+        try:
+            cursor.execute("ALTER TABLE query_logs ADD COLUMN detected_category TEXT DEFAULT 'shoe';")
+        except sqlite3.OperationalError:
+            pass
         
         # 2. Reference Images Table (links each angle photo to a FAISS vector ID)
         cursor.execute("""
@@ -280,7 +298,8 @@ def log_query(
     top_match_name: Optional[str],
     confidence_pct: float,
     latency_ms: float,
-    results: List[Dict[str, Any]]
+    results: List[Dict[str, Any]],
+    detected_category: str = "shoe"
 ) -> int:
     """Log an inference query for auditing and threshold tuning."""
     with get_db_connection() as conn:
@@ -292,15 +311,17 @@ def log_query(
                 top_match_name,
                 confidence_pct,
                 latency_ms,
-                results_json
-            ) VALUES (?, ?, ?, ?, ?, ?);
+                results_json,
+                detected_category
+            ) VALUES (?, ?, ?, ?, ?, ?, ?);
         """, (
             query_image_path,
             top_match_id,
             top_match_name,
             round(confidence_pct, 2),
             round(latency_ms, 2),
-            json.dumps(results)
+            json.dumps(results),
+            detected_category
         ))
         conn.commit()
         return cursor.lastrowid
@@ -319,6 +340,8 @@ def get_query_logs(limit: int = 50) -> List[Dict[str, Any]]:
         result = []
         for r in rows:
             d = dict(r)
+            if "detected_category" not in d or not d["detected_category"]:
+                d["detected_category"] = "shoe"
             try:
                 d["results"] = json.loads(d.get("results_json", "[]"))
             except Exception:

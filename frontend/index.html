@@ -164,9 +164,15 @@
                 <h3>2. Top 3 Catalog Matches</h3>
                 <span class="card-hint" id="results-meta-text">Awaiting query image</span>
               </div>
-              <div class="latency-badge" id="latency-badge" style="display: none;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                <span id="latency-text">0 ms</span>
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <div class="detected-category-badge" id="detected-category-badge" style="display: none; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); padding: 4px 10px; border-radius: 9999px; font-size: 0.78rem; font-weight: 600; color: #93c5fd; display: inline-flex; align-items: center; gap: 5px;">
+                  <span id="detected-cat-icon">👟</span>
+                  <span id="detected-cat-text">Detected: Shoe (98.2%)</span>
+                </div>
+                <div class="latency-badge" id="latency-badge" style="display: none;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <span id="latency-text">0 ms</span>
+                </div>
               </div>
             </div>
 
@@ -180,7 +186,7 @@
                 </svg>
               </div>
               <h4>No Query Executed Yet</h4>
-              <p>Upload a shoe image on the left and click "Find Matches in Catalog" to view side-by-side rankings.</p>
+              <p>Upload a shoe or slipper image on the left and click "Find Matches in Catalog" to view side-by-side rankings.</p>
             </div>
 
             <!-- Loading State -->
@@ -201,60 +207,67 @@
       <section class="tab-pane" id="catalog-tab">
         <div class="catalog-header-bar">
           <div class="search-box">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="catalog-search-input" placeholder="Search by SKU, model name, category...">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="catalog-search-input" placeholder="Search by model name, SKU, materials, or location...">
           </div>
-          <div class="catalog-filters">
+          <div class="filter-group">
             <select id="catalog-category-filter">
-              <option value="ALL">All Categories</option>
-              <option value="Sneaker">Sneaker</option>
-              <option value="Running Shoe">Running Shoe</option>
-              <option value="Casual Trainer">Casual Trainer</option>
-              <option value="Classic Oxford">Classic Oxford</option>
-              <option value="Hiking Boot">Hiking Boot</option>
+              <option value="">All Categories (Shoes & Slippers)</option>
+              <optgroup label="Shoes">
+                <option value="Sneaker">Sneakers</option>
+                <option value="Running Shoe">Running Shoes</option>
+                <option value="Casual Trainer">Casual Trainers</option>
+                <option value="Slip-On Loafer">Slip-On Loafers</option>
+                <option value="Classic Oxford">Classic Oxfords</option>
+                <option value="Hiking Boot">Hiking Boots</option>
+              </optgroup>
+              <optgroup label="Slippers & Slides">
+                <option value="Slide Sandal">Slide Sandals</option>
+                <option value="Flip-Flop">Flip-Flops</option>
+                <option value="House Slipper">House Slippers</option>
+                <option value="Mule Slipper">Mule Slippers</option>
+              </optgroup>
             </select>
-            <button class="btn btn-secondary" id="btn-refresh-catalog">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-              <span>Refresh</span>
+            <button class="btn btn-secondary btn-sm" id="btn-refresh-catalog" title="Refresh Catalog">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
             </button>
           </div>
         </div>
-
-        <!-- Catalog Grid -->
         <div class="catalog-grid" id="catalog-grid">
-          <!-- Populated by JavaScript -->
+          <!-- Catalog Cards Injected by JS -->
         </div>
       </section>
 
-      <!-- TAB 3: Audit Logs -->
+      <!-- TAB 3: Query Logs & Audit Explorer -->
       <section class="tab-pane" id="logs-tab">
-        <div class="card logs-card">
-          <div class="card-header">
-            <div class="card-title-group">
-              <h3>Query History & Inference Audit Log</h3>
-              <p class="card-hint">Chronological audit trail of all uploaded shoes and matching results.</p>
-            </div>
-            <button class="btn btn-secondary btn-sm" id="btn-refresh-logs">Refresh Logs</button>
+        <div class="logs-header-bar">
+          <div class="logs-info">
+            <h3>Audit Inspection History</h3>
+            <span class="card-hint">Real-time log of visual similarity searches and factory shelf queries</span>
           </div>
+          <button class="btn btn-secondary btn-sm" id="btn-refresh-logs">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            <span>Refresh Logs</span>
+          </button>
+        </div>
 
-          <div class="table-responsive">
-            <table class="data-table" id="logs-table">
-              <thead>
-                <tr>
-                  <th>Time</th>
-                  <th>Query Photo</th>
-                  <th>Top Matched Design</th>
-                  <th>Confidence</th>
-                  <th>Level</th>
-                  <th>Latency</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="logs-tbody">
-                <!-- Log rows injected by JS -->
-              </tbody>
-            </table>
-          </div>
+        <div class="table-responsive">
+          <table class="logs-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Query Image</th>
+                <th>Category</th>
+                <th>Top Match</th>
+                <th>Confidence</th>
+                <th>Latency</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="logs-tbody">
+              <!-- Logs injected by app.js -->
+            </tbody>
+          </table>
         </div>
       </section>
     </main>
@@ -269,54 +282,71 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
           </div>
           <div>
-            <h3>Add New Shoe Design to Catalog</h3>
-            <p class="modal-subtitle">Register new model, warehouse shelf coordinates, and multi-angle reference photos.</p>
+            <h3>Add New Reference Design</h3>
+            <span style="font-size: 0.78rem; color: var(--text-muted);">Indexes reference photos with sub-second incremental FAISS vector ingestion</span>
           </div>
         </div>
         <button class="btn-close" id="btn-close-add-modal">&times;</button>
       </div>
 
-      <form id="add-design-form" class="modal-body">
-        <div class="form-group" style="background: rgba(59, 130, 246, 0.08); padding: 12px; border-radius: var(--radius-sm); border: 1px dashed rgba(59, 130, 246, 0.3); margin-bottom: 16px;">
-          <label for="template-selector" style="color: #93c5fd; font-weight: 700;">⚡ Quick-Fill Design Template Preset:</label>
-          <select id="template-selector" onchange="applyDesignTemplate(this.value)">
-            <option value="">-- Select Design Template Preset (Optional) --</option>
-            <option value="monk_loafer">Monk Strap Leather Loafer (VIP Sample Vault - Shelf 1)</option>
-            <option value="pro_runner">Pro Speed Track Runner (Building A - Rack A-08)</option>
-            <option value="brogue_oxford">Heritage Brogue Oxford (Building A - Shelf 3)</option>
-            <option value="trail_boot">All-Terrain Hiking Boot (Building B - Rack E-01)</option>
-            <option value="minimal_trainer">Minimalist Leather Street Sneaker (Building A - Rack A-03)</option>
-          </select>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="new-design-id">Design SKU / ID *</label>
-            <input type="text" id="new-design-id" placeholder="e.g. SHOE-025" required>
-          </div>
-          <div class="form-group">
-            <label for="new-design-name">Model / Design Name *</label>
-            <input type="text" id="new-design-name" placeholder="e.g. Apex HyperKnit V2" required>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="new-design-category">Category</label>
-            <select id="new-design-category">
-              <option value="Sneaker">Sneaker</option>
-              <option value="Running Shoe">Running Shoe</option>
-              <option value="Casual Trainer">Casual Trainer</option>
-              <option value="Slip-On Loafer">Slip-On Loafer</option>
-              <option value="Classic Oxford">Classic Oxford</option>
-              <option value="Hiking Boot">Hiking Boot</option>
+      <form id="add-design-form">
+        <div class="modal-body">
+          <!-- Template Quick Fill Selector -->
+          <div class="form-group" style="background: rgba(59, 130, 246, 0.08); padding: 12px; border-radius: var(--radius-sm); border: 1px dashed rgba(59, 130, 246, 0.3); margin-bottom: 16px;">
+            <label for="template-selector" style="color: #93c5fd; font-weight: 700;">⚡ Quick-Fill Design Template Preset:</label>
+            <select id="template-selector" onchange="applyDesignTemplate(this.value)">
+              <option value="">-- Select Design Template Preset (Optional) --</option>
+              <optgroup label="👟 Shoes">
+                <option value="monk_loafer">Monk Strap Leather Loafer (VIP Sample Vault - Shelf 1)</option>
+                <option value="pro_runner">Pro Speed Track Runner (Building A - Rack A-08)</option>
+                <option value="brogue_oxford">Heritage Brogue Oxford (Building A - Shelf 3)</option>
+                <option value="trail_boot">All-Terrain Hiking Boot (Building B - Rack E-01)</option>
+                <option value="minimal_trainer">Minimalist Leather Street Sneaker (Building A - Rack A-03)</option>
+              </optgroup>
+              <optgroup label="🩴 Slippers & Slides">
+                <option value="cloud_slide">Comfort Cloud Slide Sandal (Warehouse B - Rack 01 - Shelf S-01)</option>
+                <option value="breeze_flipflop">Breeze Ergonomic Flip-Flop (Warehouse B - Rack 01 - Shelf S-02)</option>
+                <option value="cozy_slipper">Cozy Velvet Bedroom Slipper (Warehouse B - Rack 02 - Shelf S-03)</option>
+                <option value="urban_mule">Urban Suede Mule Slide (Warehouse B - Rack 02 - Shelf S-04)</option>
+              </optgroup>
             </select>
           </div>
-          <div class="form-group">
-            <label for="new-design-creator">Created By</label>
-            <input type="text" id="new-design-creator" value="Design Studio" required>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="new-design-id">Design SKU / ID *</label>
+              <input type="text" id="new-design-id" placeholder="e.g. SHOE-025 or SLIP-005" required>
+            </div>
+            <div class="form-group">
+              <label for="new-design-name">Model / Design Name *</label>
+              <input type="text" id="new-design-name" placeholder="e.g. Apex HyperKnit V2" required>
+            </div>
           </div>
-        </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="new-design-category">Category</label>
+              <select id="new-design-category">
+                <optgroup label="Shoes">
+                  <option value="Sneaker">Sneaker</option>
+                  <option value="Running Shoe">Running Shoe</option>
+                  <option value="Casual Trainer">Casual Trainer</option>
+                  <option value="Slip-On Loafer">Slip-On Loafer</option>
+                  <option value="Classic Oxford">Classic Oxford</option>
+                  <option value="Hiking Boot">Hiking Boot</option>
+                </optgroup>
+                <optgroup label="Slippers & Slides">
+                  <option value="Slide Sandal">Slide Sandal</option>
+                  <option value="Flip-Flop">Flip-Flop</option>
+                  <option value="House Slipper">House Slipper</option>
+                  <option value="Mule Slipper">Mule Slipper</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="new-design-creator">Created By</label>
+              <input type="text" id="new-design-creator" value="Design Studio" required>
+          </div>
 
         <!-- Warehouse Shelf Location & Production Specs -->
         <div class="form-row">
