@@ -1,22 +1,39 @@
 {
   "version": 2,
-  "public": false,
-  "rewrites": [
+  "builds": [
     {
-      "source": "/static/(.*)",
-      "destination": "/frontend/$1"
+      "src": "api/index.py",
+      "use": "@vercel/python"
     },
     {
-      "source": "/catalog_images/(.*)",
-      "destination": "/storage/catalog_images/$1"
+      "src": "frontend/**",
+      "use": "@vercel/static"
     },
     {
-      "source": "/api/(.*)",
-      "destination": "/backend/main.py"
+      "src": "storage/catalog_images/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "api/index.py"
     },
     {
-      "source": "/(.*)",
-      "destination": "/frontend/index.html"
+      "src": "/catalog_images/(.*)",
+      "dest": "storage/catalog_images/$1"
+    },
+    {
+      "src": "/static/(.*)",
+      "dest": "frontend/$1"
+    },
+    {
+      "src": "/",
+      "dest": "frontend/index.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "frontend/$1"
     }
   ]
 }
