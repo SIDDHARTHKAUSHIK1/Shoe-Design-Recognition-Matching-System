@@ -1,7 +1,8 @@
 FROM python:3.11-slim
 
 ENV PYTHONUNBUFFERED=1 \
-    DEBIAN_FRONTEND=noninteractive
+    DEBIAN_FRONTEND=noninteractive \
+    PORT=8000
 
 WORKDIR /app
 
@@ -17,8 +18,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Pre-populate catalog on container build / start
-RUN python -m backend.ingestion || true
+# Ensure storage directories exist with appropriate permissions
+RUN mkdir -p storage/uploads storage/catalog_images
 
 EXPOSE 8000
 

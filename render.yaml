@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: shoe-design-recognition-system
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: EMBEDDING_MODEL
+        value: facebook/dinov2-small
