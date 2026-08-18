@@ -118,8 +118,8 @@ class ShoeMatcher:
                 "message": "Catalog is currently empty. Please add reference designs first."
             }
 
-        # 5. Retrieve a wider candidate pool from FAISS to allow category filtering
-        raw_k = min(max(top_k * 10, 30), self.vector_store.total_vectors)
+        # 5. Retrieve a wide candidate pool from FAISS to allow complete category filtering
+        raw_k = min(max(top_k * 50, 500), self.vector_store.total_vectors)
         scores, faiss_ids = self.vector_store.search(query_embedding, top_k=raw_k)
         
         raw_scores = scores[0] if len(scores) > 0 else []
