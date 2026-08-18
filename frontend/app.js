@@ -159,26 +159,41 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.addEventListener("click", () => switchTab(btn.dataset.tab));
     });
 
-    // File Drop & Selection for Query Studio
-    elements.btnBrowseFile.addEventListener("click", () => elements.queryFileInput.click());
-    elements.btnChangeImage.addEventListener("click", () => elements.queryFileInput.click());
-    elements.queryFileInput.addEventListener("change", handleQueryFileSelect);
+    // File Drop & Selection for Query Studio (Click anywhere in the box to upload)
+    if (elements.queryDropzone) {
+      elements.queryDropzone.addEventListener("click", (e) => {
+        if (!state.selectedQueryFile || e.target.closest("#btn-change-image")) {
+          elements.queryFileInput.click();
+        }
+      });
+    }
+    if (elements.btnBrowseFile) elements.btnBrowseFile.addEventListener("click", (e) => {
+      e.stopPropagation();
+      elements.queryFileInput.click();
+    });
+    if (elements.btnChangeImage) elements.btnChangeImage.addEventListener("click", (e) => {
+      e.stopPropagation();
+      elements.queryFileInput.click();
+    });
+    if (elements.queryFileInput) elements.queryFileInput.addEventListener("change", handleQueryFileSelect);
 
     // Dropzone Drag Events
-    elements.queryDropzone.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      elements.queryDropzone.classList.add("drag-over");
-    });
-    elements.queryDropzone.addEventListener("dragleave", () => {
-      elements.queryDropzone.classList.remove("drag-over");
-    });
-    elements.queryDropzone.addEventListener("drop", (e) => {
-      e.preventDefault();
-      elements.queryDropzone.classList.remove("drag-over");
-      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        setQueryFile(e.dataTransfer.files[0]);
-      }
-    });
+    if (elements.queryDropzone) {
+      elements.queryDropzone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        elements.queryDropzone.classList.add("drag-over");
+      });
+      elements.queryDropzone.addEventListener("dragleave", () => {
+        elements.queryDropzone.classList.remove("drag-over");
+      });
+      elements.queryDropzone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        elements.queryDropzone.classList.remove("drag-over");
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          setQueryFile(e.dataTransfer.files[0]);
+        }
+      });
+    }
 
     // Clipboard Paste Support (Ctrl+V)
     window.addEventListener("paste", (e) => {
@@ -196,7 +211,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (elements.btnTopbarToggle) elements.btnTopbarToggle.addEventListener("click", toggleSidebar);
 
     // Clear and Match Buttons
-    if (elements.btnClearQuery) elements.btnClearQuery.addEventListener("click", resetQueryStudio);
+    if (elements.btnClearQuery) elements.btnClearQuery.addEventListener("click", (e) => {
+      e.stopPropagation();
+      resetQueryStudio();
+    });
     if (elements.btnRunMatch) elements.btnRunMatch.addEventListener("click", executeVisualMatch);
 
     // Catalog Actions
