@@ -135,6 +135,9 @@ class BinaryFootwearGate:
         }
 
         # Verification Gate Rules (Default is REJECTION)
+        if max_neg_sim >= max_pos_sim:
+            return False, round(prob_footwear, 4), "closer_to_non_footwear", diagnostics
+
         if max_pos_sim < min_pos_sim:
             return False, round(prob_footwear, 4), "low_footwear_similarity", diagnostics
 
@@ -146,6 +149,7 @@ class BinaryFootwearGate:
 
         # Passed all gate checks -> Confirmed genuine footwear
         return True, round(prob_footwear, 4), "confirmed_footwear", diagnostics
+
 
     def classify_shoe_vs_slipper(
         self,

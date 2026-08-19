@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger(__name__)
 
 from backend import database as db
-from backend.config import CATALOG_IMAGES_DIR
+from backend.config import CATALOG_IMAGES_DIR, assert_catalog_image_path
 from backend.engine import EmbeddingEngine
 from backend.vector_store import VectorStore
 
@@ -47,8 +47,12 @@ def rebuild_shoe_only_index():
             logger.warning(f"  SKIP — image not found: {img_path}")
             continue
 
+        # Enforce catalog isolation guardrail
+        assert_catalog_image_path(img_path)
+
         try:
             from PIL import Image
+
             img = Image.open(img_path).convert("RGB")
             emb = engine._compute_embedding(img)
             embeddings_list.append(emb)

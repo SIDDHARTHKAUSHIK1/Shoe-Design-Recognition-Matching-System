@@ -1,0 +1,15 @@
+{
+  "source_path": "C:\\Users\\Siddharth Kaushik\\.cache\\kagglehub\\datasets\\aryashah2k\\large-shoe-dataset-ut-zappos50k\\versions\\1\\ut-zap50k-images-square",
+  "total_images": 50066,
+  "categories": {
+    "ut-zap50k-images-square": 50066
+  },
+  "subcategories": {
+    "ut-zap50k-images-square": {
+      "Slippers": 1283,
+      "Shoes": 30208,
+      "Sandals": 5741,
+      "Boots": 12834
+    }
+  }
+}

@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR))
 
 from backend import database as db
-from backend.config import STORAGE_DIR, CATALOG_IMAGES_DIR, EMBEDDING_DIM
+from backend.config import STORAGE_DIR, CATALOG_IMAGES_DIR, EMBEDDING_DIM, assert_catalog_image_path
 from backend.foreground import isolate_foreground
 from backend.engine import EmbeddingEngine
 from backend.vector_store import VectorStore
@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 SEGMENTED_CATALOG_DIR = STORAGE_DIR / "catalog_segmented"
 SEGMENTED_CATALOG_DIR.mkdir(parents=True, exist_ok=True)
+
 
 
 def reprocess_catalog():
@@ -76,8 +77,12 @@ def reprocess_catalog():
             logger.warning(f"[{idx}/{len(all_refs)}] Image file not found: {src_path}")
             continue
 
+        # Enforce catalog isolation guardrail
+        assert_catalog_image_path(src_path)
+
         try:
             raw_img = Image.open(src_path).convert("RGB")
+
             # Apply foreground isolation with neutral background fill (248, 248, 248)
             neutral_crop, reason, meta = isolate_foreground(raw_img, padding_ratio=0.08)
 
