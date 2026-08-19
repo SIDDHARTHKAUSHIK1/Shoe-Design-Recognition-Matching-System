@@ -69,6 +69,10 @@ MODEL_NAME = os.getenv("EMBEDDING_MODEL", "facebook/dinov2-small")
 EMBEDDING_DIM = 384  # DINOv2-small output dimension
 IMAGE_SIZE = (224, 224)
 
+# Test-Time Augmentation (TTA) Configuration
+ENABLE_TTA = os.getenv("ENABLE_TTA", "true").lower() in ("true", "1", "t")
+TTA_CROPS = int(os.getenv("TTA_CROPS", "2"))  # 2 crops (original + horizontal flip) for <250ms latency
+
 # Matching & Confidence Thresholds
 CONFIDENCE_HIGH_THRESHOLD = 85.0     # >= 85%: Strong Match (Green)
 CONFIDENCE_MODERATE_THRESHOLD = 70.0 # 70% - 84.9%: Moderate Match (Yellow)

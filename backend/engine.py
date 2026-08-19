@@ -11,7 +11,7 @@ import numpy as np
 import torch
 from transformers import AutoImageProcessor, AutoModel
 
-from backend.config import MODEL_NAME, EMBEDDING_DIM
+from backend.config import MODEL_NAME, EMBEDDING_DIM, ENABLE_TTA, TTA_CROPS
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ class EmbeddingEngine:
     def __init__(self, model_name: str = MODEL_NAME):
         self.model_name = model_name
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        logger.info(f"Initializing EmbeddingEngine with {model_name} on device: {self.device}")
+        logger.info(f"Initializing EmbeddingEngine with {model_name} on device: {self.device} (TTA={ENABLE_TTA}, crops={TTA_CROPS})")
         
         t0 = time.time()
         self.use_st = False
@@ -143,12 +143,40 @@ class EmbeddingEngine:
         emb = self._compute_embedding(img)
         return emb, rejection_reason, crop_meta
 
-    def _compute_embedding(self, img: Image.Image) -> np.ndarray:
-        """Internal computation of normalized DINOv2 embedding."""
+    def _compute_embedding(self, img: Image.Image, use_tta: Optional[bool] = None) -> np.ndarray:
+        """Internal computation of normalized DINOv2 embedding with optional batched TTA."""
         if getattr(self, "use_st", False):
             emb = self.st_model.encode(img, convert_to_numpy=True, normalize_embeddings=True)
             return emb.astype(np.float32)
             
+        if use_tta is None:
+            use_tta = ENABLE_TTA
+
+        if use_tta:
+            # Multi-crop augmentation: original + horizontal mirror
+            crops = [img, ImageOps.mirror(img)]
+            if TTA_CROPS >= 3:
+                w, h = img.size
+                crop_box = (int(w * 0.05), int(h * 0.05), int(w * 0.95), int(h * 0.95))
+                crops.append(img.crop(crop_box))
+            
+            inputs = self.processor(images=crops, return_tensors="pt")
+            inputs = {k: v.to(self.device) for k, v in inputs.items()}
+            
+            with torch.no_grad():
+                outputs = self.model(**inputs)
+                if hasattr(outputs, "pooler_output") and outputs.pooler_output is not None:
+                    embs = outputs.pooler_output
+                else:
+                    embs = outputs.last_hidden_state[:, 0, :]
+                
+                # Normalize each crop embedding
+                embs = torch.nn.functional.normalize(embs, p=2, dim=1)
+                # Mean pool across augmented views and re-normalize to unit length
+                mean_emb = torch.nn.functional.normalize(embs.mean(dim=0, keepdim=True), p=2, dim=1)
+                
+            return mean_emb.cpu().numpy()[0].astype(np.float32)
+
         inputs = self.processor(images=img, return_tensors="pt")
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
         
