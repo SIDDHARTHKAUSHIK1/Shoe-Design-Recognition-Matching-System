@@ -85,18 +85,25 @@ class ZeroShotCategoryClassifier:
         """
         from backend.engine import EmbeddingEngine
         from backend.vector_store import VectorStore
+        from backend.footwear_gate import BinaryFootwearGate
         from backend import database as db
 
         engine = EmbeddingEngine.get_instance()
         vs = VectorStore.get_instance()
+        gate = BinaryFootwearGate.get_instance()
 
         if precomputed_embedding is not None:
             emb = precomputed_embedding
         else:
             emb = engine.get_embedding(image_input)
 
+        # 1. Independent Binary Footwear Gate Check (Footwear vs. Non-Footwear)
+        is_footwear, gate_prob, gate_reason, gate_diag = gate.verify_footwear(emb)
+        if not is_footwear:
+            return "none", round(gate_prob, 4), gate_reason, gate_diag
+
         if vs.total_vectors == 0:
-            return "shoe", 0.95, "matched", {"max_sim": 0.0, "density_score": 1.0}
+            return "shoe", 0.95, "matched", gate_diag
 
         # Query top nearest neighbors in FAISS
         k = min(10, vs.total_vectors)
@@ -113,6 +120,7 @@ class ZeroShotCategoryClassifier:
         density_score = self.compute_neighborhood_density(raw_ids[:5])
 
         diagnostics = {
+            **gate_diag,
             "max_sim": round(max_sim, 4),
             "second_sim": round(second_sim, 4),
             "margin": round(top_margin, 4),
@@ -120,14 +128,10 @@ class ZeroShotCategoryClassifier:
             "top_ids": raw_ids[:5]
         }
 
-        # 1. Hard Non-Footwear Rejection (similarity below 0.22)
-        if max_sim < 0.22:
+        # 2. Hard Non-Footwear Rejection if similarity to catalog is exceedingly low
+        if max_sim < 0.30:
             conf = max(0.0, min(1.0, 1.0 - max_sim))
             return "none", round(conf, 4), "below_threshold", diagnostics
-
-        # 2. Ambiguous Neighborhood Density Check (sparse or disjoint embedding space)
-        if max_sim < 0.38 and density_score < 0.20:
-            return "none", round(max_sim, 4), "ambiguous_density", diagnostics
 
         # 3. Weighted Rank Voting between Shoes and Slippers
         shoe_score = 0.0

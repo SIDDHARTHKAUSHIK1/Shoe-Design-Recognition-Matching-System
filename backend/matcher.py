@@ -262,9 +262,47 @@ class ShoeMatcher:
                     break
 
         # Margin and Ambiguity Analysis
+        thresholds = load_thresholds_config()
+        cat_cfg = thresholds.get(detected_category, thresholds.get("global", {}))
+        rejection_th = float(cat_cfg.get("rejection_threshold", 0.35))
+
         top1_sim = sorted_matches[0]["combined_score"] if sorted_matches else 0.0
         top2_sim = sorted_matches[1]["combined_score"] if len(sorted_matches) > 1 else 0.0
         score_margin = round(top1_sim - top2_sim, 4)
+
+        latency_ms = (time.time() - t0) * 1000
+        stats = db.get_catalog_stats()
+
+        # Handle case where footwear is detected, but does not match any catalog design
+        if not sorted_matches or top1_sim < rejection_th:
+            if query_image_save_path:
+                db.log_query(
+                    query_image_path=query_image_save_path,
+                    top_match_id="NO_MATCH",
+                    top_match_name="No Close Catalog Match",
+                    confidence_pct=0.0,
+                    latency_ms=latency_ms,
+                    results=[],
+                    detected_category=detected_category
+                )
+            return {
+                "success": True,
+                "query_image_path": query_image_save_path,
+                "detected_category": detected_category,
+                "is_footwear_detected": True,
+                "matched": False,
+                "category_confidence_pct": category_confidence_pct,
+                "reason": "no_close_catalog_match",
+                "top_similarity": round(top1_sim, 4),
+                "rejection_threshold": rejection_th,
+                "total_catalog_designs": stats.get("total_designs", 0),
+                "total_catalog_vectors": self.vector_store.total_vectors,
+                "matches": [],
+                "crop_metadata": crop_meta,
+                "query_dominant_colors": query_dominant_colors,
+                "latency_ms": round(latency_ms, 2),
+                "message": "Footwear detected, but no close matching design was found in the catalog."
+            }
 
         if top1_sim < 0.55 and score_margin < 0.015 and len(sorted_matches) > 1:
             match_reason = "low_margin"
@@ -301,8 +339,6 @@ class ShoeMatcher:
                 "best_matching_image_url": match["best_matching_image_path"],
                 "all_angles": all_refs
             })
-
-        latency_ms = (time.time() - t0) * 1000
         
         # 8. Audit log to SQLite with detected category
         top_match = ranked_matches[0] if ranked_matches else None
@@ -316,14 +352,13 @@ class ShoeMatcher:
             detected_category=detected_category
         )
         
-        stats = db.get_catalog_stats()
-        
         return {
             "success": True,
             "query_id": query_id,
             "query_image_path": query_image_save_path,
             "detected_category": detected_category,
             "is_footwear_detected": True,
+            "matched": True,
             "category_confidence_pct": category_confidence_pct,
             "reason": match_reason,
             "score_margin": score_margin,

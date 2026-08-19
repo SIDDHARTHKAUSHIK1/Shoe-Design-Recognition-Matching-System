@@ -81,7 +81,19 @@ def generate_synthetic_validation_pairs(vs: VectorStore):
                 if s < 0.65:
                     negatives[cat_i].append(s)
 
-    # Add synthetic out-of-distribution / non-footwear negatives
+    # Add real and diverse out-of-distribution non-footwear negatives
+    gate_bank_path = Path(BASE_DIR) / "storage" / "models" / "footwear_gate_bank.npz"
+    if gate_bank_path.exists():
+        try:
+            data = np.load(str(gate_bank_path))
+            neg_vecs = data["neg_embeddings"]
+            for nv in neg_vecs:
+                sims = np.dot(vec_matrix, nv)
+                for cat in ["shoe", "slipper"]:
+                    negatives[cat].append(float(np.max(sims)))
+        except Exception as e:
+            logger.warning(f"Could not load gate bank for negatives: {e}")
+
     rng = np.random.RandomState(42)
     for cat in ["shoe", "slipper"]:
         # Simulate random background vectors against catalog
