@@ -57,14 +57,20 @@ class ZeroShotCategoryClassifier:
         self.model = None
         
         try:
+            import torch
+            torch.set_num_threads(1)
             from sentence_transformers import SentenceTransformer
-            self.model = SentenceTransformer(model_name)
+            self.model = SentenceTransformer(model_name, device="cpu")
             self.use_st = True
         except Exception as e:
             logger.warning(f"SentenceTransformer load fallback: {e}")
             self.use_st = False
 
         self._precompute_text_embeddings()
+        
+        # Free unnecessary memory and garbage collect
+        import gc
+        gc.collect()
         logger.info(f"ZeroShotCategoryClassifier initialized in {time.time() - t0:.2f}s")
 
     @classmethod

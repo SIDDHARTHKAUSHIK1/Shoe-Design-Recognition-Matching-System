@@ -7,6 +7,7 @@ from typing import Union, List, Dict, Any, Optional, Tuple
 from pathlib import Path
 from PIL import Image
 import numpy as np
+import torch
 
 from backend.config import (
     TOP_K_MATCHES,
@@ -66,12 +67,13 @@ class ShoeMatcher:
         """
         t0 = time.time()
         
-        # 1. Extract visual embedding
-        query_embedding = self.engine.get_embedding(query_image_input)
-        
-        # 2. Run zero-shot category classification (invisible to user, automatic differentiation)
-        detected_category, cat_prob = self.classifier.classify_category(query_image_input)
-        category_confidence_pct = round(cat_prob * 100.0, 1)
+        with torch.no_grad():
+            # 1. Extract visual embedding
+            query_embedding = self.engine.get_embedding(query_image_input)
+            
+            # 2. Run zero-shot category classification (invisible to user, automatic differentiation)
+            detected_category, cat_prob = self.classifier.classify_category(query_image_input)
+            category_confidence_pct = round(cat_prob * 100.0, 1)
 
         # 3. Guard against non-footwear images (e.g. random pictures, faces, objects, animals)
         if detected_category == "none":

@@ -47,8 +47,21 @@ class EmbeddingEngine:
             self.model = AutoModel.from_pretrained(model_name).to(self.device)
             self.model.eval()
             
+            # Low-memory CPU optimization for Render 512MB RAM instances
+            if self.device == "cpu":
+                torch.set_num_threads(1)
+                try:
+                    self.model = torch.quantization.quantize_dynamic(
+                        self.model, {torch.nn.Linear}, dtype=torch.qint8
+                    )
+                    logger.info("DINOv2 dynamically quantized to INT8 (reduced RAM footprint).")
+                except Exception as qe:
+                    logger.warning(f"Quantization note: {qe}")
+            
         # Warmup model
         self._warmup()
+        import gc
+        gc.collect()
         logger.info(f"Model {model_name} loaded and warmed up in {time.time() - t0:.2f}s")
 
     @classmethod
