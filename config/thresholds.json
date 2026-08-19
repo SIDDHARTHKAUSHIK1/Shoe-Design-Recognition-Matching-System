@@ -1,0 +1,47 @@
+{
+  "version": "1.1",
+  "updated_at": "2026-08-19T07:27:42.682790+00:00",
+  "categories": {
+    "shoe": {
+      "rejection_threshold": 0.35,
+      "confidence_high_threshold": 85.0,
+      "confidence_moderate_threshold": 70.0,
+      "margin_threshold": 0.015,
+      "min_density": 0.2,
+      "platt_scaling": {
+        "a": 15.2,
+        "b": -8.8
+      },
+      "metrics": {
+        "youden_j": 1.0,
+        "pos_count": 5,
+        "neg_count": 1107
+      }
+    },
+    "slipper": {
+      "rejection_threshold": 0.35,
+      "confidence_high_threshold": 82.0,
+      "confidence_moderate_threshold": 68.0,
+      "margin_threshold": 0.015,
+      "min_density": 0.2,
+      "platt_scaling": {
+        "a": 14.6,
+        "b": -8.2
+      },
+      "metrics": {
+        "youden_j": 1.0,
+        "pos_count": 5,
+        "neg_count": 222
+      }
+    },
+    "global": {
+      "rejection_threshold": 0.35,
+      "margin_threshold": 0.015,
+      "min_density": 0.2,
+      "platt_scaling": {
+        "a": 14.9,
+        "b": -8.5
+      }
+    }
+  }
+}

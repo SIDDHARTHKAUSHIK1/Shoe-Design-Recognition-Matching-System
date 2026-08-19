@@ -13,6 +13,7 @@ from backend.config import (
     TOP_K_MATCHES,
     CONFIDENCE_HIGH_THRESHOLD,
     CONFIDENCE_MODERATE_THRESHOLD,
+    load_thresholds_config,
 )
 from backend.engine import EmbeddingEngine
 from backend.classifier import ZeroShotCategoryClassifier
@@ -22,16 +23,21 @@ from backend import database as db
 logger = logging.getLogger(__name__)
 
 
-def classify_match_level(confidence_pct: float) -> Tuple[str, str, str]:
+def classify_match_level(confidence_pct: float, category: str = "shoe") -> Tuple[str, str, str]:
     """
-    Classify confidence percentage into human-readable factory alert level and color.
-    
-    Returns:
-        Tuple[str, str, str]: (level_code, level_label, color_code)
+    Classify confidence percentage into human-readable factory alert level and color
+    using calibrated per-category thresholds from config.
     """
-    if confidence_pct >= CONFIDENCE_HIGH_THRESHOLD:
+    thresholds = load_thresholds_config()
+    norm_cat = db.normalize_category(category)
+    cat_cfg = thresholds.get(norm_cat, thresholds.get("global", {}))
+
+    high_th = float(cat_cfg.get("confidence_high_threshold", CONFIDENCE_HIGH_THRESHOLD))
+    mod_th = float(cat_cfg.get("confidence_moderate_threshold", CONFIDENCE_MODERATE_THRESHOLD))
+
+    if confidence_pct >= high_th:
         return "HIGH", "High Confidence Match", "green"
-    elif confidence_pct >= CONFIDENCE_MODERATE_THRESHOLD:
+    elif confidence_pct >= mod_th:
         return "MODERATE", "Moderate Similarity / Variant", "yellow"
     else:
         return "LOW", "Low Similarity / Distinct Design", "red"
@@ -56,14 +62,6 @@ class ShoeMatcher:
     ) -> Dict[str, Any]:
         """
         Execute end-to-end visual matching with automatic shoe vs. slipper differentiation.
-        
-        Args:
-            query_image_input: Image filepath, bytes, or PIL Image.
-            query_image_save_path: Relative URL/path where the query image is saved for logging.
-            top_k: Number of ranked design matches to return (default 3).
-            
-        Returns:
-            Dict containing detected category, confidence, top_k matches ranked best to third-best, and latency.
         """
         t0 = time.time()
         
@@ -185,7 +183,7 @@ class ShoeMatcher:
                 
             design_id = ref_meta["design_id"]
             cosine_score = float(score)
-            confidence_pct = max(0.0, min(100.0, cosine_score * 100.0))
+            confidence_pct = db.calculate_calibrated_confidence(cosine_score, category=ref_category)
             
             if design_id not in seen_designs or cosine_score > seen_designs[design_id]["cosine_similarity"]:
                 seen_designs[design_id] = {
@@ -241,7 +239,7 @@ class ShoeMatcher:
         # 7. Format top matches with rankings, alert levels, and complete reference photos
         ranked_matches = []
         for rank_idx, match in enumerate(sorted_matches, start=1):
-            level_code, level_label, color_code = classify_match_level(match["confidence_pct"])
+            level_code, level_label, color_code = classify_match_level(match["confidence_pct"], category=match["category"])
             
             full_design = db.get_design(match["design_id"]) or {}
             all_refs = full_design.get("reference_images", [])

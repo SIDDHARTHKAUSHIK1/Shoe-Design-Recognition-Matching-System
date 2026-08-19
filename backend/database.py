@@ -10,6 +10,9 @@ from pathlib import Path
 
 from backend.config import DB_PATH
 
+import math
+from backend.config import DB_PATH, load_thresholds_config
+
 logger = logging.getLogger(__name__)
 
 
@@ -34,6 +37,27 @@ def normalize_category(cat: Optional[str]) -> str:
     if any(k in c for k in slipper_keywords):
         return "slipper"
     return "shoe"
+
+
+def calculate_calibrated_confidence(similarity: float, category: str = "shoe") -> float:
+    """
+    Convert raw cosine similarity into calibrated confidence probability using fitted Platt scaling parameters.
+    P(Match | s) = 1 / (1 + e^-(a*s + b))
+    """
+    thresholds = load_thresholds_config()
+    cat_config = thresholds.get(normalize_category(category), thresholds.get("global", {}))
+    platt = cat_config.get("platt_scaling", {"a": 15.0, "b": -8.5})
+    
+    a = platt.get("a", 15.0)
+    b = platt.get("b", -8.5)
+    
+    try:
+        logit = a * float(similarity) + b
+        logit = max(-50.0, min(50.0, logit))
+        prob = 1.0 / (1.0 + math.exp(-logit))
+        return round(float(prob * 100.0), 2)
+    except Exception:
+        return round(max(0.0, min(100.0, similarity * 100.0)), 2)
 
 
 def init_db():
