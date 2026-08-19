@@ -302,57 +302,42 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function setQueryFile(file, autoMatch = true) {
-    if (!file.type.startsWith("image/")) {
-      showToast("Please select a valid image file (JPEG, PNG, WEBP)", "error");
-      return;
-    }
+    if (!file) return;
 
     state.selectedQueryFile = file;
-    const objectUrl = URL.createObjectURL(file);
 
-    // Show Preview
+    // Show Image Preview
+    try {
+      const objectUrl = URL.createObjectURL(file);
+      elements.queryPreviewImg.src = objectUrl;
+    } catch (e) {
+      console.warn("Preview createObjectURL notice:", e);
+    }
+
     elements.dropPrompt.style.display = "none";
     elements.queryPreviewContainer.style.display = "block";
-    elements.queryPreviewImg.src = objectUrl;
     elements.btnClearQuery.style.display = "inline-block";
     elements.btnRunMatch.disabled = false;
 
-    // Reset results container to fresh state
-    elements.resultsEmpty.innerHTML = `
-      <div class="empty-icon">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <circle cx="11" cy="11" r="8"/>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          <path d="M11 8v6M8 11h6"/>
-        </svg>
-      </div>
-      <h4>Ready to Match</h4>
-      <p>Searching footwear database for top design matches...</p>
-    `;
-    elements.resultsEmpty.style.display = "block";
-    elements.resultsLoading.style.display = "none";
+    // Prepare visual results area
+    elements.resultsEmpty.style.display = "none";
     elements.matchesList.style.display = "none";
-    elements.resultsMetaText.textContent = "Ready to search catalog";
+    elements.resultsLoading.style.display = "block";
+    elements.resultsMetaText.textContent = "Searching footwear catalog...";
     elements.latencyBadge.style.display = "none";
     if (elements.detectedCategoryBadge) elements.detectedCategoryBadge.style.display = "none";
 
-    // Auto-execute visual match for immediate feedback
+    // Smoothly scroll to results on mobile devices
+    const resultsCard = document.querySelector(".results-card");
+    if (resultsCard && window.innerWidth < 900) {
+      setTimeout(() => {
+        resultsCard.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+    }
+
+    // Auto-execute visual match immediately
     if (autoMatch) {
-      elements.resultsEmpty.style.display = "none";
-      elements.matchesList.style.display = "none";
-      elements.resultsLoading.style.display = "block";
-      elements.btnRunMatch.disabled = true;
-      elements.resultsMetaText.textContent = "Searching footwear catalog...";
-
-      // On mobile screens, smoothly scroll to results section
-      const resultsCard = document.querySelector(".results-card");
-      if (resultsCard && window.innerWidth < 900) {
-        setTimeout(() => {
-          resultsCard.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 100);
-      }
-
-      setTimeout(() => executeVisualMatch(), 50);
+      setTimeout(() => executeVisualMatch(), 30);
     }
   }
 
@@ -396,8 +381,11 @@ document.addEventListener("DOMContentLoaded", () => {
     elements.resultsMetaText.textContent = "Searching catalog...";
     if (elements.detectedCategoryBadge) elements.detectedCategoryBadge.style.display = "none";
 
+    const fileToUpload = state.selectedQueryFile;
+    const filename = fileToUpload.name || `mobile_photo_${Date.now()}.jpg`;
+
     const formData = new FormData();
-    formData.append("file", state.selectedQueryFile);
+    formData.append("file", fileToUpload, filename);
     formData.append("top_k", "3");
 
     try {
