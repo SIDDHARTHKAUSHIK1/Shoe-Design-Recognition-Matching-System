@@ -94,16 +94,19 @@ class BinaryFootwearGate:
             else:
                 return False, "clean"
 
-
             gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
 
-            # 1. OpenCV QR Code Detector
+            # 1. OpenCV QR Code Detector (requires non-empty decoded string payload)
             detector = cv2.QRCodeDetector()
-            res = detector.detect(gray)
-            if res[0] or (len(res) > 1 and res[1] is not None):
+            val, pts, _ = detector.detectAndDecode(gray)
+            if val and len(val.strip()) > 0:
                 return True, "qr_code_detected"
 
-            # 2. Check Barcode / High-Contrast Grayscale Grid Pattern
+            ok, info, _, _ = detector.detectAndDecodeMulti(gray)
+            if ok and any(len(s.strip()) > 0 for s in info if s):
+                return True, "qr_code_detected"
+
+            # 2. Check Barcode / High-Contrast Grayscale Bimodal Grid Pattern
             hsv = cv2.cvtColor(img_np, cv2.COLOR_RGB2HSV)
             sat_mean = np.mean(hsv[:, :, 1])
 
@@ -114,9 +117,9 @@ class BinaryFootwearGate:
             black_ratio = np.mean(bin_img == 0)
             white_ratio = np.mean(bin_img == 255)
 
-            if sat_mean < 25 and (black_ratio + white_ratio > 0.70) and edge_ratio > 0.03:
+            # Pure grayscale high-frequency 2D grid/barcode check (sat < 15, high edge density, bimodal B/W)
+            if sat_mean < 15 and (black_ratio + white_ratio > 0.85) and edge_ratio > 0.12:
                 return True, "qr_code_or_barcode_pattern"
-
 
             return False, "clean"
         except Exception:
