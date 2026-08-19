@@ -66,10 +66,12 @@ class TestSlipperExclusion(unittest.TestCase):
         img.save(buf, format='JPEG')
         contents = buf.getvalue()
 
-        # Mock classifier to simulate slipper category detection
+        # Mock isolator and classifier to simulate slipper category detection
         from unittest.mock import patch
-        with patch.object(matcher.classifier, 'classify_category_detailed', return_value=('slipper', 0.95, 'slippers_not_supported', {})):
-            result = matcher.match_image(query_image_input=contents)
+        with patch.object(matcher.isolator, 'isolate_foreground', return_value=(True, {}, img, "")):
+            with patch.object(matcher.classifier, 'classify_category_detailed', return_value=('slipper', 0.95, 'slippers_not_supported', {})):
+                result = matcher.match_image(query_image_input=contents)
+
 
         self.assertEqual(result.get("matched"), False,
             f"Slipper image returned matched=True! Result: {result.get('reason')}")
