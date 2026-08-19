@@ -338,7 +338,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Auto-execute visual match for immediate feedback
     if (autoMatch) {
-      setTimeout(() => executeVisualMatch(), 150);
+      elements.resultsEmpty.style.display = "none";
+      elements.matchesList.style.display = "none";
+      elements.resultsLoading.style.display = "block";
+      elements.btnRunMatch.disabled = true;
+      elements.resultsMetaText.textContent = "Searching footwear catalog...";
+
+      // On mobile screens, smoothly scroll to results section
+      const resultsCard = document.querySelector(".results-card");
+      if (resultsCard && window.innerWidth < 900) {
+        setTimeout(() => {
+          resultsCard.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 100);
+      }
+
+      setTimeout(() => executeVisualMatch(), 50);
     }
   }
 
