@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Tuple, Optional, Dict, Any
 from PIL import Image, ImageOps
 import numpy as np
+import cv2
 
 try:
     import onnxruntime as ort
@@ -112,14 +113,18 @@ class ForegroundIsolator:
 
         try:
             pred = self.session.run([self.output_name], {self.input_name: input_tensor})[0]
-            mask = pred[0, 0]
-            mask = (mask - mask.min()) / (mask.max() - mask.min() + 1e-8)
+            mask_320 = pred[0, 0]
+            mask_320 = (mask_320 - mask_320.min()) / (mask_320.max() - mask_320.min() + 1e-8)
         except Exception as e:
             logger.warning(f"Foreground segmentation inference failed: {e}")
             return image, None, {"cropped": False, "reason": "inference_error"}
 
-        # Binarize mask (threshold 0.45)
-        bin_mask = (mask > 0.45).astype(np.uint8)
+        # Upsample soft mask to original image resolution with linear interpolation
+        full_mask = cv2.resize(mask_320, (orig_w, orig_h), interpolation=cv2.INTER_LINEAR)
+        full_mask = np.clip(full_mask, 0.0, 1.0)
+
+        # Binarize mask for coverage and bbox computation
+        bin_mask = (full_mask > 0.40).astype(np.uint8)
         coverage = float(bin_mask.mean())
 
         latency_ms = (time.time() - t0) * 1000
@@ -142,6 +147,15 @@ class ForegroundIsolator:
                 "latency_ms": round(latency_ms, 2)
             }
 
+        # Alpha composite footwear onto neutral studio background (248, 248, 248)
+        # This completely zeroes out background texture, floor reflections, carpets, and shadows
+        orig_arr = np.array(image.convert("RGB")).astype(np.float32)
+        mask_3d = np.repeat(np.expand_dims(full_mask, axis=2), 3, axis=2)
+        neutral_bg = np.array([248.0, 248.0, 248.0], dtype=np.float32)
+        neutral_img_arr = orig_arr * mask_3d + neutral_bg * (1.0 - mask_3d)
+        neutral_img_arr = np.clip(neutral_img_arr, 0, 255).astype(np.uint8)
+        neutral_pil = Image.fromarray(neutral_img_arr)
+
         # Find foreground bounding box
         y_indices, x_indices = np.where(bin_mask > 0)
         if len(x_indices) == 0 or len(y_indices) == 0:
@@ -152,11 +166,8 @@ class ForegroundIsolator:
                 "latency_ms": round(latency_ms, 2)
             }
 
-        # Project coordinates back to original image size
-        x_min = int((x_indices.min() / 320.0) * orig_w)
-        x_max = int((x_indices.max() / 320.0) * orig_w)
-        y_min = int((y_indices.min() / 320.0) * orig_h)
-        y_max = int((y_indices.max() / 320.0) * orig_h)
+        x_min, x_max = int(x_indices.min()), int(x_indices.max())
+        y_min, y_max = int(y_indices.min()), int(y_indices.max())
 
         # Add padding margin
         box_w = x_max - x_min
@@ -178,11 +189,12 @@ class ForegroundIsolator:
                 "latency_ms": round(latency_ms, 2)
             }
 
-        # Crop image to bounding box
-        cropped_img = image.crop((x_min, y_min, x_max, y_max))
+        # Crop neutral-filled image to bounding box
+        cropped_img = neutral_pil.crop((x_min, y_min, x_max, y_max))
 
         meta = {
             "cropped": True,
+            "segmented": True,
             "bbox": [x_min, y_min, x_max, y_max],
             "original_size": [orig_w, orig_h],
             "cropped_size": [x_max - x_min, y_max - y_min],
@@ -198,6 +210,6 @@ def isolate_foreground(
     padding_ratio: float = 0.08,
 ) -> Tuple[Image.Image, Optional[str], Dict[str, Any]]:
     """
-    Discrete, testable helper function to isolate foreground footwear from an image.
+    Discrete, testable helper function to isolate foreground footwear with neutral studio fill.
     """
     return ForegroundIsolator.get_instance().isolate(image, padding_ratio=padding_ratio)

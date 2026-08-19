@@ -1,6 +1,6 @@
 {
   "version": "1.1",
-  "updated_at": "2026-08-19T07:27:42.682790+00:00",
+  "updated_at": "2026-08-19T07:53:34.138193+00:00",
   "categories": {
     "shoe": {
       "rejection_threshold": 0.35,
@@ -15,7 +15,7 @@
       "metrics": {
         "youden_j": 1.0,
         "pos_count": 5,
-        "neg_count": 1107
+        "neg_count": 1083
       }
     },
     "slipper": {
@@ -31,7 +31,7 @@
       "metrics": {
         "youden_j": 1.0,
         "pos_count": 5,
-        "neg_count": 222
+        "neg_count": 220
       }
     },
     "global": {
