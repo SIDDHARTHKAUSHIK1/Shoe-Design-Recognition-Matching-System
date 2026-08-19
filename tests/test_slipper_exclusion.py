@@ -58,19 +58,19 @@ class TestSlipperExclusion(unittest.TestCase):
 
         matcher = ShoeMatcher()
 
-        # Create a synthetic white image or query to test gate/matcher behavior
-        from PIL import Image
-        import io
-        img = Image.new('RGB', (224, 224), color='white')
-        buf = io.BytesIO()
-        img.save(buf, format='JPEG')
-        contents = buf.getvalue()
+        # Use a real shoe image from catalog
+        shoe_img_path = BASE_DIR / "data" / "catalog" / "SHOE-001" / "angle_heel_1.jpg"
+        if not shoe_img_path.exists():
+            self.skipTest("SHOE-001 image not found")
 
-        # Mock isolator and classifier to simulate slipper category detection
+        with open(shoe_img_path, "rb") as f:
+            contents = f.read()
+
+        # Mock classifier to simulate slipper category detection
         from unittest.mock import patch
-        with patch.object(matcher.isolator, 'isolate_foreground', return_value=(True, {}, img, "")):
-            with patch.object(matcher.classifier, 'classify_category_detailed', return_value=('slipper', 0.95, 'slippers_not_supported', {})):
-                result = matcher.match_image(query_image_input=contents)
+        with patch.object(matcher.classifier, 'classify_category_detailed', return_value=('slipper', 0.95, 'slippers_not_supported', {})):
+            result = matcher.match_image(query_image_input=contents)
+
 
 
         self.assertEqual(result.get("matched"), False,
