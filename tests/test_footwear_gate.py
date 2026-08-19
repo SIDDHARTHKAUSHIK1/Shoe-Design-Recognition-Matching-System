@@ -71,5 +71,29 @@ class TestFootwearGate(unittest.TestCase):
             self.assertEqual(res.get("detected_category"), "none")
 
 
+    def test_qr_code_and_barcode_rejection(self):
+        """Explicitly verify QR codes, barcodes, and document graphics are rejected by gate."""
+        from PIL import ImageDraw
+        # Synthetic QR code
+        qr_img = Image.new("RGB", (256, 256), (255, 255, 255))
+        d = ImageDraw.Draw(qr_img)
+        d.rectangle([20, 20, 90, 90], fill=(0, 0, 0))
+        d.rectangle([40, 40, 70, 70], fill=(255, 255, 255))
+        d.rectangle([50, 50, 60, 60], fill=(0, 0, 0))
+        d.rectangle([166, 20, 236, 90], fill=(0, 0, 0))
+        d.rectangle([176, 30, 226, 80], fill=(255, 255, 255))
+        d.rectangle([186, 40, 216, 70], fill=(0, 0, 0))
+        for x in range(30, 230, 20):
+            for y in range(30, 230, 20):
+                if (x * y) % 5 < 3:
+                    d.rectangle([x, y, x+10, y+10], fill=(0, 0, 0))
+
+        res = self.matcher.match_image(qr_img)
+        self.assertFalse(res.get("is_footwear_detected", True))
+        self.assertEqual(len(res.get("matches", [])), 0)
+        self.assertIn(res.get("reason"), {"qr_code_detected", "qr_code_or_barcode_pattern", "closer_to_non_footwear", "no_clear_object"})
+
+
 if __name__ == "__main__":
     unittest.main()
+

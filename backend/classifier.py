@@ -98,9 +98,10 @@ class ZeroShotCategoryClassifier:
             emb = engine.get_embedding(image_input)
 
         # 1. Independent Binary Footwear Gate Check (Footwear vs. Non-Footwear)
-        is_footwear, gate_prob, gate_reason, gate_diag = gate.verify_footwear(emb)
+        is_footwear, gate_prob, gate_reason, gate_diag = gate.verify_footwear(emb, raw_image=image_input)
         if not is_footwear:
             return "none", round(gate_prob, 4), gate_reason, gate_diag
+
 
         if vs.total_vectors == 0:
             return "shoe", 0.95, "matched", gate_diag

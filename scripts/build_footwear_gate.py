@@ -112,7 +112,70 @@ def generate_negative_images() -> List[Tuple[str, Image.Image]]:
     d.ellipse([65, 30, 191, 140], fill=(46, 139, 87))
     negatives.append(("tree_nature", img))
 
-    # 10. Abstract & Noise & Blank Environments
+    # 10. QR Codes and 2D Matrix Patterns (multiple formats & orientations)
+    for q_size in [200, 220, 240]:
+        img, d = blank((255, 255, 255))
+        offset = (256 - q_size) // 2
+        # Outer border
+        d.rectangle([offset, offset, offset + q_size, offset + q_size], outline=(0, 0, 0), width=4)
+        # Finder patterns (top-left, top-right, bottom-left)
+        fp_size = 50
+        for fx, fy in [(offset+10, offset+10), (offset+q_size-60, offset+10), (offset+10, offset+q_size-60)]:
+            d.rectangle([fx, fy, fx+fp_size, fy+fp_size], fill=(0, 0, 0))
+            d.rectangle([fx+8, fy+8, fx+fp_size-8, fy+fp_size-8], fill=(255, 255, 255))
+            d.rectangle([fx+16, fy+16, fx+fp_size-16, fy+fp_size-16], fill=(0, 0, 0))
+        # Random matrix grid inside
+        step = 14
+        for x in range(offset+10, offset+q_size-10, step):
+            for y in range(offset+10, offset+q_size-10, step):
+                if ((x * y) + x + y) % 5 < 3:
+                    d.rectangle([x, y, x+step-2, y+step-2], fill=(0, 0, 0))
+        negatives.append(("qr_code_square", img))
+
+    # Circular QR Code Badge / Round Logo
+    for bg_col in [(255, 255, 255), (240, 240, 240)]:
+        img, d = blank(bg_col)
+        d.ellipse([15, 15, 241, 241], outline=(30, 30, 30), width=6)
+        # Finder squares
+        for fx, fy in [(50, 50), (150, 50), (50, 150)]:
+            d.rectangle([fx, fy, fx+40, fy+40], fill=(0, 0, 0))
+            d.rectangle([fx+8, fy+8, fx+32, fy+32], fill=(255, 255, 255))
+            d.rectangle([fx+14, fy+14, fx+26, fy+26], fill=(0, 0, 0))
+        for x in range(40, 210, 12):
+            for y in range(40, 210, 12):
+                if (x*x + y*y) % 11 < 5:
+                    d.rectangle([x, y, x+8, y+8], fill=(0, 0, 0))
+        negatives.append(("qr_code_circular", img))
+
+    # 11. 1D Barcodes (UPC / EAN / Code128)
+    for _ in range(4):
+        img, d = blank((255, 255, 255))
+        d.rectangle([20, 60, 236, 180], fill=(255, 255, 255), outline=(200, 200, 200))
+        bx = 30
+        while bx < 226:
+            w = np.random.choice([2, 4, 6, 8])
+            if np.random.rand() > 0.3:
+                d.rectangle([bx, 60, bx+w, 180], fill=(0, 0, 0))
+            bx += w + np.random.choice([2, 4])
+        negatives.append(("barcode_1d", img))
+
+    # 12. Text Documents & Scanned Printed Pages
+    for _ in range(4):
+        img, d = blank((255, 255, 255))
+        d.rectangle([30, 20, 226, 236], fill=(255, 255, 255), outline=(180, 180, 180), width=2)
+        for line_y in range(40, 220, 12):
+            lw = np.random.randint(80, 180)
+            d.rectangle([45, line_y, 45+lw, line_y+4], fill=(40, 40, 40))
+        negatives.append(("text_document", img))
+
+    # 13. Logos, Icons & UI Buttons / Screenshots
+    for icon_col in [(30, 140, 220), (220, 40, 80), (40, 180, 100)]:
+        img, d = blank((245, 245, 250))
+        d.rounded_rectangle([40, 40, 216, 216], radius=30, fill=icon_col)
+        d.ellipse([88, 88, 168, 168], fill=(255, 255, 255))
+        negatives.append(("ui_logo_icon", img))
+
+    # 14. Abstract & Noise & Blank Environments
     for _ in range(5):
         noise = np.random.randint(0, 255, (256, 256, 3), dtype=np.uint8)
         negatives.append(("noise_texture", Image.fromarray(noise)))
@@ -121,6 +184,7 @@ def generate_negative_images() -> List[Tuple[str, Image.Image]]:
         negatives.append(("solid_color", Image.new("RGB", (256, 256), col)))
 
     return negatives
+
 
 
 def build_gate_bank():

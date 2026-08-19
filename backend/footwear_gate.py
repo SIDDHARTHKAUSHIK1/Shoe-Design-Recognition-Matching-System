@@ -71,12 +71,64 @@ class BinaryFootwearGate:
             logger.error(f"Failed to load footwear gate prototype bank: {e}")
             self.loaded = False
 
+    @staticmethod
+    def check_image_non_footwear(image: Any) -> Tuple[bool, str]:
+        """
+        Direct visual check for non-footwear patterns such as QR codes, barcodes,
+        text document scans, high-frequency 2D grid patterns, logos, and UI graphics.
+        """
+        if image is None:
+            return False, "clean"
+        try:
+            import cv2
+            from PIL import Image
+            if isinstance(image, Image.Image):
+                img_np = np.array(image.convert("RGB"))
+            elif isinstance(image, np.ndarray):
+                img_np = image
+            elif isinstance(image, bytes):
+                import io
+                img_np = np.array(Image.open(io.BytesIO(image)).convert("RGB"))
+            elif isinstance(image, (str, Path)):
+                img_np = np.array(Image.open(str(image)).convert("RGB"))
+            else:
+                return False, "clean"
+
+
+            gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
+
+            # 1. OpenCV QR Code Detector
+            detector = cv2.QRCodeDetector()
+            res = detector.detect(gray)
+            if res[0] or (len(res) > 1 and res[1] is not None):
+                return True, "qr_code_detected"
+
+            # 2. Check Barcode / High-Contrast Grayscale Grid Pattern
+            hsv = cv2.cvtColor(img_np, cv2.COLOR_RGB2HSV)
+            sat_mean = np.mean(hsv[:, :, 1])
+
+            edges = cv2.Canny(gray, 50, 150)
+            edge_ratio = np.mean(edges > 0)
+
+            _, bin_img = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY)
+            black_ratio = np.mean(bin_img == 0)
+            white_ratio = np.mean(bin_img == 255)
+
+            if sat_mean < 25 and (black_ratio + white_ratio > 0.70) and edge_ratio > 0.03:
+                return True, "qr_code_or_barcode_pattern"
+
+
+            return False, "clean"
+        except Exception:
+            return False, "clean"
+
     def verify_footwear(
         self,
         query_embedding: np.ndarray,
-        min_pos_sim: float = 0.42,
-        min_margin: float = 0.03,
-        min_probability: float = 0.60
+        raw_image: Optional[Any] = None,
+        min_pos_sim: float = 0.45,
+        min_margin: float = 0.04,
+        min_probability: float = 0.65
     ) -> Tuple[bool, float, str, Dict[str, Any]]:
         """
         Verify if the given embedding is genuine footwear or non-footwear.
@@ -85,9 +137,15 @@ class BinaryFootwearGate:
             Tuple of:
                 - is_footwear: bool (True only if confirmed footwear)
                 - confidence_prob: float [0.0, 1.0]
-                - reason: 'confirmed_footwear', 'low_footwear_similarity', 'closer_to_non_footwear', 'low_probability'
+                - reason: 'confirmed_footwear', 'low_footwear_similarity', 'closer_to_non_footwear', 'low_probability', 'non_footwear_graphic'
                 - diagnostics: dict with all comparative metrics
         """
+        # Step 0: Direct visual check for QR codes, barcodes, and non-footwear graphics
+        if raw_image is not None:
+            is_graphic, graphic_reason = self.check_image_non_footwear(raw_image)
+            if is_graphic:
+                return False, 0.0, graphic_reason, {"non_footwear_graphic": True, "reason": graphic_reason}
+
         if not self.loaded or self.pos_embeddings is None:
             # Fallback if bank missing
             return True, 0.90, "gate_disabled", {}
@@ -149,6 +207,7 @@ class BinaryFootwearGate:
 
         # Passed all gate checks -> Confirmed genuine footwear
         return True, round(prob_footwear, 4), "confirmed_footwear", diagnostics
+
 
 
     def classify_shoe_vs_slipper(
