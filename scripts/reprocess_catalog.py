@@ -45,9 +45,7 @@ def reprocess_catalog():
         logger.warning("No reference images found in catalog database.")
         return
 
-    # Exclude slipper-category entries — only shoe vectors are indexed
-    all_refs = [r for r in all_refs if not db.is_slipper_category(r.get("design_category", ""))]
-    logger.info(f"Found {len(all_refs)} shoe reference images to reprocess (slippers excluded).")
+    logger.info(f"Found {len(all_refs)} catalog reference images to reprocess.")
 
 
     engine = EmbeddingEngine.get_instance()

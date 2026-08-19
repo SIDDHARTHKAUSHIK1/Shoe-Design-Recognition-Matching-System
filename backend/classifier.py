@@ -135,11 +135,6 @@ class ZeroShotCategoryClassifier:
 
 
         # 3. Prototype-Based Shoe vs. Slipper Classification
-        # Uses the gate's slipper prototype bank — independent of FAISS index contents,
-        # so it correctly detects slippers even when the FAISS index is shoe-only.
         shoe_slipper_cat, shoe_slipper_conf = gate.classify_shoe_vs_slipper(emb)
+        return shoe_slipper_cat, round(float(shoe_slipper_conf), 4), "matched", diagnostics
 
-        if shoe_slipper_cat == "slipper":
-            return "slipper", round(float(shoe_slipper_conf), 4), "slippers_not_supported", diagnostics
-        else:
-            return "shoe", round(float(shoe_slipper_conf), 4), "matched", diagnostics

@@ -152,37 +152,7 @@ class ShoeMatcher:
                 "message": reason_msg
             }
 
-        # 3b. Handle slipper uploads — rejected regardless of match quality
-        if detected_category == "slipper":
-            latency_ms = (time.time() - t0) * 1000
-            stats = db.get_catalog_stats()
 
-            if query_image_save_path:
-                db.log_query(
-                    query_image_path=query_image_save_path,
-                    top_match_id="SLIPPER_REJECTED",
-                    top_match_name="Slipper Upload — Not Supported",
-                    confidence_pct=0.0,
-                    latency_ms=latency_ms,
-                    results=[],
-                    detected_category="slipper"
-                )
-
-            return {
-                "success": True,
-                "query_image_path": query_image_save_path,
-                "detected_category": "slipper",
-                "is_footwear_detected": True,
-                "matched": False,
-                "category_confidence_pct": category_confidence_pct,
-                "reason": "slipper_rejected",
-                "total_catalog_designs": stats.get("total_designs", 0),
-                "total_catalog_vectors": self.vector_store.total_vectors,
-                "matches": [],
-                "latency_ms": round(latency_ms, 2),
-                "crop_metadata": crop_meta,
-                "message": "Slippers are not supported by this system. Please upload a shoe image."
-            }
 
 
         

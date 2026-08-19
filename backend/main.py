@@ -251,11 +251,11 @@ async def delete_catalog_design(design_id: str):
     # Delete from DB
     db.delete_design(design_id)
 
-    # Rebuild shoe-only index from remaining DB reference images
-    # (explicitly excludes slipper-category entries)
+    # Rebuild index from remaining DB reference images
     vs = VectorStore.get_instance()
     vs.reset()
-    all_refs = db.get_all_shoe_reference_images()
+    all_refs = db.get_all_reference_images()
+
     
     if all_refs:
         engine = EmbeddingEngine.get_instance()
