@@ -137,6 +137,13 @@ class EmbeddingEngine:
         elif img.mode != "RGB":
             img = img.convert("RGB")
             
+        # Apply adaptive image enhancement (resolution upscaling, CLAHE, white balance)
+        try:
+            from backend.preprocessor import enhance_image
+            img, _ = enhance_image(img)
+        except Exception as e:
+            logger.debug(f"Image enhancement bypassed: {e}")
+            
         return img
 
     def isolate_image_foreground(

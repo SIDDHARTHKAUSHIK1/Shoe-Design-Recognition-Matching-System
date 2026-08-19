@@ -291,6 +291,20 @@ def build_gate_bank():
         neg_embeddings.append(np.squeeze(emb))
         neg_labels.append(label)
 
+    # 2b. Add real user distractors, UI screenshots, and document scans
+    diag_img_dir = BASE_DIR / "test_images" / "gate_diagnostic_set" / "images"
+    if diag_img_dir.exists():
+        user_distractors = list(diag_img_dir.glob("neg_user_upload_*.jpg"))
+        print(f"Adding {len(user_distractors)} real user upload distractors to negative bank...")
+        for d_path in user_distractors:
+            try:
+                img = Image.open(d_path).convert("RGB")
+                emb = engine.get_embedding(img)
+                neg_embeddings.append(np.squeeze(emb))
+                neg_labels.append("user_ui_distractor")
+            except Exception as e:
+                print(f"Warning: failed to embed {d_path}: {e}")
+
     neg_embeddings = np.vstack(neg_embeddings).astype(np.float32)
     neg_norms = np.linalg.norm(neg_embeddings, axis=1, keepdims=True) + 1e-9
     neg_embeddings = neg_embeddings / neg_norms

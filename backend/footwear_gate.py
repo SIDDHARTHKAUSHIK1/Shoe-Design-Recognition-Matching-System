@@ -110,23 +110,30 @@ class BinaryFootwearGate:
             if ok and any(len(s.strip()) > 0 for s in info if s):
                 return True, "qr_code_detected"
 
-            # 3. High-Density Synthetic Random Noise Check (extreme global edge frequency)
             edges = cv2.Canny(gray, 50, 150)
             edge_ratio = np.mean(edges > 0)
-            if edge_ratio > 0.25:
+            lap_var = cv2.Laplacian(gray, cv2.CV_64F).var()
+
+            # 3. High-Density Synthetic Random Noise Check (extreme global edge frequency + high laplacian variance)
+            if edge_ratio > 0.32 and lap_var > 600:
                 return True, "noise_texture_detected"
 
-            # 4. Check Barcode / High-Contrast Grayscale Bimodal Grid Pattern
+            # 4. True 1D Barcode Check via Gradient Anisotropy (parallel stripes along single axis)
+            grad_x = cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3)
+            grad_y = cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3)
+            mag_x = np.mean(np.abs(grad_x))
+            mag_y = np.mean(np.abs(grad_y))
+            anisotropy = abs(mag_x - mag_y) / (mag_x + mag_y + 1e-6)
+
+            if anisotropy > 0.68 and edge_ratio > 0.08:
+                return True, "barcode_1d_pattern"
+
+            # 5. Pure Binary 2D Matrix / QR Grid Check (bimodal B&W pixels, 2D isotropic edge density)
             hsv = cv2.cvtColor(img_np, cv2.COLOR_RGB2HSV)
             sat_mean = np.mean(hsv[:, :, 1])
-
-            _, bin_img = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY)
-            black_ratio = np.mean(bin_img == 0)
-            white_ratio = np.mean(bin_img == 255)
-
-            # Pure grayscale high-frequency 2D grid/barcode check (sat < 15, edge_ratio > 0.04, bimodal > 0.80)
-            if sat_mean < 15 and (black_ratio + white_ratio > 0.80) and edge_ratio > 0.04:
-                return True, "qr_code_or_barcode_pattern"
+            is_pure_bw = np.mean((gray < 30) | (gray > 225)) > 0.88
+            if sat_mean < 10 and is_pure_bw and edge_ratio > 0.04 and anisotropy < 0.35:
+                return True, "qr_code_detected"
 
             return False, "clean"
         except Exception:
@@ -204,13 +211,15 @@ class BinaryFootwearGate:
 
         # Verification Gate Rules (Default is REJECTION)
         if max_neg_sim >= max_pos_sim:
-            return False, round(prob_footwear, 4), "closer_to_non_footwear", diagnostics
+            rejection_prob = min(prob_footwear, 1.0 - prob_footwear)
+            return False, round(rejection_prob, 4), "closer_to_non_footwear", diagnostics
 
         if max_pos_sim < min_pos_sim:
             return False, round(prob_footwear, 4), "low_footwear_similarity", diagnostics
 
         if margin < min_margin:
-            return False, round(prob_footwear, 4), "closer_to_non_footwear", diagnostics
+            rejection_prob = min(prob_footwear, 0.45)
+            return False, round(rejection_prob, 4), "closer_to_non_footwear", diagnostics
 
         if prob_footwear < min_probability:
             return False, round(prob_footwear, 4), "low_probability", diagnostics
