@@ -503,6 +503,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
           <p class="match-desc">${m.description || "Factory specification model."}</p>
           ${angleThumbsHtml}
+          ${m.dominant_colors && m.dominant_colors.length > 0 ? `
+            <div class="color-palette-strip" style="display: flex; gap: 6px; align-items: center; margin: 6px 0;">
+              <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 500;">Colors:</span>
+              ${m.dominant_colors.map(c => `
+                <span style="width: 14px; height: 14px; border-radius: 50%; background: ${c.hex}; border: 1px solid rgba(255,255,255,0.3); display: inline-block; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="${c.hex} (${c.percentage}%)"></span>
+              `).join("")}
+            </div>
+          ` : ''}
           
           <div class="match-action-hint">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>

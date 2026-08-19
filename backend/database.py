@@ -107,10 +107,21 @@ def init_db():
                 image_path TEXT NOT NULL,
                 angle TEXT DEFAULT 'side',
                 faiss_id INTEGER UNIQUE NOT NULL,
+                color_histogram TEXT DEFAULT '',
+                dominant_colors TEXT DEFAULT '',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (design_id) REFERENCES designs(design_id) ON DELETE CASCADE
             );
         """)
+        
+        for col, col_def in [
+            ("color_histogram", "TEXT DEFAULT ''"),
+            ("dominant_colors", "TEXT DEFAULT ''")
+        ]:
+            try:
+                cursor.execute(f"ALTER TABLE reference_images ADD COLUMN {col} {col_def};")
+            except sqlite3.OperationalError:
+                pass
         
         # 3. Query Audit Logs Table
         cursor.execute("""
@@ -283,6 +294,8 @@ def get_reference_image_by_faiss_id(faiss_id: int) -> Optional[Dict[str, Any]]:
                 r.image_path,
                 r.angle,
                 r.faiss_id,
+                r.color_histogram,
+                r.dominant_colors,
                 d.design_id,
                 d.name,
                 d.category,
@@ -298,6 +311,27 @@ def get_reference_image_by_faiss_id(faiss_id: int) -> Optional[Dict[str, Any]]:
         """, (faiss_id,))
         row = cursor.fetchone()
         return dict(row) if row else None
+
+
+def update_reference_image_color(
+    faiss_id: int, 
+    color_histogram: List[float], 
+    dominant_colors: List[Dict[str, Any]]
+) -> bool:
+    """Update color histogram and dominant colors for a catalog reference image."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE reference_images
+            SET color_histogram = ?, dominant_colors = ?
+            WHERE faiss_id = ?;
+        """, (
+            json.dumps([float(x) for x in color_histogram]),
+            json.dumps(dominant_colors),
+            faiss_id
+        ))
+        conn.commit()
+        return cursor.rowcount > 0
 
 
 def get_all_reference_images() -> List[Dict[str, Any]]:

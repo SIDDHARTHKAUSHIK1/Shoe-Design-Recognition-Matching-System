@@ -77,6 +77,11 @@ TTA_CROPS = int(os.getenv("TTA_CROPS", "2"))  # 2 crops (original + horizontal f
 ENABLE_INVARIANT_HEAD = os.getenv("ENABLE_INVARIANT_HEAD", "true").lower() in ("true", "1", "t")
 INVARIANT_HEAD_PATH = STORAGE_DIR / "models" / "background_invariant_head.pt"
 
+# Color-Aware Multi-Component Scoring Configuration
+ENABLE_COLOR_AWARE_SCORING = os.getenv("ENABLE_COLOR_AWARE_SCORING", "true").lower() in ("true", "1", "t")
+WEIGHT_DESIGN = float(os.getenv("WEIGHT_DESIGN", "0.75"))  # 75% geometric / texture silhouette match
+WEIGHT_COLOR = float(os.getenv("WEIGHT_COLOR", "0.25"))    # 25% foreground dominant color match
+
 # Matching & Confidence Thresholds
 CONFIDENCE_HIGH_THRESHOLD = 85.0     # >= 85%: Strong Match (Green)
 CONFIDENCE_MODERATE_THRESHOLD = 70.0 # 70% - 84.9%: Moderate Match (Yellow)

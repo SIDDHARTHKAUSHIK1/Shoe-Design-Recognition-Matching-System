@@ -24,6 +24,8 @@ from backend.config import STORAGE_DIR, CATALOG_IMAGES_DIR, EMBEDDING_DIM
 from backend.foreground import isolate_foreground
 from backend.engine import EmbeddingEngine
 from backend.vector_store import VectorStore
+from backend.color_extractor import ColorExtractor
+import json
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -51,6 +53,8 @@ def reprocess_catalog():
     processed_images = []
     processed_metadata = []
     embeddings_list = []
+    color_hists_list = []
+    dominant_colors_list = []
 
     for idx, ref in enumerate(all_refs, start=1):
         design_id = ref["design_id"]
@@ -80,9 +84,16 @@ def reprocess_catalog():
             dest_path = dest_folder / src_path.name
             neutral_crop.save(dest_path, quality=95)
 
-            # Compute normalized embedding with TTA
+            # Compute normalized embedding with TTA and invariant head
             emb = engine._compute_embedding(neutral_crop, use_tta=True)
+            
+            # Compute color descriptors
+            color_hist = ColorExtractor.extract_hsv_histogram(neutral_crop)
+            dominant_colors = ColorExtractor.extract_dominant_colors(neutral_crop)
+
             embeddings_list.append(emb)
+            color_hists_list.append(color_hist)
+            dominant_colors_list.append(dominant_colors)
             processed_metadata.append(ref)
             processed_images.append(dest_path)
 
@@ -100,12 +111,16 @@ def reprocess_catalog():
     logger.info(f"Adding {len(embs_arr)} re-segmented vectors to FAISS index...")
     assigned_faiss_ids = vs.add_vectors(embs_arr)
 
-    # Synchronize FAISS IDs in SQLite reference_images table
+    # Synchronize FAISS IDs and color metadata in SQLite reference_images table
     with db.get_db_connection() as conn:
-        for ref_meta, new_fid in zip(processed_metadata, assigned_faiss_ids):
+        for ref_meta, new_fid, chist, dom_cols in zip(processed_metadata, assigned_faiss_ids, color_hists_list, dominant_colors_list):
             conn.execute(
-                "UPDATE reference_images SET faiss_id = ? WHERE id = ?;",
-                (new_fid, ref_meta["id"])
+                """
+                UPDATE reference_images 
+                SET faiss_id = ?, color_histogram = ?, dominant_colors = ?
+                WHERE id = ?;
+                """,
+                (new_fid, json.dumps([float(x) for x in chist]), json.dumps(dom_cols), ref_meta["id"])
             )
         conn.commit()
 

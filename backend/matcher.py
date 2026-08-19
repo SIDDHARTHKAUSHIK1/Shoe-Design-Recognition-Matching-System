@@ -13,12 +13,17 @@ from backend.config import (
     TOP_K_MATCHES,
     CONFIDENCE_HIGH_THRESHOLD,
     CONFIDENCE_MODERATE_THRESHOLD,
+    ENABLE_COLOR_AWARE_SCORING,
+    WEIGHT_DESIGN,
+    WEIGHT_COLOR,
     load_thresholds_config,
 )
 from backend.engine import EmbeddingEngine
 from backend.classifier import ZeroShotCategoryClassifier
 from backend.vector_store import VectorStore
+from backend.color_extractor import ColorExtractor
 from backend import database as db
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -66,8 +71,9 @@ class ShoeMatcher:
         t0 = time.time()
         
         with torch.no_grad():
-            # 1. Extract visual embedding with foreground auto-cropping
-            query_embedding, fg_reason, crop_meta = self.engine.extract_query_features(query_image_input, auto_crop=True)
+            # 1. Preprocess and isolate foreground
+            query_pil = self.engine.preprocess_image(query_image_input)
+            isolated_img, fg_reason, crop_meta = self.engine.isolate_image_foreground(query_pil)
             
             # Guard against images with no clear foreground object
             if fg_reason == "no_clear_object":
@@ -97,6 +103,10 @@ class ShoeMatcher:
                     "crop_metadata": crop_meta,
                     "message": "No clear footwear object detected in the photo. Please center the shoe or slipper and upload a clearer photo."
                 }
+
+            query_embedding = self.engine._compute_embedding(isolated_img)
+            query_hist = ColorExtractor.extract_hsv_histogram(isolated_img)
+            query_dominant_colors = ColorExtractor.extract_dominant_colors(isolated_img)
             
             # 2. Run zero-shot category classification with density diagnostics
             detected_category, cat_prob, cat_reason, cat_diag = self.classifier.classify_category_detailed(
@@ -104,28 +114,28 @@ class ShoeMatcher:
             )
             category_confidence_pct = round(cat_prob * 100.0, 1)
 
-        # 3. Guard against non-footwear images (e.g. random pictures, faces, objects, animals)
+        # 3. Handle rejected non-footwear objects
         if detected_category == "none":
             latency_ms = (time.time() - t0) * 1000
             stats = db.get_catalog_stats()
             
+            reason_msg = "Non-footwear object detected. Please upload an image of a shoe or slipper."
+            if cat_reason == "out_of_distribution":
+                reason_msg = "Image does not match any footwear category in the catalog."
+            elif cat_reason == "ambiguous_category":
+                reason_msg = "Ambiguous object. Could not reliably determine if this is a shoe or slipper."
+                
             if query_image_save_path:
                 db.log_query(
                     query_image_path=query_image_save_path,
-                    top_match_id="NO_FOOTWEAR",
-                    top_match_name="No Shoe or Slipper Detected",
+                    top_match_id="REJECTED",
+                    top_match_name="Rejected Non-Footwear",
                     confidence_pct=0.0,
                     latency_ms=latency_ms,
                     results=[],
                     detected_category="none"
                 )
             
-            reason_msg = (
-                "Ambiguous visual pattern detected with low neighborhood cluster density."
-                if cat_reason == "ambiguous_density"
-                else "No shoe or slipper detected in the uploaded image. Please upload a clear photo of footwear."
-            )
-
             return {
                 "success": True,
                 "query_image_path": query_image_save_path,
@@ -166,7 +176,7 @@ class ShoeMatcher:
         raw_scores = scores[0] if len(scores) > 0 else []
         raw_ids = faiss_ids[0] if len(faiss_ids) > 0 else []
         
-        # 5. Filter candidates strictly to the detected category and group by design ID
+        # 5. Filter candidates strictly to the detected category and apply color-aware ranking
         seen_designs = {}
         for score, faiss_id in zip(raw_scores, raw_ids):
             if faiss_id < 0:
@@ -183,16 +193,41 @@ class ShoeMatcher:
                 
             design_id = ref_meta["design_id"]
             cosine_score = float(score)
-            confidence_pct = db.calculate_calibrated_confidence(cosine_score, category=ref_category)
             
-            if design_id not in seen_designs or cosine_score > seen_designs[design_id]["cosine_similarity"]:
+            # Color-aware similarity scoring
+            color_sim = 1.0
+            if ENABLE_COLOR_AWARE_SCORING and ref_meta.get("color_histogram"):
+                try:
+                    cand_hist = json.loads(ref_meta["color_histogram"])
+                    color_sim = ColorExtractor.compute_color_similarity(query_hist, cand_hist)
+                except Exception:
+                    color_sim = 1.0
+
+            if ENABLE_COLOR_AWARE_SCORING:
+                combined_score = WEIGHT_DESIGN * cosine_score + WEIGHT_COLOR * color_sim
+            else:
+                combined_score = cosine_score
+
+            confidence_pct = db.calculate_calibrated_confidence(combined_score, category=ref_category)
+
+            cand_dominant = []
+            if ref_meta.get("dominant_colors"):
+                try:
+                    cand_dominant = json.loads(ref_meta["dominant_colors"])
+                except Exception:
+                    pass
+            
+            if design_id not in seen_designs or combined_score > seen_designs[design_id]["combined_score"]:
                 seen_designs[design_id] = {
                     "design_id": design_id,
                     "design_name": ref_meta["name"],
                     "category": ref_meta["category"],
                     "description": ref_meta["description"],
                     "cosine_similarity": round(cosine_score, 4),
+                    "color_similarity": round(color_sim, 4),
+                    "combined_score": round(combined_score, 4),
                     "confidence_pct": round(confidence_pct, 2),
+                    "dominant_colors": cand_dominant,
                     "best_matching_angle": ref_meta["angle"],
                     "best_matching_image_path": ref_meta["image_path"],
                     "faiss_id": int(faiss_id)
@@ -201,7 +236,7 @@ class ShoeMatcher:
         # 6. Sort candidates and select top_k visually distinct designs (diversity de-duplication)
         sorted_candidates = sorted(
             seen_designs.values(),
-            key=lambda x: x["cosine_similarity"],
+            key=lambda x: x["combined_score"],
             reverse=True
         )
 
@@ -227,8 +262,8 @@ class ShoeMatcher:
                     break
 
         # Margin and Ambiguity Analysis
-        top1_sim = sorted_matches[0]["cosine_similarity"] if sorted_matches else 0.0
-        top2_sim = sorted_matches[1]["cosine_similarity"] if len(sorted_matches) > 1 else 0.0
+        top1_sim = sorted_matches[0]["combined_score"] if sorted_matches else 0.0
+        top2_sim = sorted_matches[1]["combined_score"] if len(sorted_matches) > 1 else 0.0
         score_margin = round(top1_sim - top2_sim, 4)
 
         if top1_sim < 0.55 and score_margin < 0.015 and len(sorted_matches) > 1:
@@ -256,6 +291,9 @@ class ShoeMatcher:
                 "production_status": full_design.get("production_status", "Sample Archive"),
                 "confidence_pct": match["confidence_pct"],
                 "cosine_similarity": match["cosine_similarity"],
+                "color_similarity": match.get("color_similarity", 1.0),
+                "combined_score": match.get("combined_score", match["cosine_similarity"]),
+                "dominant_colors": match.get("dominant_colors", []),
                 "match_level": level_code,
                 "match_level_label": level_label,
                 "match_color": color_code,
@@ -294,5 +332,6 @@ class ShoeMatcher:
             "total_catalog_vectors": self.vector_store.total_vectors,
             "matches": ranked_matches,
             "crop_metadata": crop_meta,
+            "query_dominant_colors": query_dominant_colors,
             "latency_ms": round(latency_ms, 2)
         }
