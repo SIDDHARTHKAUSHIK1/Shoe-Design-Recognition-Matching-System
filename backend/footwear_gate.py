@@ -3,7 +3,6 @@ Dedicated Binary Footwear Verification Gate (Footwear vs. Non-Footwear Out-of-Di
 Evaluates whether a visual embedding belongs to genuine footwear (shoe/slipper)
 before allowing catalog similarity search.
 """
-import os
 import logging
 from pathlib import Path
 from typing import Tuple, Dict, Any, Optional
@@ -19,6 +18,8 @@ class BinaryFootwearGate:
     """
     High-precision binary gate separating genuine footwear from out-of-distribution non-footwear
     using calibrated positive and negative visual manifold prototypes.
+    Also exposes classify_shoe_vs_slipper() — a prototype-based classifier independent of FAISS,
+    so slipper uploads are detected even when the FAISS index is shoe-only.
     """
     _instance: Optional["BinaryFootwearGate"] = None
 
@@ -28,6 +29,8 @@ class BinaryFootwearGate:
         self.neg_embeddings = None
         self.pos_prototype = None
         self.neg_prototype = None
+        self.slipper_embeddings = None
+        self.slipper_prototype = None
         self.loaded = False
         self._load_prototype_bank()
 
@@ -54,6 +57,11 @@ class BinaryFootwearGate:
             self.neg_embeddings = data["neg_embeddings"].astype(np.float32)
             self.pos_prototype = data["pos_prototype"].astype(np.float32)
             self.neg_prototype = data["neg_prototype"].astype(np.float32)
+            # Load slipper prototypes if present (added in extended build)
+            if "slipper_embeddings" in data and "slipper_prototype" in data:
+                self.slipper_embeddings = data["slipper_embeddings"].astype(np.float32)
+                self.slipper_prototype = data["slipper_prototype"].astype(np.float32)
+                logger.info(f"  Slipper prototypes loaded: {len(self.slipper_embeddings)} vectors")
             self.loaded = True
             logger.info(
                 f"BinaryFootwearGate initialized ({len(self.pos_embeddings)} positive vectors, "
@@ -138,3 +146,43 @@ class BinaryFootwearGate:
 
         # Passed all gate checks -> Confirmed genuine footwear
         return True, round(prob_footwear, 4), "confirmed_footwear", diagnostics
+
+    def classify_shoe_vs_slipper(
+        self,
+        query_embedding: np.ndarray
+    ) -> Tuple[str, float]:
+        """
+        Classify confirmed footwear as 'shoe' or 'slipper' using prototype bank similarity.
+        Operates independently of FAISS — works correctly even when FAISS is shoe-only.
+
+        Returns:
+            Tuple of (category: 'shoe' | 'slipper', confidence: float[0.0, 1.0])
+        """
+        if self.slipper_embeddings is None or self.slipper_prototype is None:
+            # No slipper bank available — default to shoe
+            return "shoe", 0.70
+
+        q_vec = np.squeeze(query_embedding).astype(np.float32)
+        norm = np.linalg.norm(q_vec)
+        if norm > 0:
+            q_vec = q_vec / norm
+
+        # Similarity to slipper prototype cluster
+        sim_to_slipper = np.dot(self.slipper_embeddings, q_vec)
+        top3_slipper = float(np.mean(np.sort(sim_to_slipper)[-3:]))
+        proto_slipper = float(np.dot(self.slipper_prototype, q_vec))
+
+        # Overall footwear prototype similarity (includes both shoe + slipper)
+        proto_footwear = float(np.dot(self.pos_prototype, q_vec))
+
+        # Weighted slipper score
+        slipper_score = 0.6 * top3_slipper + 0.4 * proto_slipper
+        # Shoe score: footwear affinity adjusted away from slipper domain
+        shoe_score = proto_footwear - 0.3 * slipper_score
+
+        if slipper_score > shoe_score:
+            conf = max(0.5, min(1.0, slipper_score / (shoe_score + slipper_score + 1e-9)))
+            return "slipper", round(conf, 4)
+        else:
+            conf = max(0.5, min(1.0, shoe_score / (shoe_score + slipper_score + 1e-9)))
+            return "shoe", round(conf, 4)

@@ -131,7 +131,8 @@ def build_gate_bank():
     # 1. Extract positive footwear embeddings from catalog
     refs = db.get_all_reference_images()
     pos_embeddings = []
-    
+    slipper_embeddings = []
+
     print(f"Extracting positive embeddings from {len(refs)} catalog reference images...")
     for r in refs:
         rel_img_path = r["image_path"]
@@ -148,7 +149,11 @@ def build_gate_bank():
             try:
                 img = Image.open(src_path).convert("RGB")
                 emb = engine.get_embedding(img)
-                pos_embeddings.append(np.squeeze(emb))
+                emb_vec = np.squeeze(emb)
+                pos_embeddings.append(emb_vec)
+                # Also collect slipper embeddings for the classifier bank
+                if db.is_slipper_category(r.get("design_category", "")):
+                    slipper_embeddings.append(emb_vec)
             except Exception as e:
                 print(f"Warning: Failed to embed {src_path}: {e}")
 
@@ -163,6 +168,19 @@ def build_gate_bank():
     # Compute centroid prototype for footwear
     pos_prototype = np.mean(pos_embeddings, axis=0)
     pos_prototype = pos_prototype / (np.linalg.norm(pos_prototype) + 1e-9)
+
+    # Slipper prototype bank (for classifier rank-voting, independent of FAISS)
+    if slipper_embeddings:
+        slipper_embeddings_arr = np.vstack(slipper_embeddings).astype(np.float32)
+        slip_norms = np.linalg.norm(slipper_embeddings_arr, axis=1, keepdims=True) + 1e-9
+        slipper_embeddings_arr = slipper_embeddings_arr / slip_norms
+        slipper_prototype = np.mean(slipper_embeddings_arr, axis=0)
+        slipper_prototype = slipper_prototype / (np.linalg.norm(slipper_prototype) + 1e-9)
+        print(f"  Slipper prototypes: {slipper_embeddings_arr.shape[0]} vectors")
+    else:
+        slipper_embeddings_arr = np.zeros((1, pos_embeddings.shape[1]), dtype=np.float32)
+        slipper_prototype = np.zeros(pos_embeddings.shape[1], dtype=np.float32)
+        print("  WARNING: No slipper images found for prototype bank.")
 
     # 2. Extract negative non-footwear embeddings
     neg_samples = generate_negative_images()
@@ -191,14 +209,18 @@ def build_gate_bank():
         pos_prototype=pos_prototype,
         neg_embeddings=neg_embeddings,
         neg_prototype=neg_prototype,
-        neg_labels=np.array(neg_labels)
+        neg_labels=np.array(neg_labels),
+        slipper_embeddings=slipper_embeddings_arr,
+        slipper_prototype=slipper_prototype
     )
 
     print(f"\nSuccessfully created Footwear Gate Bank at {GATE_MODEL_PATH}")
     print(f"  - Positive Footwear Vectors: {pos_embeddings.shape[0]}")
+    print(f"  - Slipper Prototype Vectors: {slipper_embeddings_arr.shape[0]}")
     print(f"  - Negative OOD Vectors:      {neg_embeddings.shape[0]}")
     print(f"  - Vector Dimensionality:     {pos_embeddings.shape[1]}")
 
 
 if __name__ == "__main__":
     build_gate_bank()
+

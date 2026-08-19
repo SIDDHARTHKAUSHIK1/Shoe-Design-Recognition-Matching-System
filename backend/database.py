@@ -39,6 +39,11 @@ def normalize_category(cat: Optional[str]) -> str:
     return "shoe"
 
 
+def is_slipper_category(cat: Optional[str]) -> bool:
+    """Return True if the category normalizes to 'slipper'. Used as a hard gate."""
+    return normalize_category(cat) == "slipper"
+
+
 def calculate_calibrated_confidence(similarity: float, category: str = "shoe") -> float:
     """
     Convert raw cosine similarity into calibrated confidence probability using fitted Platt scaling parameters.
@@ -352,6 +357,17 @@ def get_all_reference_images() -> List[Dict[str, Any]]:
             ORDER BY r.faiss_id ASC;
         """)
         return [dict(r) for r in cursor.fetchall()]
+
+
+def get_all_shoe_reference_images() -> List[Dict[str, Any]]:
+    """
+    Get ONLY shoe (non-slipper) reference image records ordered by FAISS ID.
+    Use this for ALL FAISS index rebuild paths to guarantee slippers are never re-indexed.
+    """
+    all_refs = get_all_reference_images()
+    return [r for r in all_refs if not is_slipper_category(r.get("design_category", ""))]
+
+
 
 
 def delete_design(design_id: str) -> bool:

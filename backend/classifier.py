@@ -133,26 +133,13 @@ class ZeroShotCategoryClassifier:
             conf = max(0.0, min(1.0, 1.0 - max_sim))
             return "none", round(conf, 4), "below_threshold", diagnostics
 
-        # 3. Weighted Rank Voting between Shoes and Slippers
-        shoe_score = 0.0
-        slipper_score = 0.0
 
-        for idx, (s, fid) in enumerate(zip(raw_scores[:5], raw_ids[:5])):
-            if fid < 0:
-                continue
-            meta = db.get_reference_image_by_faiss_id(int(fid))
-            if not meta:
-                continue
-            norm_cat = db.normalize_category(meta.get("category", ""))
-            rank_weight = (1.0 / (idx + 1)) * float(s)
-            if norm_cat == "shoe":
-                shoe_score += rank_weight
-            elif norm_cat == "slipper":
-                slipper_score += rank_weight
+        # 3. Prototype-Based Shoe vs. Slipper Classification
+        # Uses the gate's slipper prototype bank — independent of FAISS index contents,
+        # so it correctly detects slippers even when the FAISS index is shoe-only.
+        shoe_slipper_cat, shoe_slipper_conf = gate.classify_shoe_vs_slipper(emb)
 
-        if slipper_score > shoe_score:
-            prob = slipper_score / (shoe_score + slipper_score + 1e-9)
-            return "slipper", round(float(prob), 4), "matched", diagnostics
+        if shoe_slipper_cat == "slipper":
+            return "slipper", round(float(shoe_slipper_conf), 4), "slippers_not_supported", diagnostics
         else:
-            prob = shoe_score / (shoe_score + slipper_score + 1e-9)
-            return "shoe", round(float(prob), 4), "matched", diagnostics
+            return "shoe", round(float(shoe_slipper_conf), 4), "matched", diagnostics

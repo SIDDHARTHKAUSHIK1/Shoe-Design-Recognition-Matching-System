@@ -86,6 +86,19 @@ app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 # REST API Endpoints
 # ==========================================
 
+@app.get("/health")
+@app.get("/api/health")
+async def health_check():
+    """Health check endpoint."""
+    stats = db.get_catalog_stats()
+    return JSONResponse(content={
+        "status": "healthy",
+        "service": "ShoeMatch AI",
+        "total_designs": stats.get("total_designs", 0),
+        "total_vectors": VectorStore.get_instance().total_vectors
+    })
+
+
 @app.post("/api/match")
 async def match_shoe_design(
     file: UploadFile = File(...),
@@ -238,10 +251,11 @@ async def delete_catalog_design(design_id: str):
     # Delete from DB
     db.delete_design(design_id)
 
-    # Rebuild index from remaining DB reference images
+    # Rebuild shoe-only index from remaining DB reference images
+    # (explicitly excludes slipper-category entries)
     vs = VectorStore.get_instance()
     vs.reset()
-    all_refs = db.get_all_reference_images()
+    all_refs = db.get_all_shoe_reference_images()
     
     if all_refs:
         engine = EmbeddingEngine.get_instance()
@@ -262,6 +276,7 @@ async def delete_catalog_design(design_id: str):
                 conn.commit()
 
     return JSONResponse(content={"success": True, "message": f"Design {design_id} deleted."})
+
 
 
 @app.get("/api/logs")
