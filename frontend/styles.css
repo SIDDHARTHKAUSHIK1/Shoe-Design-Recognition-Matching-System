@@ -861,6 +861,54 @@ body {
   font-family: var(--font-mono);
 }
 
+/* Match Feedback Controls */
+.match-feedback-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-color);
+  font-size: 0.76rem;
+  flex-wrap: wrap;
+}
+
+.feedback-label {
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-right: 4px;
+}
+
+.btn-feedback {
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-feedback:hover {
+  border-color: var(--brand-primary);
+  color: var(--text-primary);
+  background: var(--bg-surface-3);
+  transform: translateY(-1px);
+}
+
+.btn-feedback.submitted {
+  background: var(--color-green-bg);
+  border-color: var(--color-green-border);
+  color: var(--color-green-text);
+  cursor: default;
+  pointer-events: none;
+}
+
 .score-pct.green { color: var(--color-green); }
 .score-pct.yellow { color: var(--color-yellow); }
 .score-pct.red { color: var(--color-red); }

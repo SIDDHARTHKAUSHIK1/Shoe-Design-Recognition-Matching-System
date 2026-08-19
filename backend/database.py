@@ -122,6 +122,19 @@ def init_db():
                 confidence_pct REAL,
                 latency_ms REAL,
                 results_json TEXT,
+                detected_category TEXT DEFAULT 'shoe',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+
+        # 4. Match Feedback Table for Continuous Improvement
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS match_feedback (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                query_id INTEGER,
+                user_verdict TEXT NOT NULL,
+                correct_design_id TEXT,
+                notes TEXT DEFAULT '',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         """)
@@ -394,3 +407,65 @@ def get_catalog_stats() -> Dict[str, Any]:
             "average_latency_ms": round(avg_lat or 0.0, 1),
             "average_confidence_pct": round(avg_conf or 0.0, 1)
         }
+
+
+def record_feedback(
+    query_id: Optional[int],
+    user_verdict: str,
+    correct_design_id: Optional[str] = None,
+    notes: str = ""
+) -> Dict[str, Any]:
+    """
+    Record user feedback on a search result for auditing and dataset curation.
+    Allowed verdicts: 'correct', 'wrong_match', 'not_in_catalog', 'wrong_category'
+    """
+    valid_verdicts = {"correct", "wrong_match", "not_in_catalog", "wrong_category"}
+    if user_verdict not in valid_verdicts:
+        user_verdict = "wrong_match"
+
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO match_feedback (
+                query_id,
+                user_verdict,
+                correct_design_id,
+                notes
+            ) VALUES (?, ?, ?, ?);
+        """, (query_id, user_verdict, correct_design_id, notes))
+        conn.commit()
+        feedback_id = cursor.lastrowid
+        
+        return {
+            "id": feedback_id,
+            "query_id": query_id,
+            "user_verdict": user_verdict,
+            "correct_design_id": correct_design_id,
+            "notes": notes,
+            "status": "recorded"
+        }
+
+
+def get_feedback_logs(limit: int = 100) -> List[Dict[str, Any]]:
+    """Fetch recent match feedback records joined with query log metadata."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                f.id,
+                f.query_id,
+                f.user_verdict,
+                f.correct_design_id,
+                f.notes,
+                f.created_at,
+                q.query_image_path,
+                q.top_match_id,
+                q.top_match_name,
+                q.confidence_pct,
+                q.detected_category
+            FROM match_feedback f
+            LEFT JOIN query_logs q ON f.query_id = q.id
+            ORDER BY f.id DESC
+            LIMIT ?;
+        """, (limit,))
+        return [dict(r) for r in cursor.fetchall()]

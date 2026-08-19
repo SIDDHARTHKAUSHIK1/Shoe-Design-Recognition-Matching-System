@@ -278,6 +278,36 @@ async def get_stats():
     return JSONResponse(content=stats)
 
 
+from pydantic import BaseModel
+
+class FeedbackPayload(BaseModel):
+    query_id: Optional[int] = None
+    user_verdict: str  # 'correct', 'wrong_match', 'not_in_catalog', 'wrong_category'
+    correct_design_id: Optional[str] = None
+    notes: Optional[str] = ""
+
+@app.post("/api/feedback")
+async def submit_match_feedback(payload: FeedbackPayload):
+    """
+    Record operator/user feedback on a search query.
+    Verdict: 'correct', 'wrong_match', 'not_in_catalog', 'wrong_category'
+    """
+    res = db.record_feedback(
+        query_id=payload.query_id,
+        user_verdict=payload.user_verdict,
+        correct_design_id=payload.correct_design_id,
+        notes=payload.notes or ""
+    )
+    return JSONResponse(content={"success": True, "feedback": res})
+
+
+@app.get("/api/feedback")
+async def list_feedback_logs(limit: int = 100):
+    """Retrieve recent match feedback logs."""
+    logs = db.get_feedback_logs(limit=limit)
+    return JSONResponse(content={"total": len(logs), "feedback_logs": logs})
+
+
 @app.post("/api/evaluate")
 async def trigger_evaluation():
     """Run catalog Leave-One-Out benchmark and return performance metrics."""

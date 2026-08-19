@@ -508,6 +508,13 @@ document.addEventListener("DOMContentLoaded", () => {
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <span>Click to open full shoe preview & shelf location</span>
           </div>
+
+          <div class="match-feedback-row" onclick="event.stopPropagation();">
+            <span class="feedback-label">Feedback:</span>
+            <button class="btn-feedback correct" title="Confirm correct match" onclick="submitFeedback(${data.query_id || 'null'}, 'correct', '${m.design_id}', this)">👍 Correct</button>
+            <button class="btn-feedback wrong" title="Report wrong design match" onclick="submitFeedback(${data.query_id || 'null'}, 'wrong_match', '${m.design_id}', this)">👎 Wrong</button>
+            <button class="btn-feedback not-in-catalog" title="Footwear is not in catalog" onclick="submitFeedback(${data.query_id || 'null'}, 'not_in_catalog', null, this)">❓ Not in Catalog</button>
+          </div>
         </div>
 
         <div class="match-score-block">
@@ -524,6 +531,32 @@ document.addEventListener("DOMContentLoaded", () => {
       elements.matchesList.appendChild(card);
     });
   }
+
+  // Submit User Feedback on Search Result
+  window.submitFeedback = async function(queryId, verdict, designId, btnElem) {
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query_id: queryId,
+          user_verdict: verdict,
+          correct_design_id: designId,
+          notes: ""
+        })
+      });
+      if (res.ok) {
+        const row = btnElem.closest(".match-feedback-row");
+        if (row) {
+          row.innerHTML = `<span style="color: var(--color-green); font-weight: 600; font-size: 0.76rem;">✓ Feedback recorded (${verdict.replace('_', ' ')})</span>`;
+        }
+        showToast("Feedback recorded. Thank you!", "success");
+      }
+    } catch (err) {
+      console.error("Failed to submit feedback:", err);
+      showToast("Failed to submit feedback", "error");
+    }
+  };
 
   // Swap preview angle photo when user clicks an angle thumbnail
   window.swapMatchImage = function(thumbEl, designId) {

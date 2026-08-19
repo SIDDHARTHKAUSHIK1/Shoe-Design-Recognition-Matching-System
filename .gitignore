@@ -36,6 +36,7 @@ venv.bak/
 storage/uploads/*
 !storage/uploads/.gitkeep
 storage/models/*
+storage/hard_negatives/*
 storage/*.db-shm
 storage/*.db-wal
 *.log

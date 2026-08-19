@@ -268,7 +268,7 @@ class ShoeMatcher:
         
         # 8. Audit log to SQLite with detected category
         top_match = ranked_matches[0] if ranked_matches else None
-        db.log_query(
+        query_id = db.log_query(
             query_image_path=query_image_save_path or "memory_query.jpg",
             top_match_id=top_match["design_id"] if top_match else None,
             top_match_name=top_match["design_name"] if top_match else None,
@@ -282,6 +282,7 @@ class ShoeMatcher:
         
         return {
             "success": True,
+            "query_id": query_id,
             "query_image_path": query_image_save_path,
             "detected_category": detected_category,
             "is_footwear_detected": True,
