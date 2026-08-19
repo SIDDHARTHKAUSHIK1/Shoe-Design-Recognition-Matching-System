@@ -72,7 +72,7 @@ class ShoeMatcher:
             query_embedding = self.engine.get_embedding(query_image_input)
             
             # 2. Run zero-shot category classification (invisible to user, automatic differentiation)
-            detected_category, cat_prob = self.classifier.classify_category(query_image_input)
+            detected_category, cat_prob = self.classifier.classify_category(query_image_input, precomputed_embedding=query_embedding)
             category_confidence_pct = round(cat_prob * 100.0, 1)
 
         # 3. Guard against non-footwear images (e.g. random pictures, faces, objects, animals)
