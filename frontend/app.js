@@ -250,11 +250,43 @@ document.addEventListener("DOMContentLoaded", () => {
     if (elements.btnRefreshCatalog) elements.btnRefreshCatalog.addEventListener("click", fetchCatalog);
     if (elements.btnRefreshLogs) elements.btnRefreshLogs.addEventListener("click", fetchLogs);
 
-    // Modal Events
+    // Modal Events & Backdrop Dismissal
     if (elements.btnOpenAddModal) elements.btnOpenAddModal.addEventListener("click", openAddModal);
     if (elements.btnCloseAddModal) elements.btnCloseAddModal.addEventListener("click", closeAddModal);
     if (elements.btnCancelAdd) elements.btnCancelAdd.addEventListener("click", closeAddModal);
     if (elements.btnCloseDetailModal) elements.btnCloseDetailModal.addEventListener("click", () => elements.detailModal.style.display = "none");
+
+    // Close Modals on Backdrop Click (Clicking outside modal dialog)
+    if (elements.detailModal) {
+      elements.detailModal.addEventListener("click", (e) => {
+        if (e.target === elements.detailModal) elements.detailModal.style.display = "none";
+      });
+    }
+    if (elements.addModal) {
+      elements.addModal.addEventListener("click", (e) => {
+        if (e.target === elements.addModal) closeAddModal();
+      });
+    }
+    if (elements.cameraModal) {
+      elements.cameraModal.addEventListener("click", (e) => {
+        if (e.target === elements.cameraModal) closeCameraModal();
+      });
+    }
+
+    // Global Escape Key Listener for Modals
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" || e.key === "Esc") {
+        if (elements.detailModal && elements.detailModal.style.display !== "none") {
+          elements.detailModal.style.display = "none";
+        }
+        if (elements.addModal && elements.addModal.style.display !== "none") {
+          closeAddModal();
+        }
+        if (elements.cameraModal && elements.cameraModal.style.display !== "none") {
+          closeCameraModal();
+        }
+      }
+    });
 
     // Camera Capture Modal Controls
     if (elements.btnCameraErrorFallback) {
@@ -461,6 +493,9 @@ document.addEventListener("DOMContentLoaded", () => {
     data.matches.forEach((m) => {
       const card = document.createElement("div");
       card.className = `match-item-card ${m.match_color}`;
+      card.setAttribute("role", "button");
+      card.setAttribute("tabindex", "0");
+      card.setAttribute("title", `Click to preview full specs and shelf coordinates for ${m.design_name} (${m.design_id})`);
 
       const rankLabels = ["#1 Best Match", "#2 Second Best", "#3 Third Best"];
       const rankLabel = rankLabels[m.rank - 1] || `#${m.rank} Match`;
@@ -469,7 +504,7 @@ document.addEventListener("DOMContentLoaded", () => {
       let angleThumbsHtml = "";
       if (m.all_angles && m.all_angles.length > 0) {
         angleThumbsHtml = `
-          <div class="angles-strip">
+          <div class="angles-strip" onclick="event.stopPropagation();">
             <span style="font-size: 0.7rem; color: var(--text-muted);">Angles:</span>
             ${m.all_angles.map(a => `
               <img src="${a.image_path}" 
@@ -504,7 +539,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <p class="match-desc">${m.description || "Factory specification model."}</p>
           ${angleThumbsHtml}
           ${m.dominant_colors && m.dominant_colors.length > 0 ? `
-            <div class="color-palette-strip" style="display: flex; gap: 6px; align-items: center; margin: 6px 0;">
+            <div class="color-palette-strip" style="display: flex; gap: 6px; align-items: center; margin: 6px 0;" onclick="event.stopPropagation();">
               <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 500;">Colors:</span>
               ${m.dominant_colors.map(c => `
                 <span style="width: 14px; height: 14px; border-radius: 50%; background: ${c.hex}; border: 1px solid rgba(255,255,255,0.3); display: inline-block; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="${c.hex} (${c.percentage}%)"></span>
@@ -513,15 +548,15 @@ document.addEventListener("DOMContentLoaded", () => {
           ` : ''}
           
           <div class="match-action-hint">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <span>Click to open full shoe preview & shelf location</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+            <span>Click card to open full multi-angle inspection & shelf specs</span>
           </div>
 
           <div class="match-feedback-row" onclick="event.stopPropagation();">
             <span class="feedback-label">Feedback:</span>
-            <button class="btn-feedback correct" title="Confirm correct match" onclick="submitFeedback(${data.query_id || 'null'}, 'correct', '${m.design_id}', this)">👍 Correct</button>
-            <button class="btn-feedback wrong" title="Report wrong design match" onclick="submitFeedback(${data.query_id || 'null'}, 'wrong_match', '${m.design_id}', this)">👎 Wrong</button>
-            <button class="btn-feedback not-in-catalog" title="Footwear is not in catalog" onclick="submitFeedback(${data.query_id || 'null'}, 'not_in_catalog', null, this)">❓ Not in Catalog</button>
+            <button class="btn-feedback correct" title="Confirm correct match" onclick="event.stopPropagation(); submitFeedback(${data.query_id || 'null'}, 'correct', '${m.design_id}', this)">👍 Correct</button>
+            <button class="btn-feedback wrong" title="Report wrong design match" onclick="event.stopPropagation(); submitFeedback(${data.query_id || 'null'}, 'wrong_match', '${m.design_id}', this)">👎 Wrong</button>
+            <button class="btn-feedback not-in-catalog" title="Footwear is not in catalog" onclick="event.stopPropagation(); submitFeedback(${data.query_id || 'null'}, 'not_in_catalog', null, this)">❓ Not in Catalog</button>
           </div>
         </div>
 
@@ -535,6 +570,12 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
 
       card.onclick = () => openShoeInspectionModal(m.design_id, m);
+      card.onkeydown = (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openShoeInspectionModal(m.design_id, m);
+        }
+      };
 
       elements.matchesList.appendChild(card);
     });
@@ -663,14 +704,59 @@ document.addEventListener("DOMContentLoaded", () => {
   // ==========================================================================
   // Full Shoe Inspection & Warehouse Shelf Location Modal
   // ==========================================================================
-  window.openShoeInspectionModal = async function(designId, matchData) {
+  window.openShoeInspectionModal = async function(designId, matchDataOrConfidence) {
+    if (!elements.detailModal) return;
+
+    // Normalize match data / confidence context
+    let normalizedMatch = null;
+    if (matchDataOrConfidence !== undefined && matchDataOrConfidence !== null) {
+      if (typeof matchDataOrConfidence === "number" || typeof matchDataOrConfidence === "string") {
+        const confNum = parseFloat(matchDataOrConfidence);
+        const safeConf = !isNaN(confNum) ? Math.round(confNum * 10) / 10 : 0;
+        normalizedMatch = {
+          rank: 1,
+          confidence_pct: safeConf,
+          match_level_label: safeConf >= 85 ? "Strong Match" : (safeConf >= 70 ? "Variant" : "Unique Design"),
+          match_color: safeConf >= 85 ? "green" : (safeConf >= 70 ? "yellow" : "red")
+        };
+      } else if (typeof matchDataOrConfidence === "object") {
+        const rawConf = matchDataOrConfidence.confidence_pct ?? matchDataOrConfidence.confidence ?? matchDataOrConfidence.score;
+        const confNum = rawConf !== undefined && rawConf !== null ? parseFloat(rawConf) : null;
+        const safeConf = confNum !== null && !isNaN(confNum) ? Math.round(confNum * 10) / 10 : null;
+
+        normalizedMatch = {
+          rank: matchDataOrConfidence.rank || 1,
+          confidence_pct: safeConf,
+          match_level_label: matchDataOrConfidence.match_level_label || (safeConf !== null ? (safeConf >= 85 ? "Strong Match" : (safeConf >= 70 ? "Variant" : "Unique Design")) : "Catalog Match"),
+          match_color: matchDataOrConfidence.match_color || (safeConf !== null ? (safeConf >= 85 ? "green" : (safeConf >= 70 ? "yellow" : "red")) : "green"),
+          cosine_similarity: matchDataOrConfidence.cosine_similarity,
+          color_similarity: matchDataOrConfidence.color_similarity
+        };
+      }
+    }
+
+    const skuBadge = document.getElementById("detail-sku-badge");
+    const titleEl = document.getElementById("detail-title");
+    if (skuBadge) skuBadge.textContent = `SKU: ${designId} • Loading specifications...`;
+    if (titleEl) titleEl.textContent = `Shoe Inspection & Factory Shelf Location`;
+
+    // Show modal immediately with clean loading skeleton to eliminate blank flash
+    elements.detailModal.style.display = "flex";
+    elements.detailModalBody.innerHTML = `
+      <div class="modal-loading-state">
+        <div class="spinner"></div>
+        <h4>Loading Design Specifications & Angles...</h4>
+        <p>Fetching reference details and inventory coordinates for SKU <strong>${designId}</strong></p>
+      </div>
+    `;
+
     try {
       const res = await fetch(`/api/designs/${designId}`);
-      if (!res.ok) throw new Error("Could not load design details");
+      if (!res.ok) {
+        throw new Error(`Server returned HTTP ${res.status}: Could not load design ${designId}`);
+      }
       const design = await res.json();
 
-      const skuBadge = document.getElementById("detail-sku-badge");
-      const titleEl = document.getElementById("detail-title");
       if (skuBadge) skuBadge.textContent = `SKU: ${design.design_id} • ${design.category}`;
       if (titleEl) titleEl.textContent = `${design.name}`;
 
@@ -678,25 +764,31 @@ document.addEventListener("DOMContentLoaded", () => {
       const firstImage = referenceImages.length > 0 ? referenceImages[0].image_path : (design.thumbnail_path || '/static/placeholder.jpg');
       const firstAngle = referenceImages.length > 0 ? referenceImages[0].angle : 'side';
 
-      // Match Banner HTML (if opened from match results)
+      // Match Banner HTML (if opened from match results or confidence provided)
       let matchBannerHtml = "";
-      if (matchData) {
+      if (normalizedMatch && normalizedMatch.confidence_pct !== null) {
+        const rankLabels = ["#1 Best Match", "#2 Second Best Match", "#3 Third Best Match"];
+        const rankTitle = rankLabels[normalizedMatch.rank - 1] || `#${normalizedMatch.rank} Ranked Match Result`;
+
         matchBannerHtml = `
-          <div class="preview-match-banner">
+          <div class="preview-match-banner ${normalizedMatch.match_color}">
             <div class="preview-match-meta">
-              <h4 style="color: var(--brand-primary); font-weight: 700;">#${matchData.rank || 1} Ranked Match Result</h4>
-              <span>Similarity Confidence: <strong>${matchData.confidence_pct}%</strong> (${matchData.match_level_label})</span>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <h4 style="color: var(--brand-primary); font-weight: 700;">${rankTitle}</h4>
+                <span class="match-level-pill ${normalizedMatch.match_color}">${normalizedMatch.match_level_label}</span>
+              </div>
+              <span>Query Match Confidence: <strong>${normalizedMatch.confidence_pct}%</strong>${normalizedMatch.cosine_similarity !== undefined ? ` &bull; Visual Cosine: ${(normalizedMatch.cosine_similarity * 100).toFixed(1)}%` : ''}</span>
             </div>
-            <div class="preview-score-badge ${matchData.match_color || 'green'}">
-              ${matchData.confidence_pct}%
+            <div class="preview-score-badge ${normalizedMatch.match_color}">
+              ${normalizedMatch.confidence_pct}%
             </div>
           </div>
         `;
       }
 
       // Query photo split-screen comparison button (if query image exists)
-      const hasQueryPhoto = Boolean(state.queryFile);
-      const queryPreviewSrc = elements.previewImg ? elements.previewImg.src : null;
+      const queryPreviewSrc = (elements.queryPreviewImg && elements.queryPreviewImg.src && elements.queryPreviewImg.src.length > 5) ? elements.queryPreviewImg.src : null;
+      const hasQueryPhoto = Boolean(state.selectedQueryFile && queryPreviewSrc);
 
       elements.detailModalBody.innerHTML = `
         <div class="preview-layout">
@@ -715,12 +807,13 @@ document.addEventListener("DOMContentLoaded", () => {
             <!-- Multi-Angle Thumbnails Strip -->
             <div>
               <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase;">
-                Multi-Angle Reference Photos (${referenceImages.length} angles available)
+                Multi-Angle Reference Photos (${referenceImages.length} angle${referenceImages.length === 1 ? '' : 's'} available)
               </div>
               <div class="preview-thumbnails-strip" id="preview-thumb-strip">
                 ${referenceImages.map((img, idx) => `
                   <button class="preview-thumb-btn ${idx === 0 ? 'active' : ''}" 
-                          onclick="selectPreviewAngle('${img.image_path}', '${img.angle}', this)">
+                          onclick="selectPreviewAngle('${img.image_path}', '${img.angle}', this)"
+                          title="View ${img.angle} angle">
                     <img src="${img.image_path}" alt="${img.angle}">
                     <span class="preview-thumb-tag">${img.angle}</span>
                   </button>
@@ -827,9 +920,24 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>
         </div>
       `;
-
-      elements.detailModal.style.display = "flex";
     } catch (err) {
+      console.error(`Error loading design ${designId}:`, err);
+      if (skuBadge) skuBadge.textContent = `SKU: ${designId} • Error`;
+      elements.detailModalBody.innerHTML = `
+        <div class="modal-error-state">
+          <div class="error-icon-circle">⚠️</div>
+          <h4>Unable to Load Design Details</h4>
+          <p>Could not retrieve specifications for SKU <strong>${designId}</strong>. (${err.message})</p>
+          <div style="display: flex; gap: 10px; margin-top: 8px;">
+            <button class="btn btn-secondary btn-sm" onclick="openShoeInspectionModal('${designId}', ${matchDataOrConfidence ? JSON.stringify(matchDataOrConfidence).replace(/"/g, '&quot;') : 'null'})">
+              🔄 Retry
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="document.getElementById('detail-modal').style.display = 'none'">
+              Close
+            </button>
+          </div>
+        </div>
+      `;
       showToast(err.message, "error");
     }
   };
@@ -837,12 +945,14 @@ document.addEventListener("DOMContentLoaded", () => {
   // Switch active photo in preview modal
   window.selectPreviewAngle = function(imgPath, angle, btnEl) {
     const stage = document.getElementById("preview-stage-box");
+    const queryPreviewSrc = (elements.queryPreviewImg && elements.queryPreviewImg.src && elements.queryPreviewImg.src.length > 5) ? elements.queryPreviewImg.src : null;
+    const hasQuery = Boolean(state.selectedQueryFile && queryPreviewSrc);
     if (stage) {
       stage.innerHTML = `
         <img id="preview-active-image" src="${imgPath}" alt="${angle}">
         <span class="viewer-angle-pill" id="preview-angle-pill">Angle: ${angle}</span>
-        ${state.queryFile ? `
-          <button class="viewer-toggle-btn" id="btn-toggle-split" onclick="toggleComparisonSplit('${imgPath}', '${elements.previewImg ? elements.previewImg.src : ''}')">
+        ${hasQuery ? `
+          <button class="viewer-toggle-btn" id="btn-toggle-split" onclick="toggleComparisonSplit('${imgPath}', '${queryPreviewSrc}')">
             ⚡ Side-by-Side Compare
           </button>
         ` : ''}

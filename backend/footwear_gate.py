@@ -202,6 +202,9 @@ class BinaryFootwearGate:
         if max_pos_sim < min_pos_sim:
             return False, round(prob_footwear, 4), "low_footwear_similarity", diagnostics
 
+        if proto_pos_sim < 0.20:
+            return False, round(prob_footwear, 4), "low_footwear_similarity", diagnostics
+
         if margin < min_margin:
             return False, round(prob_footwear, 4), "closer_to_non_footwear", diagnostics
 

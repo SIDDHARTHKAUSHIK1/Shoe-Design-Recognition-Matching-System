@@ -1449,12 +1449,27 @@ select {
 /* Match Card Interactive Hover & Shelf Badge */
 .match-item-card {
   cursor: pointer;
+  user-select: none;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease,
+              background-color 0.2s ease,
+              box-shadow 0.22s ease;
 }
 
 .match-item-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   border-color: var(--brand-primary);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  background: var(--bg-card-hover);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+
+.match-item-card:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+.match-item-card:active {
+  transform: translateY(-1px);
 }
 
 .match-card-shelf-badge {
@@ -1477,11 +1492,17 @@ select {
 .match-action-hint {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 0.75rem;
+  gap: 5px;
+  font-size: 0.74rem;
   color: var(--brand-primary);
   margin-top: 6px;
   font-weight: 600;
+  transition: var(--transition-fast);
+}
+
+.match-item-card:hover .match-action-hint {
+  color: #93c5fd;
+  transform: translateX(2px);
 }
 
 /* Modal Title with Badge */
@@ -1830,6 +1851,22 @@ select {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 4px;
+}
+
+.preview-match-banner.green {
+  border-color: rgba(34, 197, 94, 0.4);
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.preview-match-banner.yellow {
+  border-color: rgba(234, 179, 8, 0.4);
+  background: rgba(234, 179, 8, 0.08);
+}
+
+.preview-match-banner.red {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.08);
 }
 
 .preview-match-meta h4 {
@@ -1842,10 +1879,93 @@ select {
   color: var(--text-muted);
 }
 
+.match-level-pill {
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.match-level-pill.green {
+  background: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.match-level-pill.yellow {
+  background: rgba(234, 179, 8, 0.2);
+  color: #fde047;
+  border: 1px solid rgba(234, 179, 8, 0.4);
+}
+
+.match-level-pill.red {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
 .preview-score-badge {
   font-size: 1.4rem;
   font-weight: 800;
   font-family: var(--font-mono);
+}
+
+.preview-score-badge.green { color: var(--color-green); }
+.preview-score-badge.yellow { color: var(--color-yellow); }
+.preview-score-badge.red { color: var(--color-red); }
+
+/* Modal Loading & Error States */
+.modal-loading-state {
+  padding: 60px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.modal-loading-state h4 {
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin-top: 6px;
+}
+
+.modal-loading-state p {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.modal-error-state {
+  padding: 48px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: var(--radius-md);
+  margin: 20px;
+}
+
+.modal-error-state .error-icon-circle {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.modal-error-state h4 {
+  font-size: 1.05rem;
+  color: var(--color-red);
+}
+
+.modal-error-state p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  max-width: 440px;
+  line-height: 1.5;
 }
 
 /* Factory Specs Grid */
