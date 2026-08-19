@@ -96,7 +96,11 @@ class BinaryFootwearGate:
 
             gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
 
-            # 1. OpenCV QR Code Detector (requires non-empty decoded string payload)
+            # 1. Solid / Blank Color Image Check (low intensity deviation)
+            if np.std(gray) < 5.0:
+                return True, "solid_blank_image"
+
+            # 2. OpenCV QR Code Detector (requires non-empty decoded string payload)
             detector = cv2.QRCodeDetector()
             val, pts, _ = detector.detectAndDecode(gray)
             if val and len(val.strip()) > 0:
@@ -106,12 +110,15 @@ class BinaryFootwearGate:
             if ok and any(len(s.strip()) > 0 for s in info if s):
                 return True, "qr_code_detected"
 
-            # 2. Check Barcode / High-Contrast Grayscale Bimodal Grid Pattern
-            hsv = cv2.cvtColor(img_np, cv2.COLOR_RGB2HSV)
-            sat_mean = np.mean(hsv[:, :, 1])
-
+            # 3. High-Density Synthetic Random Noise Check (extreme global edge frequency)
             edges = cv2.Canny(gray, 50, 150)
             edge_ratio = np.mean(edges > 0)
+            if edge_ratio > 0.25:
+                return True, "noise_texture_detected"
+
+            # 4. Check Barcode / High-Contrast Grayscale Bimodal Grid Pattern
+            hsv = cv2.cvtColor(img_np, cv2.COLOR_RGB2HSV)
+            sat_mean = np.mean(hsv[:, :, 1])
 
             _, bin_img = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY)
             black_ratio = np.mean(bin_img == 0)
@@ -143,7 +150,7 @@ class BinaryFootwearGate:
                 - reason: 'confirmed_footwear', 'low_footwear_similarity', 'closer_to_non_footwear', 'low_probability', 'non_footwear_graphic'
                 - diagnostics: dict with all comparative metrics
         """
-        # Step 0: Direct visual check for QR codes, barcodes, and non-footwear graphics
+        # Step 0: Direct visual check for QR codes, barcodes, random noise, and non-footwear graphics
         if raw_image is not None:
             is_graphic, graphic_reason = self.check_image_non_footwear(raw_image)
             if is_graphic:
@@ -200,9 +207,6 @@ class BinaryFootwearGate:
             return False, round(prob_footwear, 4), "closer_to_non_footwear", diagnostics
 
         if max_pos_sim < min_pos_sim:
-            return False, round(prob_footwear, 4), "low_footwear_similarity", diagnostics
-
-        if proto_pos_sim < 0.20:
             return False, round(prob_footwear, 4), "low_footwear_similarity", diagnostics
 
         if margin < min_margin:

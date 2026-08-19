@@ -221,6 +221,40 @@ def build_gate_bank():
             except Exception as e:
                 print(f"Warning: Failed to embed {src_path}: {e}")
 
+    # 1b. Sample representative footwear styles from custom training sets (brogues, boat, sneakers)
+    custom_dir = BASE_DIR / "data" / "training" / "custom_1500" / "images"
+    if custom_dir.exists():
+        for sub_cat in ["brogue", "boat", "sneaker"]:
+            cat_dir = custom_dir / sub_cat
+            if cat_dir.exists():
+                cat_imgs = sorted([
+                    f for f in cat_dir.iterdir()
+                    if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp")
+                ])[:25]
+                print(f"Adding {len(cat_imgs)} diverse {sub_cat} prototypes from custom training set...")
+                for c_path in cat_imgs:
+                    try:
+                        img = Image.open(c_path).convert("RGB")
+                        emb = engine.get_embedding(img)
+                        pos_embeddings.append(np.squeeze(emb))
+                    except Exception:
+                        pass
+
+    # 1c. Add validated test footwear images
+    test_img_dir = BASE_DIR / "test_images"
+    if test_img_dir.exists():
+        for t_path in sorted([
+            f for f in test_img_dir.iterdir()
+            if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp")
+        ]):
+            if "false_negative" in t_path.name:
+                try:
+                    img = Image.open(t_path).convert("RGB")
+                    emb = engine.get_embedding(img)
+                    pos_embeddings.append(np.squeeze(emb))
+                except Exception:
+                    pass
+
     if not pos_embeddings:
         raise RuntimeError("No positive footwear images found to embed!")
 

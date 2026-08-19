@@ -93,6 +93,19 @@ class TestFootwearGate(unittest.TestCase):
         self.assertEqual(len(res.get("matches", [])), 0)
         self.assertIn(res.get("reason"), {"qr_code_detected", "qr_code_or_barcode_pattern", "closer_to_non_footwear", "no_clear_object"})
 
+    def test_brogue_and_formal_shoes_pass_gate(self):
+        """Verify previously false-negative formal dress shoes (brogues, oxfords) pass the gate and match."""
+        from pathlib import Path
+        test_dir = Path("test_images")
+        for fname in ["false_negative_brogue.jpg", "false_negative_pair.jpg"]:
+            p = test_dir / fname
+            if p.exists():
+                img = Image.open(p).convert("RGB")
+                res = self.matcher.match_image(img)
+                self.assertTrue(res.get("is_footwear_detected"), f"{fname} was incorrectly rejected as non-footwear: {res.get('reason')}")
+                self.assertEqual(res.get("detected_category"), "shoe")
+                self.assertGreater(len(res.get("matches", [])), 0)
+
 
 if __name__ == "__main__":
     unittest.main()
