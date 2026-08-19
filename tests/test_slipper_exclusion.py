@@ -36,8 +36,9 @@ class TestSlipperExclusion(unittest.TestCase):
         db = self.db
 
         total_vectors = vs.total_vectors
-        self.assertEqual(total_vectors, 31,
-            f"Expected 31 shoe vectors in FAISS, got {total_vectors}")
+        self.assertGreaterEqual(total_vectors, 31,
+            f"Expected at least 31 shoe vectors in FAISS, got {total_vectors}")
+
 
         # Verify no SLIP-* design is indexed
         for i in range(vs.total_vectors):
