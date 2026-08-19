@@ -53,6 +53,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Camera Modal
     cameraModal: document.getElementById("camera-modal"),
+    cameraFeedContainer: document.getElementById("camera-feed-container"),
+    cameraErrorContainer: document.getElementById("camera-error-container"),
+    cameraErrorMessage: document.getElementById("camera-error-message"),
+    btnCameraErrorFallback: document.getElementById("btn-camera-error-fallback"),
     btnCloseCamera: document.getElementById("btn-close-camera"),
     btnSnapPhoto: document.getElementById("btn-snap-photo"),
     btnSwitchCamera: document.getElementById("btn-switch-camera"),
@@ -270,17 +274,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Camera Capture Events
     if (elements.btnOpenCamera) {
-      elements.btnOpenCamera.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        openCameraModal();
-      });
+      elements.btnOpenCamera.addEventListener("click", handleCameraClick);
     }
     if (elements.btnRecaptureCamera) {
-      elements.btnRecaptureCamera.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        openCameraModal();
+      elements.btnRecaptureCamera.addEventListener("click", handleCameraClick);
+    }
+    if (elements.btnCameraErrorFallback) {
+      elements.btnCameraErrorFallback.addEventListener("click", () => {
+        closeCameraModal();
+        if (elements.cameraNativeInput) elements.cameraNativeInput.click();
       });
     }
     if (elements.btnCloseCamera) elements.btnCloseCamera.addEventListener("click", closeCameraModal);
@@ -1254,21 +1256,38 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // ==========================================
-  // Live Camera Capture
+  // Live Camera & Native Capture Handling
   // ==========================================
-  async function openCameraModal() {
-    // If WebRTC is unsupported or blocked (e.g. non-HTTPS IP / older browser), seamlessly open native camera
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      if (elements.cameraNativeInput) {
-        elements.cameraNativeInput.click();
-        return;
-      }
-      showToast("Camera access is not supported by your browser.", "error");
+  function handleCameraClick(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+    
+    // On mobile devices, opening the native hardware camera shutter provides 4K quality and autofocus
+    if (isMobile && elements.cameraNativeInput) {
+      elements.cameraNativeInput.click();
       return;
     }
 
+    // On desktop / laptops, launch the interactive live viewfinder modal
+    openCameraModal();
+  }
+
+  async function openCameraModal() {
     if (elements.cameraModal) elements.cameraModal.style.display = "flex";
     if (elements.cameraLoadingNotice) elements.cameraLoadingNotice.style.display = "block";
+    if (elements.cameraFeedContainer) elements.cameraFeedContainer.style.display = "flex";
+    if (elements.cameraErrorContainer) elements.cameraErrorContainer.style.display = "none";
+    if (elements.btnSnapPhoto) elements.btnSnapPhoto.style.display = "inline-flex";
+
+    // If WebRTC is unsupported or restricted by origin policy, show direct shutter trigger
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      showCameraError("Live webcam streaming is not supported on this browser/origin.");
+      return;
+    }
 
     await startCameraStream();
   }
@@ -1282,31 +1301,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     try {
-      let constraints;
-      if (/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
-        constraints = {
-          video: {
-            facingMode: { ideal: state.cameraFacingMode },
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          },
-          audio: false
-        };
-      } else {
-        constraints = {
-          video: {
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          },
-          audio: false
-        };
-      }
-
       let stream;
       try {
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        // Try ideal facingMode first
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: state.cameraFacingMode } },
+          audio: false
+        });
       } catch (initialErr) {
-        console.warn("Retrying camera with generic constraints:", initialErr);
+        console.warn("Retrying with simple video constraints:", initialErr);
         stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
       }
 
@@ -1332,15 +1335,19 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } catch (err) {
       console.error("Camera access error:", err);
-      closeCameraModal();
-      // Seamless native camera fallback if WebRTC permission was denied or failed
-      if (elements.cameraNativeInput) {
-        showToast("Opening device camera...", "info");
-        elements.cameraNativeInput.click();
-      } else {
-        showToast("Camera permission denied or camera not available.", "error");
-      }
+      showCameraError("Camera permission denied or camera device not found.");
     }
+  }
+
+  function showCameraError(msg) {
+    if (elements.cameraLoadingNotice) elements.cameraLoadingNotice.style.display = "none";
+    if (elements.cameraFeedContainer) elements.cameraFeedContainer.style.display = "none";
+    if (elements.cameraErrorContainer) {
+      elements.cameraErrorContainer.style.display = "block";
+      if (elements.cameraErrorMessage) elements.cameraErrorMessage.textContent = msg;
+    }
+    if (elements.btnSnapPhoto) elements.btnSnapPhoto.style.display = "none";
+    if (elements.btnSwitchCamera) elements.btnSwitchCamera.style.display = "none";
   }
 
   function closeCameraModal() {
@@ -1392,9 +1399,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const file = new File([blob], `camera_snap_${Date.now()}.jpg`, { type: "image/jpeg" });
       closeCameraModal();
       setQueryFile(file);
-      showToast("Photo captured from live camera!", "success");
-      // Automatically execute visual match
-      setTimeout(() => executeVisualMatch(), 300);
+      showToast("Photo captured from camera!", "success");
     }, "image/jpeg", 0.92);
   }
 

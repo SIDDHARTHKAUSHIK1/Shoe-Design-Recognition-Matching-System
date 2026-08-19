@@ -442,25 +442,38 @@
           </div>
           <div>
             <h3>Live Camera Capture</h3>
-            <span style="font-size: 0.76rem; color: var(--text-muted);">Position shoe in center and snap photo</span>
+            <span style="font-size: 0.76rem; color: var(--text-muted);">Position footwear in center and snap photo</span>
           </div>
         </div>
         <button class="btn-close" id="btn-close-camera">&times;</button>
       </div>
 
       <div class="modal-body" style="padding: 16px;">
-        <div class="camera-feed-container" style="position: relative; width: 100%; height: 340px; background: #000; border-radius: var(--radius-md); overflow: hidden; display: flex; align-items: center; justify-content: center;">
+        <div class="camera-feed-container" id="camera-feed-container" style="position: relative; width: 100%; height: 340px; background: #000; border-radius: var(--radius-md); overflow: hidden; display: flex; align-items: center; justify-content: center;">
           <video id="camera-video" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
           <canvas id="camera-canvas" style="display: none;"></canvas>
           <div class="camera-target-reticle" style="position: absolute; border: 2px dashed rgba(59, 130, 246, 0.7); width: 75%; height: 75%; border-radius: var(--radius-md); pointer-events: none; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);"></div>
           <div id="camera-loading-notice" style="position: absolute; color: #fff; font-size: 0.85rem; display: none;">Starting camera feed...</div>
+        </div>
+
+        <!-- Camera Error / Fallback State -->
+        <div id="camera-error-container" style="display: none; text-align: center; padding: 28px 16px; background: rgba(15, 23, 42, 0.6); border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+          <div style="font-size: 2.2rem; margin-bottom: 10px;">📸</div>
+          <h4 style="margin-bottom: 8px; font-size: 1rem; color: #fff;">Camera Access Notice</h4>
+          <p id="camera-error-message" style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 18px; line-height: 1.4;">
+            Live webcam stream could not be started. You can capture directly using your device's camera shutter below.
+          </p>
+          <button type="button" class="btn btn-primary" id="btn-camera-error-fallback" style="margin: 0 auto; display: inline-flex; align-items: center; gap: 8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span>Open Device Camera</span>
+          </button>
         </div>
       </div>
 
       <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 14px 18px;">
         <button type="button" class="btn btn-secondary" id="btn-switch-camera" style="display: none;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-          <span>Switch</span>
+          <span>Switch Camera</span>
         </button>
         <button type="button" class="btn btn-primary btn-lg" id="btn-snap-photo" style="margin: 0 auto; min-width: 200px;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
