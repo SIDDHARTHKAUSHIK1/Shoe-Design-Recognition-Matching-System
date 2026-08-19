@@ -41,6 +41,7 @@ storage/catalog_segmented/*
 *.pt
 storage/*.db-shm
 storage/*.db-wal
+storage/debug_*.jpg
 *.log
 .DS_Store
 Thumbs.db

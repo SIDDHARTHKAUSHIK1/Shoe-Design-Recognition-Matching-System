@@ -9,11 +9,33 @@ from typing import Union, List, Optional, Tuple, Dict, Any
 from PIL import Image, ImageOps
 import numpy as np
 import torch
+import torch.nn as nn
 from transformers import AutoImageProcessor, AutoModel
 
-from backend.config import MODEL_NAME, EMBEDDING_DIM, ENABLE_TTA, TTA_CROPS
+from backend.config import MODEL_NAME, EMBEDDING_DIM, ENABLE_TTA, TTA_CROPS, ENABLE_INVARIANT_HEAD, INVARIANT_HEAD_PATH
 
 logger = logging.getLogger(__name__)
+
+
+class InvariantProjectionHead(nn.Module):
+    """
+    Residual projection head that refines DINOv2 embeddings into a background-invariant metric space.
+    f(x) = L2_Normalize(x + W2(GELU(W1(x))))
+    """
+    def __init__(self, in_dim: int = 384, hidden_dim: int = 512):
+        super().__init__()
+        self.mlp = nn.Sequential(
+            nn.Linear(in_dim, hidden_dim),
+            nn.LayerNorm(hidden_dim),
+            nn.GELU(),
+            nn.Dropout(0.1),
+            nn.Linear(hidden_dim, in_dim)
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        res = self.mlp(x)
+        out = x + res
+        return torch.nn.functional.normalize(out, p=2, dim=-1)
 
 
 class EmbeddingEngine:
@@ -57,6 +79,17 @@ class EmbeddingEngine:
                     logger.info("DINOv2 dynamically quantized to INT8 (reduced RAM footprint).")
                 except Exception as qe:
                     logger.warning(f"Quantization note: {qe}")
+
+        # Initialize Background-Invariant Projection Head if available
+        self.invariant_head = None
+        if ENABLE_INVARIANT_HEAD and INVARIANT_HEAD_PATH.exists():
+            try:
+                self.invariant_head = InvariantProjectionHead(in_dim=EMBEDDING_DIM).to(self.device)
+                self.invariant_head.load_state_dict(torch.load(str(INVARIANT_HEAD_PATH), map_location=self.device))
+                self.invariant_head.eval()
+                logger.info("Loaded background-invariant projection head weights.")
+            except Exception as e:
+                logger.warning(f"Could not load background-invariant head: {e}")
             
         # Warmup model
         self._warmup()
@@ -175,6 +208,10 @@ class EmbeddingEngine:
                 # Mean pool across augmented views and re-normalize to unit length
                 mean_emb = torch.nn.functional.normalize(embs.mean(dim=0, keepdim=True), p=2, dim=1)
                 
+                # Apply background-invariant projection if available
+                if self.invariant_head is not None:
+                    mean_emb = self.invariant_head(mean_emb)
+                
             return mean_emb.cpu().numpy()[0].astype(np.float32)
 
         inputs = self.processor(images=img, return_tensors="pt")
@@ -190,6 +227,10 @@ class EmbeddingEngine:
                 
             # L2 Normalize the vector so cosine similarity == dot product
             emb = torch.nn.functional.normalize(emb, p=2, dim=1)
+            
+            # Apply background-invariant projection if available
+            if self.invariant_head is not None:
+                emb = self.invariant_head(emb)
             
         return emb.cpu().numpy()[0].astype(np.float32)
 
@@ -247,6 +288,10 @@ class EmbeddingEngine:
                     emb = outputs.last_hidden_state[:, 0, :]
                     
                 emb = torch.nn.functional.normalize(emb, p=2, dim=1)
+                
+                if self.invariant_head is not None:
+                    emb = self.invariant_head(emb)
+                    
                 all_embeddings.append(emb.cpu().numpy().astype(np.float32))
                 
         if all_embeddings:

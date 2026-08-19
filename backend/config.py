@@ -73,6 +73,10 @@ IMAGE_SIZE = (224, 224)
 ENABLE_TTA = os.getenv("ENABLE_TTA", "true").lower() in ("true", "1", "t")
 TTA_CROPS = int(os.getenv("TTA_CROPS", "2"))  # 2 crops (original + horizontal flip) for <250ms latency
 
+# Background-Invariant Projection Head Configuration
+ENABLE_INVARIANT_HEAD = os.getenv("ENABLE_INVARIANT_HEAD", "true").lower() in ("true", "1", "t")
+INVARIANT_HEAD_PATH = STORAGE_DIR / "models" / "background_invariant_head.pt"
+
 # Matching & Confidence Thresholds
 CONFIDENCE_HIGH_THRESHOLD = 85.0     # >= 85%: Strong Match (Green)
 CONFIDENCE_MODERATE_THRESHOLD = 70.0 # 70% - 84.9%: Moderate Match (Yellow)
