@@ -31,6 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Visual Match Studio
     queryDropzone: document.getElementById("query-dropzone"),
     queryFileInput: document.getElementById("query-file-input"),
+    cameraNativeInput: document.getElementById("camera-native-input"),
     dropPrompt: document.getElementById("drop-prompt"),
     queryPreviewContainer: document.getElementById("query-preview-container"),
     queryPreviewImg: document.getElementById("query-preview-img"),
@@ -175,23 +176,44 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.addEventListener("click", () => switchTab(btn.dataset.tab));
     });
 
-    // File Drop & Selection for Query Studio (Click anywhere in the box to upload)
+    // File Drop & Selection for Query Studio (Click anywhere in empty box to upload)
     if (elements.queryDropzone) {
       elements.queryDropzone.addEventListener("click", (e) => {
-        if (!state.selectedQueryFile || e.target.closest("#btn-change-image")) {
+        // Do not trigger file picker if clicking on buttons or controls
+        if (e.target.closest("button") || e.target.closest("#btn-open-camera") || e.target.closest("#btn-recapture-camera") || e.target.closest("#btn-browse-file") || e.target.closest("#btn-change-image") || e.target.closest(".preview-overlay") || e.target.closest(".drop-actions-row")) {
+          return;
+        }
+        if (!state.selectedQueryFile) {
           elements.queryFileInput.click();
         }
       });
     }
-    if (elements.btnBrowseFile) elements.btnBrowseFile.addEventListener("click", (e) => {
-      e.stopPropagation();
-      elements.queryFileInput.click();
-    });
-    if (elements.btnChangeImage) elements.btnChangeImage.addEventListener("click", (e) => {
-      e.stopPropagation();
-      elements.queryFileInput.click();
-    });
+    if (elements.btnBrowseFile) {
+      elements.btnBrowseFile.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        elements.queryFileInput.click();
+      });
+    }
+    if (elements.btnChangeImage) {
+      elements.btnChangeImage.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        elements.queryFileInput.click();
+      });
+    }
     if (elements.queryFileInput) elements.queryFileInput.addEventListener("change", handleQueryFileSelect);
+
+    // Native Camera Fallback Input Change Listener
+    if (elements.cameraNativeInput) {
+      elements.cameraNativeInput.addEventListener("change", (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+          setQueryFile(e.target.files[0]);
+          showToast("Photo captured from device camera!", "success");
+          setTimeout(() => executeVisualMatch(), 300);
+        }
+      });
+    }
 
     // Dropzone Drag Events
     if (elements.queryDropzone) {
@@ -228,6 +250,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Clear and Match Buttons
     if (elements.btnClearQuery) elements.btnClearQuery.addEventListener("click", (e) => {
+      e.preventDefault();
       e.stopPropagation();
       resetQueryStudio();
     });
@@ -248,12 +271,14 @@ document.addEventListener("DOMContentLoaded", () => {
     // Camera Capture Events
     if (elements.btnOpenCamera) {
       elements.btnOpenCamera.addEventListener("click", (e) => {
+        e.preventDefault();
         e.stopPropagation();
         openCameraModal();
       });
     }
     if (elements.btnRecaptureCamera) {
       elements.btnRecaptureCamera.addEventListener("click", (e) => {
+        e.preventDefault();
         e.stopPropagation();
         openCameraModal();
       });
@@ -1203,7 +1228,12 @@ document.addEventListener("DOMContentLoaded", () => {
   // Live Camera Capture
   // ==========================================
   async function openCameraModal() {
+    // If WebRTC is unsupported or blocked (e.g. non-HTTPS IP / older browser), seamlessly open native camera
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      if (elements.cameraNativeInput) {
+        elements.cameraNativeInput.click();
+        return;
+      }
       showToast("Camera access is not supported by your browser.", "error");
       return;
     }
@@ -1216,46 +1246,79 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function startCameraStream() {
     if (state.cameraStream) {
-      state.cameraStream.getTracks().forEach(track => track.stop());
+      try {
+        state.cameraStream.getTracks().forEach(track => track.stop());
+      } catch (e) {}
       state.cameraStream = null;
     }
 
     try {
-      const constraints = {
-        video: {
-          facingMode: state.cameraFacingMode,
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        },
-        audio: false
-      };
+      let constraints;
+      if (/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
+        constraints = {
+          video: {
+            facingMode: { ideal: state.cameraFacingMode },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        };
+      } else {
+        constraints = {
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        };
+      }
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (initialErr) {
+        console.warn("Retrying camera with generic constraints:", initialErr);
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      }
+
       state.cameraStream = stream;
       if (elements.cameraVideo) {
         elements.cameraVideo.srcObject = stream;
+        elements.cameraVideo.setAttribute("playsinline", "true");
+        elements.cameraVideo.setAttribute("autoplay", "true");
+        elements.cameraVideo.muted = true;
         await elements.cameraVideo.play();
       }
       if (elements.cameraLoadingNotice) elements.cameraLoadingNotice.style.display = "none";
 
       // Show switch camera button if multiple cameras exist
       if (navigator.mediaDevices.enumerateDevices && elements.btnSwitchCamera) {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter(d => d.kind === "videoinput");
-        if (videoDevices.length > 1) {
-          elements.btnSwitchCamera.style.display = "inline-flex";
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const videoDevices = devices.filter(d => d.kind === "videoinput");
+          elements.btnSwitchCamera.style.display = (videoDevices.length > 1) ? "inline-flex" : "none";
+        } catch (e) {
+          elements.btnSwitchCamera.style.display = "none";
         }
       }
     } catch (err) {
       console.error("Camera access error:", err);
-      showToast("Camera permission denied or camera not available.", "error");
       closeCameraModal();
+      // Seamless native camera fallback if WebRTC permission was denied or failed
+      if (elements.cameraNativeInput) {
+        showToast("Opening device camera...", "info");
+        elements.cameraNativeInput.click();
+      } else {
+        showToast("Camera permission denied or camera not available.", "error");
+      }
     }
   }
 
   function closeCameraModal() {
     if (state.cameraStream) {
-      state.cameraStream.getTracks().forEach(track => track.stop());
+      try {
+        state.cameraStream.getTracks().forEach(track => track.stop());
+      } catch (e) {}
       state.cameraStream = null;
     }
     if (elements.cameraVideo) {
@@ -1272,12 +1335,20 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function snapPhotoFromCamera() {
-    if (!elements.cameraVideo || !state.cameraStream) return;
+    if (!elements.cameraVideo || !state.cameraStream) {
+      showToast("Camera stream not ready.", "warning");
+      return;
+    }
 
     const video = elements.cameraVideo;
     const canvas = elements.cameraCanvas || document.createElement("canvas");
-    const width = video.videoWidth || 640;
-    const height = video.videoHeight || 480;
+    const width = video.videoWidth || video.clientWidth || 640;
+    const height = video.videoHeight || video.clientHeight || 480;
+
+    if (width === 0 || height === 0) {
+      showToast("Camera feed is warming up. Please try snapping again in a moment.", "warning");
+      return;
+    }
 
     canvas.width = width;
     canvas.height = height;
