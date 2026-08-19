@@ -67,9 +67,9 @@ class ZeroShotCategoryClassifier:
         max_sim = float(raw_scores[0]) if len(raw_scores) > 0 else 0.0
 
         # 1. Non-Footwear Rejection:
-        # If visual cosine similarity to the closest footwear in the catalog is < 0.28,
+        # If visual cosine similarity to the closest footwear in the catalog is < 0.22,
         # it is recognized as a random non-footwear object (car, face, tree, pizza, noise, etc.)
-        if max_sim < 0.28:
+        if max_sim < 0.22:
             conf = max(0.0, min(1.0, 1.0 - max_sim))
             return "none", round(conf, 4)
 

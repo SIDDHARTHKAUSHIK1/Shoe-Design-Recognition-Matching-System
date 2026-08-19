@@ -321,7 +321,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function setQueryFile(file) {
+  function setQueryFile(file, autoMatch = true) {
     if (!file.type.startsWith("image/")) {
       showToast("Please select a valid image file (JPEG, PNG, WEBP)", "error");
       return;
@@ -337,23 +337,52 @@ document.addEventListener("DOMContentLoaded", () => {
     elements.btnClearQuery.style.display = "inline-block";
     elements.btnRunMatch.disabled = false;
 
-    // Reset results to prompt matching
+    // Reset results container to fresh state
+    elements.resultsEmpty.innerHTML = `
+      <div class="empty-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          <path d="M11 8v6M8 11h6"/>
+        </svg>
+      </div>
+      <h4>Ready to Match</h4>
+      <p>Searching footwear database for top design matches...</p>
+    `;
     elements.resultsEmpty.style.display = "block";
     elements.resultsLoading.style.display = "none";
     elements.matchesList.style.display = "none";
     elements.resultsMetaText.textContent = "Ready to search catalog";
     elements.latencyBadge.style.display = "none";
+    if (elements.detectedCategoryBadge) elements.detectedCategoryBadge.style.display = "none";
+
+    // Auto-execute visual match for immediate feedback
+    if (autoMatch) {
+      setTimeout(() => executeVisualMatch(), 150);
+    }
   }
 
   function resetQueryStudio() {
     state.selectedQueryFile = null;
     elements.queryFileInput.value = "";
+    if (elements.cameraNativeInput) elements.cameraNativeInput.value = "";
     elements.dropPrompt.style.display = "block";
     elements.queryPreviewContainer.style.display = "none";
     elements.queryPreviewImg.src = "";
     elements.btnClearQuery.style.display = "none";
     elements.btnRunMatch.disabled = true;
 
+    elements.resultsEmpty.innerHTML = `
+      <div class="empty-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          <path d="M11 8v6M8 11h6"/>
+        </svg>
+      </div>
+      <h4>No Query Executed Yet</h4>
+      <p>Upload a shoe or slipper image on the left and click "Find Matches in Catalog" to view side-by-side rankings.</p>
+    `;
     elements.resultsEmpty.style.display = "block";
     elements.resultsLoading.style.display = "none";
     elements.matchesList.style.display = "none";
