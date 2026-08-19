@@ -424,7 +424,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (elements.detectedCatText) elements.detectedCatText.textContent = "No Shoe / Slipper Detected";
       }
       elements.resultsEmpty.style.display = "block";
-      elements.resultsEmpty.querySelector("h4").textContent = "🚫 No Shoe or Slipper Detected";
+      elements.resultsEmpty.querySelector("h4").textContent = "🚫 No Shoe Detected";
       elements.resultsEmpty.querySelector("p").textContent = data.message || "The uploaded image does not appear to contain a shoe or slipper. Please upload a clear photo of footwear.";
       elements.matchesList.style.display = "none";
       elements.resultsMetaText.textContent = "Non-footwear image uploaded";

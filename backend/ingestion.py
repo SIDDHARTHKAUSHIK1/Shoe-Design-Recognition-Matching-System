@@ -163,6 +163,16 @@ def ingest_single_design(
                 faiss_id=faiss_id
             )
 
+        # 5. Refresh binary footwear gate prototype bank
+        try:
+            from scripts.build_footwear_gate import build_gate_bank
+            from backend.footwear_gate import BinaryFootwearGate
+            build_gate_bank()
+            gate_inst = BinaryFootwearGate.get_instance()
+            gate_inst._load_prototype_bank()
+        except Exception as e:
+            logger.warning(f"Could not auto-refresh footwear gate bank: {e}")
+
         logger.info(f"Successfully ingested design '{name}' ({design_id}) with {len(embeddings)} reference images.")
         
         return {
@@ -172,6 +182,7 @@ def ingest_single_design(
             "images_indexed": len(embeddings),
             "faiss_ids": assigned_faiss_ids
         }
+
         
     return {
         "success": False,
