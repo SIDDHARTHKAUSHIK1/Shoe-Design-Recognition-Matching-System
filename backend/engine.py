@@ -5,7 +5,7 @@ import io
 import time
 import logging
 from pathlib import Path
-from typing import Union, List, Optional
+from typing import Union, List, Optional, Tuple, Dict, Any
 from PIL import Image, ImageOps
 import numpy as np
 import torch
@@ -106,18 +106,45 @@ class EmbeddingEngine:
             
         return img
 
-    def get_embedding(self, image_input: Union[str, Path, bytes, io.BytesIO, Image.Image]) -> np.ndarray:
+    def isolate_image_foreground(
+        self,
+        image_input: Union[str, Path, bytes, io.BytesIO, Image.Image]
+    ) -> Tuple[Image.Image, Optional[str], dict]:
         """
-        Compute an L2-normalized 1D visual embedding vector for a single image.
+        Discrete, testable helper to isolate footwear from background clutter.
+        Runs before resizing/normalization.
+        """
+        from backend.foreground import isolate_foreground
+        img = self.preprocess_image(image_input)
+        return isolate_foreground(img)
+
+    def extract_query_features(
+        self,
+        image_input: Union[str, Path, bytes, io.BytesIO, Image.Image],
+        auto_crop: bool = True
+    ) -> Tuple[np.ndarray, Optional[str], dict]:
+        """
+        Extract L2-normalized visual embedding with optional foreground auto-cropping.
         
-        Args:
-            image_input: Filepath, bytes, or PIL Image.
-            
         Returns:
-            np.ndarray: L2-normalized 1D float32 vector.
+            Tuple of:
+                - L2-normalized 1D float32 vector (384-d).
+                - Rejection reason string (e.g. 'no_clear_object') if no clear object found.
+                - Foreground crop metadata dict.
         """
         img = self.preprocess_image(image_input)
-        
+        rejection_reason = None
+        crop_meta = {"cropped": False}
+
+        if auto_crop:
+            img, rejection_reason, crop_meta = self.isolate_image_foreground(img)
+
+        # If no clear object found, still compute embedding for fallback, but return rejection reason
+        emb = self._compute_embedding(img)
+        return emb, rejection_reason, crop_meta
+
+    def _compute_embedding(self, img: Image.Image) -> np.ndarray:
+        """Internal computation of normalized DINOv2 embedding."""
         if getattr(self, "use_st", False):
             emb = self.st_model.encode(img, convert_to_numpy=True, normalize_embeddings=True)
             return emb.astype(np.float32)
@@ -128,7 +155,6 @@ class EmbeddingEngine:
         with torch.no_grad():
             outputs = self.model(**inputs)
             # Use CLS token representation from last hidden state
-            # For DINOv2, outputs.last_hidden_state[:, 0, :] is the global image embedding
             if hasattr(outputs, "pooler_output") and outputs.pooler_output is not None:
                 emb = outputs.pooler_output
             else:
@@ -138,6 +164,28 @@ class EmbeddingEngine:
             emb = torch.nn.functional.normalize(emb, p=2, dim=1)
             
         return emb.cpu().numpy()[0].astype(np.float32)
+
+    def get_embedding(
+        self, 
+        image_input: Union[str, Path, bytes, io.BytesIO, Image.Image],
+        auto_crop: bool = True
+    ) -> np.ndarray:
+        """
+        Compute an L2-normalized 1D visual embedding vector for a single image.
+        
+        Args:
+            image_input: Filepath, bytes, or PIL Image.
+            auto_crop: Whether to auto-crop the foreground object before embedding (default True).
+            
+        Returns:
+            np.ndarray: L2-normalized 1D float32 vector.
+        """
+        img = self.preprocess_image(image_input)
+        if auto_crop:
+            from backend.foreground import isolate_foreground
+            img, _, _ = isolate_foreground(img)
+            
+        return self._compute_embedding(img)
 
     def get_batch_embeddings(
         self, 

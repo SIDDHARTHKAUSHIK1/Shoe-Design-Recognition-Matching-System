@@ -68,8 +68,37 @@ class ShoeMatcher:
         t0 = time.time()
         
         with torch.no_grad():
-            # 1. Extract visual embedding
-            query_embedding = self.engine.get_embedding(query_image_input)
+            # 1. Extract visual embedding with foreground auto-cropping
+            query_embedding, fg_reason, crop_meta = self.engine.extract_query_features(query_image_input, auto_crop=True)
+            
+            # Guard against images with no clear foreground object
+            if fg_reason == "no_clear_object":
+                latency_ms = (time.time() - t0) * 1000
+                stats = db.get_catalog_stats()
+                if query_image_save_path:
+                    db.log_query(
+                        query_image_path=query_image_save_path,
+                        top_match_id="NO_OBJECT",
+                        top_match_name="No Clear Footwear Object Detected",
+                        confidence_pct=0.0,
+                        latency_ms=latency_ms,
+                        results=[],
+                        detected_category="none"
+                    )
+                return {
+                    "success": True,
+                    "query_image_path": query_image_save_path,
+                    "detected_category": "none",
+                    "is_footwear_detected": False,
+                    "category_confidence_pct": 0.0,
+                    "reason": "no_clear_object",
+                    "total_catalog_designs": stats.get("total_designs", 0),
+                    "total_catalog_vectors": self.vector_store.total_vectors,
+                    "matches": [],
+                    "latency_ms": round(latency_ms, 2),
+                    "crop_metadata": crop_meta,
+                    "message": "No clear footwear object detected in the photo. Please center the shoe or slipper and upload a clearer photo."
+                }
             
             # 2. Run zero-shot category classification (invisible to user, automatic differentiation)
             detected_category, cat_prob = self.classifier.classify_category(query_image_input, precomputed_embedding=query_embedding)
@@ -97,10 +126,12 @@ class ShoeMatcher:
                 "detected_category": "none",
                 "is_footwear_detected": False,
                 "category_confidence_pct": category_confidence_pct,
+                "reason": "below_threshold",
                 "total_catalog_designs": stats.get("total_designs", 0),
                 "total_catalog_vectors": self.vector_store.total_vectors,
                 "matches": [],
                 "latency_ms": round(latency_ms, 2),
+                "crop_metadata": crop_meta,
                 "message": "No shoe or slipper detected in the uploaded image. Please upload a clear photo of footwear."
             }
         

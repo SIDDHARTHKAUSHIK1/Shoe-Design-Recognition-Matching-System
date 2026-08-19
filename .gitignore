@@ -35,6 +35,7 @@ venv.bak/
 # User uploads & runtime temp files
 storage/uploads/*
 !storage/uploads/.gitkeep
+storage/models/*
 storage/*.db-shm
 storage/*.db-wal
 *.log
