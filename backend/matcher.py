@@ -100,8 +100,10 @@ class ShoeMatcher:
                     "message": "No clear footwear object detected in the photo. Please center the shoe or slipper and upload a clearer photo."
                 }
             
-            # 2. Run zero-shot category classification (invisible to user, automatic differentiation)
-            detected_category, cat_prob = self.classifier.classify_category(query_image_input, precomputed_embedding=query_embedding)
+            # 2. Run zero-shot category classification with density diagnostics
+            detected_category, cat_prob, cat_reason, cat_diag = self.classifier.classify_category_detailed(
+                query_image_input, precomputed_embedding=query_embedding
+            )
             category_confidence_pct = round(cat_prob * 100.0, 1)
 
         # 3. Guard against non-footwear images (e.g. random pictures, faces, objects, animals)
@@ -120,19 +122,26 @@ class ShoeMatcher:
                     detected_category="none"
                 )
             
+            reason_msg = (
+                "Ambiguous visual pattern detected with low neighborhood cluster density."
+                if cat_reason == "ambiguous_density"
+                else "No shoe or slipper detected in the uploaded image. Please upload a clear photo of footwear."
+            )
+
             return {
                 "success": True,
                 "query_image_path": query_image_save_path,
                 "detected_category": "none",
                 "is_footwear_detected": False,
                 "category_confidence_pct": category_confidence_pct,
-                "reason": "below_threshold",
+                "reason": cat_reason,
+                "diagnostics": cat_diag,
                 "total_catalog_designs": stats.get("total_designs", 0),
                 "total_catalog_vectors": self.vector_store.total_vectors,
                 "matches": [],
                 "latency_ms": round(latency_ms, 2),
                 "crop_metadata": crop_meta,
-                "message": "No shoe or slipper detected in the uploaded image. Please upload a clear photo of footwear."
+                "message": reason_msg
             }
         
         # 4. Check if catalog has vectors
@@ -144,6 +153,7 @@ class ShoeMatcher:
                 "detected_category": detected_category,
                 "is_footwear_detected": True,
                 "category_confidence_pct": category_confidence_pct,
+                "reason": "empty_catalog",
                 "total_catalog_designs": 0,
                 "total_catalog_vectors": 0,
                 "matches": [],
@@ -218,6 +228,16 @@ class ShoeMatcher:
                 if len(sorted_matches) >= top_k:
                     break
 
+        # Margin and Ambiguity Analysis
+        top1_sim = sorted_matches[0]["cosine_similarity"] if sorted_matches else 0.0
+        top2_sim = sorted_matches[1]["cosine_similarity"] if len(sorted_matches) > 1 else 0.0
+        score_margin = round(top1_sim - top2_sim, 4)
+
+        if top1_sim < 0.55 and score_margin < 0.015 and len(sorted_matches) > 1:
+            match_reason = "low_margin"
+        else:
+            match_reason = "matched"
+
         # 7. Format top matches with rankings, alert levels, and complete reference photos
         ranked_matches = []
         for rank_idx, match in enumerate(sorted_matches, start=1):
@@ -260,11 +280,7 @@ class ShoeMatcher:
             detected_category=detected_category
         )
         
-        catalog_stats = db.get_catalog_stats()
-        
-        message = None
-        if len(ranked_matches) == 0:
-            message = f"Detected category '{detected_category}' ({category_confidence_pct}%), but no matching reference designs exist in the catalog for this category."
+        stats = db.get_catalog_stats()
         
         return {
             "success": True,
@@ -272,9 +288,12 @@ class ShoeMatcher:
             "detected_category": detected_category,
             "is_footwear_detected": True,
             "category_confidence_pct": category_confidence_pct,
-            "total_catalog_designs": catalog_stats["total_designs"],
+            "reason": match_reason,
+            "score_margin": score_margin,
+            "neighborhood_density": cat_diag.get("density_score", 1.0),
+            "total_catalog_designs": stats.get("total_designs", 0),
             "total_catalog_vectors": self.vector_store.total_vectors,
             "matches": ranked_matches,
-            "latency_ms": round(latency_ms, 2),
-            "message": message
+            "crop_metadata": crop_meta,
+            "latency_ms": round(latency_ms, 2)
         }
