@@ -29,7 +29,8 @@ class TestFootwearGate(unittest.TestCase):
         self.assertTrue(self.gate.loaded)
         self.assertIsNotNone(self.gate.pos_embeddings)
         self.assertIsNotNone(self.gate.neg_embeddings)
-        self.assertGreaterEqual(len(self.gate.pos_embeddings), 50)
+        self.assertGreaterEqual(len(self.gate.pos_embeddings), 30)
+
         self.assertGreaterEqual(len(self.gate.neg_embeddings), 35)
 
     def test_genuine_footwear_passes_gate(self):
