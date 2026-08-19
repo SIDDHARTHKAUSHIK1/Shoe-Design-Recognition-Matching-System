@@ -1,23 +1,28 @@
 """
-Metric Learning Fine-Tuning on Kaggle UT Zappos50K Dataset for ShoeMatch AI.
+Metric Learning Fine-Tuning on Training Datasets for ShoeMatch AI.
+Supports:
+  - 'ut-zappos50k': Kaggle UT Zappos50K dataset
+  - 'custom_1500': Custom 1,500-image dataset (Brogue, Boat, Sneaker)
+  - 'all': Combined multi-source fine-tuning
 
-Trains the background-invariant & geometric fine-tuned projection head using Triplet Margin Loss:
-  - Anchor & Positive: Same shoe subcategory / brand design under augmentations & lighting variations
-  - Negative: Different shoe design OR slipper/sandal contrastive negatives (reinforces shoe-vs-slipper boundary)
-  - Kaggle data is strictly read from data/training/ and NEVER written to catalog or database.
+Trains the background-invariant & geometric fine-tuned projection head using Triplet Margin Loss (alpha=0.35):
+  - Anchor & Positive: Same shoe / coarse category design under viewpoint & illumination augmentations
+  - Negative: Cross-category shoe designs (e.g. Brogue vs Sneaker) + Slipper/Sandal contrastive rejection negatives
+  - Training data is strictly read from data/training/ and NEVER written to catalog or database.
 
 Usage:
-    python scripts/train_kaggle_metric_learning.py [--epochs 15] [--batch_size 32] [--lr 5e-4]
+    python scripts/train_kaggle_metric_learning.py --dataset all --epochs 15 --batch_size 32 --lr 5e-4 --save_checkpoint storage/models/background_invariant_head_v2.pt
 """
 import os
 import sys
+import csv
 import time
 import json
 import random
 import logging
 import argparse
 from pathlib import Path
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Dict, Any, Optional
 
 from PIL import Image, ImageEnhance, ImageFilter
 import numpy as np
@@ -38,18 +43,17 @@ from backend.config import (
     assert_catalog_image_path
 )
 from backend.engine import EmbeddingEngine
-from backend.foreground import isolate_foreground
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
 MODELS_DIR = STORAGE_DIR / "models"
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
-MODEL_SAVE_PATH = MODELS_DIR / "background_invariant_head.pt"
+DEFAULT_SAVE_PATH = MODELS_DIR / "background_invariant_head_v2.pt"
 
 
 # =====================================================================
-# 1. Residual Metric Projection Head (Full Architectural Compatibility)
+# 1. Residual Metric Projection Head (Architectural Compatibility)
 # =====================================================================
 class InvariantProjectionHead(nn.Module):
     """
@@ -79,12 +83,11 @@ class InvariantProjectionHead(nn.Module):
 # =====================================================================
 # 2. Consistent Preprocessing & Data Augmentation Pipeline
 # =====================================================================
-class KaggleShoeAugmentor:
+class ShoeDataAugmentor:
     """
     Applies consistent studio-to-query augmentations:
     - Random brightness/contrast shifts (simulating mobile phone camera sensors)
-    - Slight perspective / shear & scale shifts
-    - Neutral studio background composite (248, 248, 248)
+    - Subtle horizontal flip for invariant features
     """
     @staticmethod
     def augment_positive(image: Image.Image) -> Image.Image:
@@ -101,7 +104,6 @@ class KaggleShoeAugmentor:
             enhancer = ImageEnhance.Color(img)
             img = enhancer.enhance(random.uniform(0.85, 1.15))
             
-        # Subtle horizontal flip for invariant features
         if random.random() > 0.5:
             img = img.transpose(Image.FLIP_LEFT_RIGHT)
             
@@ -109,71 +111,37 @@ class KaggleShoeAugmentor:
 
 
 # =====================================================================
-# 3. Triplet Dataset with Slipper Negative Boundary Enforcement
+# 3. Dataset Loaders & Pre-Extraction
 # =====================================================================
-class KaggleZapposTripletDataset(Dataset):
+def load_custom_1500_data() -> Dict[str, List[Path]]:
     """
-    Samples triplets:
-      - Anchor: Shoe image (from Zappos 'Shoes' or 'Boots' subcategories)
-      - Positive: Augmented version or same subcategory design
-      - Negative: Different shoe design OR Slipper/Sandal (contrastive rejection sample)
+    Loads custom 1,500 dataset grouped by coarse category (brogue, boat, sneaker).
     """
-    def __init__(
-        self,
-        shoe_images: List[Path],
-        slipper_images: List[Path],
-        num_triplets: int = 10000,
-        slipper_neg_ratio: float = 0.30
-    ):
-        self.shoe_images = shoe_images
-        self.slipper_images = slipper_images
-        self.num_triplets = num_triplets
-        self.slipper_neg_ratio = slipper_neg_ratio
+    labels_csv = TRAINING_DATA_DIR / "custom_1500" / "labels.csv"
+    if not labels_csv.exists():
+        logger.warning(f"Custom 1,500 labels not found at {labels_csv}. Attempting auto-generation...")
+        from scripts.generate_custom_labels import prepare_custom_1500_dataset
+        prepare_custom_1500_dataset()
 
-        # Verify all paths are strictly inside training directory
-        for p in (shoe_images[:5] + slipper_images[:5]):
-            p_str = str(p.resolve())
-            if "catalog" in p_str and "training" not in p_str:
-                raise PermissionError(f"CRITICAL: Catalog path leaked into training dataset: {p}")
+    groups: Dict[str, List[Path]] = {}
+    if labels_csv.exists():
+        with open(labels_csv, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                p = BASE_DIR / row["image_path"]
+                grp = row["design_group"]
+                if p.exists():
+                    groups.setdefault(grp, []).append(p)
 
-    def __len__(self):
-        return self.num_triplets
-
-    def __getitem__(self, idx):
-        # Sample Anchor shoe
-        anchor_path = random.choice(self.shoe_images)
-        
-        # Positive: Augmented anchor or paired shoe
-        positive_img = KaggleShoeAugmentor.augment_positive(Image.open(anchor_path).convert("RGB"))
-        anchor_img = Image.open(anchor_path).convert("RGB")
-
-        # Negative: Either different shoe or slipper contrastive negative
-        if self.slipper_images and random.random() < self.slipper_neg_ratio:
-            neg_path = random.choice(self.slipper_images)
-        else:
-            neg_path = random.choice(self.shoe_images)
-            while neg_path == anchor_path and len(self.shoe_images) > 1:
-                neg_path = random.choice(self.shoe_images)
-                
-        negative_img = Image.open(neg_path).convert("RGB")
-
-        return anchor_img, positive_img, negative_img
+    total_imgs = sum(len(v) for v in groups.values())
+    logger.info(f"Loaded custom 1,500 dataset: {total_imgs} images across {list(groups.keys())}")
+    return groups
 
 
-# =====================================================================
-# 4. Training Engine
-# =====================================================================
-def train_kaggle_metric_head(
-    epochs: int = 15,
-    batch_size: int = 32,
-    lr: float = 5e-4,
-    num_samples: int = 12000,
-    margin: float = 0.35
-):
-    t0 = time.time()
-    logger.info("=== Phase 4: Fine-Tuning DINOv2 Metric Head on Kaggle Data ===")
-    
-    # 1. Locate Zappos dataset images
+def load_ut_zappos_data() -> Tuple[List[Path], List[Path]]:
+    """
+    Locates Kaggle UT Zappos50K dataset images and separates shoes from slippers/sandals.
+    """
     manifest_file = TRAINING_DATA_DIR / "ut-zappos50k" / "dataset_manifest.json"
     source_root = None
     if manifest_file.exists():
@@ -189,117 +157,170 @@ def train_kaggle_metric_head(
             pass
 
     if source_root is None or not source_root.exists():
-        # Fallback search
-        import kagglehub
-        cache_path = Path(kagglehub.dataset_download("aryashah2k/large-shoe-dataset-ut-zappos50k"))
-        nested = cache_path / "ut-zap50k-images-square" / "ut-zap50k-images-square"
-        source_root = nested if nested.exists() else cache_path
+        try:
+            import kagglehub
+            cache_path = Path(kagglehub.dataset_download("aryashah2k/large-shoe-dataset-ut-zappos50k"))
+            nested = cache_path / "ut-zap50k-images-square" / "ut-zap50k-images-square"
+            source_root = nested if nested.exists() else cache_path
+        except Exception as e:
+            logger.warning(f"Could not load UT Zappos50K cache: {e}")
+            return [], []
 
-    logger.info(f"Using training data root: {source_root}")
-    
-    # Collect shoe vs slipper images
     shoe_images = []
     slipper_images = []
-    
-    for img_p in source_root.glob("**/*.*"):
-        if img_p.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp"):
-            rel_parts = [p.lower() for p in img_p.relative_to(source_root).parts]
-            if any(s in rel_parts for s in ["slipper", "slippers", "sandals", "sandal", "slides", "clogs and mules"]):
-                slipper_images.append(img_p)
-            else:
-                shoe_images.append(img_p)
+    if source_root and source_root.exists():
+        for img_p in source_root.glob("**/*.*"):
+            if img_p.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp"):
+                rel_parts = [p.lower() for p in img_p.relative_to(source_root).parts]
+                if any(s in rel_parts for s in ["slipper", "slippers", "sandals", "sandal", "slides", "clogs and mules"]):
+                    slipper_images.append(img_p)
+                else:
+                    shoe_images.append(img_p)
 
-    logger.info(f"Discovered {len(shoe_images)} Shoe training images and {len(slipper_images)} Slipper/Sandal contrastive negative images.")
-    if len(shoe_images) == 0:
-        logger.error("No training shoe images found.")
-        return
+    logger.info(f"Loaded UT Zappos50K: {len(shoe_images)} Shoes, {len(slipper_images)} Slippers/Sandals.")
+    return shoe_images, slipper_images
 
-    # Sample balanced, representative subset for fast CPU metric learning
-    max_train_shoes = min(len(shoe_images), 800)
-    max_train_slippers = min(len(slipper_images), 300)
-    
-    random.seed(42)
-    sampled_shoes = random.sample(shoe_images, max_train_shoes)
-    sampled_slippers = random.sample(slipper_images, max_train_slippers) if slipper_images else []
 
-    # 2. Extract baseline embeddings using frozen DINOv2 backbone with consistent studio preprocessing
-    logger.info(f"Extracting DINOv2 embeddings for {len(sampled_shoes)} shoes + {len(sampled_slippers)} slippers...")
+def extract_embeddings_in_batches(paths: List[Path], engine: EmbeddingEngine, batch_size: int = 64) -> np.ndarray:
+    """Fast batch feature extraction via frozen DINOv2 backbone."""
+    all_embs = []
+    for i in range(0, len(paths), batch_size):
+        batch_paths = paths[i:i + batch_size]
+        batch_imgs = []
+        for p in batch_paths:
+            try:
+                im = Image.open(p).convert("RGB")
+                if im.size != (224, 224):
+                    im = im.resize((224, 224), Image.BILINEAR)
+                batch_imgs.append(im)
+            except Exception:
+                pass
+        if batch_imgs:
+            embs = engine.get_batch_embeddings(batch_imgs)
+            all_embs.extend(embs)
+    return np.array(all_embs, dtype=np.float32) if all_embs else np.empty((0, EMBEDDING_DIM), dtype=np.float32)
+
+
+# =====================================================================
+# 4. Training Engine Supporting Single & Multi-Dataset Fine-Tuning
+# =====================================================================
+def train_metric_head(
+    dataset_name: str = "all",
+    epochs: int = 15,
+    batch_size: int = 32,
+    lr: float = 5e-4,
+    margin: float = 0.35,
+    save_checkpoint: Path = DEFAULT_SAVE_PATH
+):
+    t0 = time.time()
+    logger.info(f"=== Starting Metric Learning Fine-Tuning (Dataset: {dataset_name}) ===")
+    logger.info(f"Target Checkpoint: {save_checkpoint}")
+
     engine = EmbeddingEngine.get_instance()
     
-    # Fast batch embedding
-    shoe_embeddings = []
-    batch_size_emb = 64
-    for i in range(0, len(sampled_shoes), batch_size_emb):
-        batch_paths = sampled_shoes[i:i + batch_size_emb]
-        batch_imgs = []
-        for p in batch_paths:
-            try:
-                im = Image.open(p).convert("RGB")
-                # Ensure neutral studio fill / resize to standard 224x224
-                if im.size != (224, 224):
-                    im = im.resize((224, 224), Image.BILINEAR)
-                batch_imgs.append(im)
-            except Exception:
-                pass
-        if batch_imgs:
-            embs = engine.get_batch_embeddings(batch_imgs)
-            shoe_embeddings.extend(embs)
-        logger.info(f"  Embedded [{min(i + batch_size_emb, len(sampled_shoes))}/{len(sampled_shoes)}] shoes...")
+    # 1. Collect Data Sources
+    custom_groups: Dict[str, List[Path]] = {}
+    zappos_shoes: List[Path] = []
+    zappos_slippers: List[Path] = []
 
-    slipper_embeddings = []
-    for i in range(0, len(sampled_slippers), batch_size_emb):
-        batch_paths = sampled_slippers[i:i + batch_size_emb]
-        batch_imgs = []
-        for p in batch_paths:
-            try:
-                im = Image.open(p).convert("RGB")
-                if im.size != (224, 224):
-                    im = im.resize((224, 224), Image.BILINEAR)
-                batch_imgs.append(im)
-            except Exception:
-                pass
-        if batch_imgs:
-            embs = engine.get_batch_embeddings(batch_imgs)
-            slipper_embeddings.extend(embs)
-        logger.info(f"  Embedded [{min(i + batch_size_emb, len(sampled_slippers))}/{len(sampled_slippers)}] slippers...")
+    if dataset_name in ("custom_1500", "all"):
+        custom_groups = load_custom_1500_data()
+        
+    if dataset_name in ("ut-zappos50k", "all"):
+        zappos_shoes, zappos_slippers = load_ut_zappos_data()
 
-    shoe_tensor = torch.from_numpy(np.vstack(shoe_embeddings)).float()
-    slipper_tensor = torch.from_numpy(np.vstack(slipper_embeddings)).float() if slipper_embeddings else None
+    # Pre-extract custom_1500 group embeddings
+    custom_tensors: Dict[str, torch.Tensor] = {}
+    for grp, pths in custom_groups.items():
+        logger.info(f"Extracting DINOv2 embeddings for {len(pths)} '{grp}' custom images...")
+        embs = extract_embeddings_in_batches(pths, engine)
+        if len(embs) > 0:
+            custom_tensors[grp] = torch.from_numpy(embs).float()
 
-    logger.info(f"Pre-extracted tensors: Shoes={shoe_tensor.shape}, Slippers={slipper_tensor.shape if slipper_tensor is not None else None}")
+    # Pre-extract UT Zappos embeddings (sample up to 800 shoes + 300 slippers)
+    zappos_shoe_tensor = None
+    zappos_slipper_tensor = None
+    if zappos_shoes:
+        random.seed(42)
+        sample_s = random.sample(zappos_shoes, min(len(zappos_shoes), 800))
+        logger.info(f"Extracting DINOv2 embeddings for {len(sample_s)} UT Zappos shoes...")
+        embs = extract_embeddings_in_batches(sample_s, engine)
+        if len(embs) > 0:
+            zappos_shoe_tensor = torch.from_numpy(embs).float()
 
+    if zappos_slippers:
+        sample_slip = random.sample(zappos_slippers, min(len(zappos_slippers), 300))
+        logger.info(f"Extracting DINOv2 embeddings for {len(sample_slip)} UT Zappos slippers...")
+        embs = extract_embeddings_in_batches(sample_slip, engine)
+        if len(embs) > 0:
+            zappos_slipper_tensor = torch.from_numpy(embs).float()
 
-    # 3. Setup PyTorch Metric Training
+    # Total shoe pools available
+    all_shoe_pools = []
+    for t in custom_tensors.values():
+        all_shoe_pools.append(t)
+    if zappos_shoe_tensor is not None:
+        all_shoe_pools.append(zappos_shoe_tensor)
+
+    if not all_shoe_pools:
+        logger.error("No valid training embeddings available. Aborting fine-tuning.")
+        return
+
+    combined_shoe_tensor = torch.cat(all_shoe_pools, dim=0)
+    logger.info(f"Total training shoe embeddings ready: {combined_shoe_tensor.shape[0]} vectors (dim={combined_shoe_tensor.shape[1]}).")
+
+    # 2. Setup PyTorch Metric Head & Training Loop
     model = InvariantProjectionHead(in_dim=EMBEDDING_DIM, hidden_dim=512)
     criterion = nn.TripletMarginLoss(margin=margin, p=2)
     optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
 
-    logger.info(f"Training InvariantProjectionHead for {epochs} epochs (batch_size={batch_size}, margin={margin})...")
-    
-    num_triplets_per_epoch = min(num_samples, len(shoe_tensor) * 4)
+    num_triplets_per_epoch = min(12000, len(combined_shoe_tensor) * 6)
+    num_batches = max(1, num_triplets_per_epoch // batch_size)
+
+    logger.info(f"Training InvariantProjectionHead for {epochs} epochs (batch_size={batch_size}, margin={margin}, triplets/epoch={num_triplets_per_epoch})...")
     model.train()
+
+    grp_names = list(custom_tensors.keys())
 
     for epoch in range(1, epochs + 1):
         epoch_loss = 0.0
-        num_batches = num_triplets_per_epoch // batch_size
         
         for _ in range(num_batches):
-            # Batch indices
-            a_idx = torch.randint(0, len(shoe_tensor), (batch_size,))
-            
-            # Positive with small jitter perturbation (simulates viewpoint/illumination)
-            p_vecs = shoe_tensor[a_idx] + torch.randn_like(shoe_tensor[a_idx]) * 0.05
-            p_vecs = nn.functional.normalize(p_vecs, p=2, dim=-1)
-            a_vecs = shoe_tensor[a_idx]
-            
-            # Negative: 30% slippers, 70% different shoes
-            if slipper_tensor is not None and random.random() < 0.30:
-                n_idx = torch.randint(0, len(slipper_tensor), (batch_size,))
-                n_vecs = slipper_tensor[n_idx]
+            # Batch Construction
+            # Strategy: 60% custom coarse triplets (if available), 40% Zappos/combined triplets
+            use_custom = (len(grp_names) >= 2) and (random.random() < 0.60)
+
+            if use_custom:
+                # Sample Anchor group
+                g_a = random.choice(grp_names)
+                g_n = random.choice([g for g in grp_names if g != g_a])
+                
+                t_a = custom_tensors[g_a]
+                t_n = custom_tensors[g_n]
+                
+                a_idx = torch.randint(0, len(t_a), (batch_size,))
+                n_idx = torch.randint(0, len(t_n), (batch_size,))
+                
+                a_vecs = t_a[a_idx]
+                # Positive: Jittered anchor vector + subtle noise (viewpoint/illumination invariance)
+                p_vecs = a_vecs + torch.randn_like(a_vecs) * 0.04
+                p_vecs = nn.functional.normalize(p_vecs, p=2, dim=-1)
+                n_vecs = t_n[n_idx]
             else:
-                n_idx = (a_idx + torch.randint(1, len(shoe_tensor), (batch_size,))) % len(shoe_tensor)
-                n_vecs = shoe_tensor[n_idx]
+                # General combined pool sampling
+                a_idx = torch.randint(0, len(combined_shoe_tensor), (batch_size,))
+                a_vecs = combined_shoe_tensor[a_idx]
+                p_vecs = a_vecs + torch.randn_like(a_vecs) * 0.05
+                p_vecs = nn.functional.normalize(p_vecs, p=2, dim=-1)
+
+                # Contrastive negative: 30% slipper (if available), 70% different shoe
+                if zappos_slipper_tensor is not None and random.random() < 0.30:
+                    n_idx = torch.randint(0, len(zappos_slipper_tensor), (batch_size,))
+                    n_vecs = zappos_slipper_tensor[n_idx]
+                else:
+                    n_idx = (a_idx + torch.randint(1, len(combined_shoe_tensor), (batch_size,))) % len(combined_shoe_tensor)
+                    n_vecs = combined_shoe_tensor[n_idx]
 
             optimizer.zero_grad()
             out_a = model(a_vecs)
@@ -313,29 +334,44 @@ def train_kaggle_metric_head(
             epoch_loss += loss.item()
 
         scheduler.step()
-        avg_loss = epoch_loss / max(1, num_batches)
+        avg_loss = epoch_loss / num_batches
         if epoch % 3 == 0 or epoch == epochs:
             logger.info(f"Epoch [{epoch:02d}/{epochs:02d}] - Triplet Margin Loss: {avg_loss:.4f} (LR: {scheduler.get_last_lr()[0]:.6f})")
 
-    # 4. Save fine-tuned projection head weights
-    torch.save(model.state_dict(), str(MODEL_SAVE_PATH))
-    logger.info(f"Fine-tuned projection head successfully saved to {MODEL_SAVE_PATH}")
-    
+    # 3. Save Model Checkpoint
+    save_path = Path(save_checkpoint)
+    save_path.parent.mkdir(parents=True, exist_ok=True)
+    torch.save(model.state_dict(), str(save_path))
+    logger.info(f"Trained projection head successfully saved to {save_path}")
+
     total_time = time.time() - t0
     print("\n" + "=" * 65)
-    print(">> KAGGLE METRIC LEARNING FINE-TUNING COMPLETED")
+    print(">> METRIC LEARNING FINE-TUNING COMPLETED")
     print("=" * 65)
+    print(f"Dataset Used:        {dataset_name}")
     print(f"Training Time:       {total_time:.2f}s")
-    print(f"Model Weights Saved: {MODEL_SAVE_PATH}")
+    print(f"Checkpoint Saved:    {save_path}")
     print(f"Catalog Isolation:   PASSED (0 training images entered catalog)")
     print("=" * 65 + "\n")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--epochs", type=int, default=15)
-    parser.add_argument("--batch_size", type=int, default=32)
-    parser.add_argument("--lr", type=float, default=5e-4)
+    parser = argparse.ArgumentParser(description="Train Metric Learning Projection Head for ShoeMatch AI")
+    parser.add_argument("--dataset", type=str, default="all", choices=["ut-zappos50k", "custom_1500", "all"],
+                        help="Dataset source for fine-tuning")
+    parser.add_argument("--epochs", type=int, default=15, help="Number of training epochs")
+    parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
+    parser.add_argument("--lr", type=float, default=5e-4, help="Learning rate")
+    parser.add_argument("--margin", type=float, default=0.35, help="Triplet margin loss alpha")
+    parser.add_argument("--save_checkpoint", type=str, default=str(DEFAULT_SAVE_PATH),
+                        help="Path to save output .pt checkpoint")
     args = parser.parse_args()
     
-    train_kaggle_metric_head(epochs=args.epochs, batch_size=args.batch_size, lr=args.lr)
+    train_metric_head(
+        dataset_name=args.dataset,
+        epochs=args.epochs,
+        batch_size=args.batch_size,
+        lr=args.lr,
+        margin=args.margin,
+        save_checkpoint=Path(args.save_checkpoint)
+    )

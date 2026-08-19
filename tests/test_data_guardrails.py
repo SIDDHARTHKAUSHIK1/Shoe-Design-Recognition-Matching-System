@@ -40,6 +40,14 @@ class TestDataSeparationGuardrails(unittest.TestCase):
         
         self.assertIn("SECURITY GUARDRAIL VIOLATION", str(ctx.exception))
 
+    def test_custom_1500_training_paths_strictly_blocked(self):
+        """Any path inside custom_1500 training directory must raise PermissionError."""
+        for group in ["brogue", "boat", "sneaker"]:
+            custom_img = TRAINING_DATA_DIR / "custom_1500" / "images" / group / f"{group}_0001.jpg"
+            with self.assertRaises(PermissionError) as ctx:
+                assert_catalog_image_path(custom_img)
+            self.assertIn("SECURITY GUARDRAIL VIOLATION", str(ctx.exception))
+
     def test_directory_constants_distinct(self):
         """TRAINING_DATA_DIR and CATALOG_DATA_DIR must be completely distinct paths."""
         self.assertNotEqual(TRAINING_DATA_DIR.resolve(), CATALOG_DATA_DIR.resolve())

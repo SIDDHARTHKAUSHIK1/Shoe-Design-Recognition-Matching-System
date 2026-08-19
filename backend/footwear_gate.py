@@ -117,8 +117,8 @@ class BinaryFootwearGate:
             black_ratio = np.mean(bin_img == 0)
             white_ratio = np.mean(bin_img == 255)
 
-            # Pure grayscale high-frequency 2D grid/barcode check (sat < 15, high edge density, bimodal B/W)
-            if sat_mean < 15 and (black_ratio + white_ratio > 0.85) and edge_ratio > 0.12:
+            # Pure grayscale high-frequency 2D grid/barcode check (sat < 15, edge_ratio > 0.04, bimodal > 0.80)
+            if sat_mean < 15 and (black_ratio + white_ratio > 0.80) and edge_ratio > 0.04:
                 return True, "qr_code_or_barcode_pattern"
 
             return False, "clean"
