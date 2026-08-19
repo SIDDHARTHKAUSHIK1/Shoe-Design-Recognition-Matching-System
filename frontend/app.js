@@ -548,15 +548,17 @@ document.addEventListener("DOMContentLoaded", () => {
           ` : ''}
           
           <div class="match-action-hint">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-            <span>Click card to open full multi-angle inspection & shelf specs</span>
+            <button type="button" class="btn-inspect-quick-action" onclick="event.stopPropagation(); openShoeInspectionModal('${m.design_id}', ${JSON.stringify(m).replace(/"/g, '&quot;')});">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+              <span>Inspect Full Design & Shelf Location &rarr;</span>
+            </button>
           </div>
 
           <div class="match-feedback-row" onclick="event.stopPropagation();">
             <span class="feedback-label">Feedback:</span>
-            <button class="btn-feedback correct" title="Confirm correct match" onclick="event.stopPropagation(); submitFeedback(${data.query_id || 'null'}, 'correct', '${m.design_id}', this)">👍 Correct</button>
-            <button class="btn-feedback wrong" title="Report wrong design match" onclick="event.stopPropagation(); submitFeedback(${data.query_id || 'null'}, 'wrong_match', '${m.design_id}', this)">👎 Wrong</button>
-            <button class="btn-feedback not-in-catalog" title="Footwear is not in catalog" onclick="event.stopPropagation(); submitFeedback(${data.query_id || 'null'}, 'not_in_catalog', null, this)">❓ Not in Catalog</button>
+            <button type="button" class="btn-feedback correct" title="Confirm correct match" onclick="event.stopPropagation(); submitFeedback(${data.query_id || 'null'}, 'correct', '${m.design_id}', this)">👍 Correct</button>
+            <button type="button" class="btn-feedback wrong" title="Report wrong design match" onclick="event.stopPropagation(); submitFeedback(${data.query_id || 'null'}, 'wrong_match', '${m.design_id}', this)">👎 Wrong</button>
+            <button type="button" class="btn-feedback not-in-catalog" title="Footwear is not in catalog" onclick="event.stopPropagation(); submitFeedback(${data.query_id || 'null'}, 'not_in_catalog', null, this)">❓ Not in Catalog</button>
           </div>
         </div>
 
@@ -569,7 +571,12 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       `;
 
-      card.onclick = () => openShoeInspectionModal(m.design_id, m);
+      card.onclick = (e) => {
+        if (e.target && (e.target.closest(".match-feedback-row") || e.target.closest(".angles-strip") || e.target.closest(".color-palette-strip"))) {
+          return;
+        }
+        openShoeInspectionModal(m.design_id, m);
+      };
       card.onkeydown = (e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
@@ -704,8 +711,14 @@ document.addEventListener("DOMContentLoaded", () => {
   // ==========================================================================
   // Full Shoe Inspection & Warehouse Shelf Location Modal
   // ==========================================================================
-  window.openShoeInspectionModal = async function(designId, matchDataOrConfidence) {
-    if (!elements.detailModal) return;
+  async function openShoeInspectionModal(designId, matchDataOrConfidence) {
+    console.log("[ShoeMatch] Opening inspection modal for SKU:", designId);
+    const detailModal = elements.detailModal || document.getElementById("detail-modal");
+    const detailModalBody = elements.detailModalBody || document.getElementById("detail-modal-body");
+    if (!detailModal || !detailModalBody) {
+      console.error("[ShoeMatch] Detail modal elements not found in DOM");
+      return;
+    }
 
     // Normalize match data / confidence context
     let normalizedMatch = null;
@@ -740,9 +753,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (skuBadge) skuBadge.textContent = `SKU: ${designId} • Loading specifications...`;
     if (titleEl) titleEl.textContent = `Shoe Inspection & Factory Shelf Location`;
 
-    // Show modal immediately with clean loading skeleton to eliminate blank flash
-    elements.detailModal.style.display = "flex";
-    elements.detailModalBody.innerHTML = `
+    // Force display flex with highest visibility to eliminate any layout delay
+    detailModal.style.setProperty("display", "flex", "important");
+    detailModal.style.visibility = "visible";
+    detailModal.style.opacity = "1";
+
+    detailModalBody.innerHTML = `
       <div class="modal-loading-state">
         <div class="spinner"></div>
         <h4>Loading Design Specifications & Angles...</h4>
@@ -940,6 +956,13 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
       showToast(err.message, "error");
     }
+  }
+
+  // Bind to global window for inline onclick handlers
+  window.openShoeInspectionModal = openShoeInspectionModal;
+  window.closeShoeInspectionModal = function() {
+    const modal = document.getElementById("detail-modal");
+    if (modal) modal.style.setProperty("display", "none", "important");
   };
 
   // Switch active photo in preview modal

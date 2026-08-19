@@ -1490,18 +1490,39 @@ select {
 }
 
 .match-action-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.btn-inspect-quick-action {
+  background: rgba(59, 130, 246, 0.14);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: #93c5fd;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 0.74rem;
-  color: var(--brand-primary);
-  margin-top: 6px;
-  font-weight: 600;
+  gap: 6px;
   transition: var(--transition-fast);
 }
 
-.match-item-card:hover .match-action-hint {
-  color: #93c5fd;
+.btn-inspect-quick-action:hover {
+  background: var(--brand-primary);
+  color: #fff;
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+}
+
+.btn-inspect-quick-action svg {
+  transition: transform 0.2s ease;
+}
+
+.btn-inspect-quick-action:hover svg {
   transform: translateX(2px);
 }
 
