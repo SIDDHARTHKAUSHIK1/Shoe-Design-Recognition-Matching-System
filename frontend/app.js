@@ -180,11 +180,10 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.addEventListener("click", () => switchTab(btn.dataset.tab));
     });
 
-    // File Drop & Selection for Query Studio (Click anywhere in empty box to upload)
+    // Dropzone Click (Browse when clicking inside empty box)
     if (elements.queryDropzone) {
       elements.queryDropzone.addEventListener("click", (e) => {
-        // Do not trigger file picker if clicking on buttons or controls
-        if (e.target.closest("button") || e.target.closest("#btn-open-camera") || e.target.closest("#btn-recapture-camera") || e.target.closest("#btn-browse-file") || e.target.closest("#btn-change-image") || e.target.closest(".preview-overlay") || e.target.closest(".drop-actions-row")) {
+        if (e.target.closest("button") || e.target.closest("label") || e.target.closest(".preview-overlay") || e.target.closest(".query-source-toolbar")) {
           return;
         }
         if (!state.selectedQueryFile) {
@@ -192,29 +191,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
     }
-    if (elements.btnBrowseFile) {
-      elements.btnBrowseFile.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        elements.queryFileInput.click();
-      });
-    }
-    if (elements.btnChangeImage) {
-      elements.btnChangeImage.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        elements.queryFileInput.click();
-      });
-    }
     if (elements.queryFileInput) elements.queryFileInput.addEventListener("change", handleQueryFileSelect);
 
-    // Native Camera Fallback Input Change Listener
+    // Native Camera Input Change Listener (Triggers instant matching)
     if (elements.cameraNativeInput) {
       elements.cameraNativeInput.addEventListener("change", (e) => {
         if (e.target.files && e.target.files.length > 0) {
-          setQueryFile(e.target.files[0]);
+          setQueryFile(e.target.files[0], true);
           showToast("Photo captured from device camera!", "success");
-          setTimeout(() => executeVisualMatch(), 300);
         }
       });
     }
@@ -272,13 +256,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (elements.btnCancelAdd) elements.btnCancelAdd.addEventListener("click", closeAddModal);
     if (elements.btnCloseDetailModal) elements.btnCloseDetailModal.addEventListener("click", () => elements.detailModal.style.display = "none");
 
-    // Camera Capture Events
-    if (elements.btnOpenCamera) {
-      elements.btnOpenCamera.addEventListener("click", handleCameraClick);
-    }
-    if (elements.btnRecaptureCamera) {
-      elements.btnRecaptureCamera.addEventListener("click", handleCameraClick);
-    }
+    // Camera Capture Modal Controls
     if (elements.btnCameraErrorFallback) {
       elements.btnCameraErrorFallback.addEventListener("click", () => {
         closeCameraModal();
