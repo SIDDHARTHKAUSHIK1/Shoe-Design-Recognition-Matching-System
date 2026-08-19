@@ -2,6 +2,7 @@
 torch>=2.0.0
 torchvision>=0.15.0
 transformers>=4.35.0
+sentence-transformers>=2.2.0
 faiss-cpu>=1.7.4
 open-clip-torch>=2.20.0
 scikit-learn>=1.2.0

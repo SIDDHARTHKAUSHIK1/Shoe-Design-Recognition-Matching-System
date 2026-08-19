@@ -25,6 +25,7 @@ from backend.config import (
 )
 from backend import database as db
 from backend.engine import EmbeddingEngine
+from backend.classifier import ZeroShotCategoryClassifier
 from backend.vector_store import VectorStore
 from backend.matcher import ShoeMatcher
 from backend.ingestion import ingest_single_design, ingest_catalog_from_dataset
@@ -41,8 +42,9 @@ async def lifespan(app: FastAPI):
     logger.info("Starting Shoe Design Recognition & Matching System...")
     db.init_db()
     
-    # Load model and vector store in memory
+    # Load vision models, classifier and vector store in memory
     _ = EmbeddingEngine.get_instance()
+    _ = ZeroShotCategoryClassifier.get_instance()
     _ = VectorStore.get_instance()
     
     # Ingest catalog if not already populated
