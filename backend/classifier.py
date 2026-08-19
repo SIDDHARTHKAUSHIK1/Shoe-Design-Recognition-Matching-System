@@ -136,5 +136,9 @@ class ZeroShotCategoryClassifier:
 
         # 3. Prototype-Based Shoe vs. Slipper Classification
         shoe_slipper_cat, shoe_slipper_conf = gate.classify_shoe_vs_slipper(emb)
-        return shoe_slipper_cat, round(float(shoe_slipper_conf), 4), "matched", diagnostics
+        if shoe_slipper_cat == "slipper":
+            return "slipper", round(float(shoe_slipper_conf), 4), "slippers_not_supported", diagnostics
+        else:
+            return "shoe", round(float(shoe_slipper_conf), 4), "matched", diagnostics
+
 

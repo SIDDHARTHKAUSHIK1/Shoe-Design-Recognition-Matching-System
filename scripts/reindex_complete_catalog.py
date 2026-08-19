@@ -89,55 +89,22 @@ def reindex_complete_catalog():
 
     print(f"[OK] Indexed {indexed_shoes} Shoe reference designs.")
 
-    # 3. Index Colab Slipper Designs (SLIP-001 through SLIP-020)
-    slipper_photos = sorted(glob.glob("storage/Slippers/*.jpeg") + glob.glob("storage/Slippers/*.jpg"))
-    slipper_categories = [
-        "Slide Sandal", "Flip-Flop", "House Slipper", "Mule Slipper",
-        "Open-Toe Slide", "Comfort Slipper", "Indoor Fleece Slipper", "Beach Sandal"
-    ]
-    slipper_names = [
-        "CloudStep Foam Slide", "AeroBreeze Flip-Flop", "CozyComfort Indoor Slipper",
-        "UrbanStyle Casual Mule", "VelvetLuxe House Slipper", "HydroFlex Beach Slide",
-        "Orthopedic Arch Flip-Flop", "PlushWarm Bedroom Slipper", "Zenith Cork Mule",
-        "WaveGrip Sport Slide", "UltraSoft Fleece Slipper", "SoleCushion Thong Sandal",
-        "EcoStride Hemp Slipper", "Signature Leather Mule", "ActiveRecovery Slide",
-        "Classic Home Slipper", "Nordic Winter Slipper", "BreezeWalk Flip-Flop",
-        "ContourFit Slide Sandal", "MasterCraft Slipper Archive"
-    ]
-
+    # -----------------------------------------------------------------------
+    # SLIPPER INDEXING — PERMANENTLY DISABLED
+    # This system is shoe-only. Slippers are excluded from FAISS index and DB catalog.
+    # -----------------------------------------------------------------------
     indexed_slippers = 0
-    for idx, img_path in enumerate(slipper_photos, start=1):
-        design_id = f"SLIP-{idx:03d}"
-        name = slipper_names[(idx - 1) % len(slipper_names)]
-        category = slipper_categories[(idx - 1) % len(slipper_categories)]
-        shelf = f"Warehouse B - Section 1 - Rack S-{(idx%5)+1:02d} - Shelf {(idx%3)+1}"
-        
-        with open(img_path, "rb") as f:
-            content = f.read()
-
-        ingest_single_design(
-            design_id=design_id,
-            name=name,
-            category=category,
-            description=f"Colab GPU trained reference model: {name} (Category: {category}).",
-            created_by="Colab GPU Training Pipeline",
-            shelf_location=shelf,
-            materials="Molded EVA Foam / Anti-Slip Rubber Sole" if "Slide" in category else "Soft Plush Velvet / Memory Foam",
-            season="Summer/Winter 2026",
-            production_status="Active Sample Room",
-            image_files=[{
-                "filename": os.path.basename(img_path),
-                "content": content,
-                "angle": "side"
-            }]
-        )
-        indexed_slippers += 1
-
-    print(f"[OK] Indexed {indexed_slippers} Colab Slipper reference designs.")
 
     stats = db.get_catalog_stats()
     print("\n" + "=" * 65)
-    print(">> UNIFIED CATALOG REINDEXING COMPLETED!")
+    print(">> SHOE-ONLY CATALOG REINDEXING COMPLETED!")
+    print("=" * 65)
+    print(f"Shoe Designs Indexed    : {indexed_shoes}")
+    print(f"Slipper Designs Skipped : {indexed_slippers}")
+    print(f"Total Catalog Designs   : {stats['total_designs']}")
+    print(f"Total FAISS Vectors     : {stats['total_reference_images']}")
+    print("=" * 65)
+
     print("=" * 65)
     print(f"Shoe Designs Indexed    : {indexed_shoes}")
     print(f"Slipper Designs Indexed : {indexed_slippers}")
