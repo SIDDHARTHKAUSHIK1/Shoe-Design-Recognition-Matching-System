@@ -68,10 +68,8 @@ class TestSlipperExclusion(unittest.TestCase):
 
         # Mock classifier to simulate slipper category detection
         from unittest.mock import patch
-        with patch.object(matcher.classifier, 'classify_footwear', return_value=('slipper', 0.95, 'slippers_not_supported', {})):
+        with patch.object(matcher.classifier, 'classify_category_detailed', return_value=('slipper', 0.95, 'slippers_not_supported', {})):
             result = matcher.match_image(query_image_input=contents)
-
-
 
         self.assertEqual(result.get("matched"), False,
             f"Slipper image returned matched=True! Result: {result.get('reason')}")
@@ -79,6 +77,7 @@ class TestSlipperExclusion(unittest.TestCase):
             f"Unexpected rejection reason: {result.get('reason')}")
         self.assertEqual(len(result.get("matches", [])), 0,
             "Slipper query should return 0 matches")
+
 
         print(f"\n  [OK] Slipper upload correctly rejected with reason='slipper_rejected'")
 
