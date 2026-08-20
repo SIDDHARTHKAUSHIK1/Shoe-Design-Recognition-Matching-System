@@ -1081,6 +1081,8 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
+  width: 100vw;
+  height: 100vh;
   background: rgba(19, 13, 46, 0.7);
   backdrop-filter: blur(4px);
   z-index: 100;
