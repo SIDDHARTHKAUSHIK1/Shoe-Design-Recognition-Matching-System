@@ -70,7 +70,21 @@ def init_db():
     with get_db_connection() as conn:
         cursor = conn.cursor()
         
-        # 1. Designs Table
+        # 1. Users & Roles Table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                role TEXT NOT NULL CHECK(role IN ('employee', 'admin')),
+                full_name TEXT NOT NULL,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_login TIMESTAMP NULL
+            );
+        """)
+
+        # 2. Designs Table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS designs (
                 design_id TEXT PRIMARY KEY,
@@ -83,7 +97,12 @@ def init_db():
                 season TEXT DEFAULT 'Collection 2026',
                 production_status TEXT DEFAULT 'Sample Archive',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                thumbnail_path TEXT DEFAULT ''
+                thumbnail_path TEXT DEFAULT '',
+                drawer TEXT DEFAULT '',
+                slot TEXT DEFAULT '',
+                shoe_match_tag TEXT DEFAULT '',
+                is_active INTEGER DEFAULT 1,
+                is_archived INTEGER DEFAULT 0
             );
         """)
         
@@ -92,19 +111,28 @@ def init_db():
             ("shelf_location", "TEXT DEFAULT 'Warehouse A - Rack 03 - Shelf B-02'"),
             ("materials", "TEXT DEFAULT 'Full Grain Leather / Anti-Slip Rubber'"),
             ("season", "TEXT DEFAULT 'Collection 2026'"),
-            ("production_status", "TEXT DEFAULT 'Sample Archive'")
+            ("production_status", "TEXT DEFAULT 'Sample Archive'"),
+            ("drawer", "TEXT DEFAULT ''"),
+            ("slot", "TEXT DEFAULT ''"),
+            ("shoe_match_tag", "TEXT DEFAULT ''"),
+            ("is_active", "INTEGER DEFAULT 1"),
+            ("is_archived", "INTEGER DEFAULT 0")
         ]:
             try:
                 cursor.execute(f"ALTER TABLE designs ADD COLUMN {col} {col_def};")
             except sqlite3.OperationalError:
                 pass
 
-        try:
-            cursor.execute("ALTER TABLE query_logs ADD COLUMN detected_category TEXT DEFAULT 'shoe';")
-        except sqlite3.OperationalError:
-            pass
+        for col, col_def in [
+            ("detected_category", "TEXT DEFAULT 'shoe'"),
+            ("user_id", "INTEGER NULL")
+        ]:
+            try:
+                cursor.execute(f"ALTER TABLE query_logs ADD COLUMN {col} {col_def};")
+            except sqlite3.OperationalError:
+                pass
         
-        # 2. Reference Images Table (links each angle photo to a FAISS vector ID)
+        # 3. Reference Images Table (links each angle photo to a FAISS vector ID)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS reference_images (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -128,7 +156,7 @@ def init_db():
             except sqlite3.OperationalError:
                 pass
         
-        # 3. Query Audit Logs Table
+        # 4. Query Audit Logs Table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS query_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -139,11 +167,12 @@ def init_db():
                 latency_ms REAL,
                 results_json TEXT,
                 detected_category TEXT DEFAULT 'shoe',
+                user_id INTEGER NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         """)
 
-        # 4. Match Feedback Table for Continuous Improvement
+        # 5. Match Feedback Table for Continuous Improvement
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS match_feedback (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -156,7 +185,25 @@ def init_db():
         """)
         
         conn.commit()
-        logger.info(f"Database initialized successfully at {DB_PATH}")
+
+    # Seed Default Admin and Employee Accounts if users table is empty
+    from backend.auth import hash_password
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM users")
+        if cursor.fetchone()[0] == 0:
+            admin_pwd = hash_password("admin123")
+            emp_pwd = hash_password("emp123")
+            cursor.execute("""
+                INSERT INTO users (username, password_hash, role, full_name)
+                VALUES 
+                    ('admin', ?, 'admin', 'System Administrator'),
+                    ('employee', ?, 'employee', 'Warehouse Operations Staff');
+            """, (admin_pwd, emp_pwd))
+            conn.commit()
+            logger.info("Seeded default 'admin' and 'employee' user accounts.")
+
+    logger.info(f"Database initialized successfully at {DB_PATH}")
 
 
 def add_design(
@@ -386,7 +433,8 @@ def log_query(
     confidence_pct: float,
     latency_ms: float,
     results: List[Dict[str, Any]],
-    detected_category: str = "shoe"
+    detected_category: str = "shoe",
+    user_id: Optional[int] = None
 ) -> int:
     """Log an inference query for auditing and threshold tuning."""
     with get_db_connection() as conn:
@@ -399,8 +447,9 @@ def log_query(
                 confidence_pct,
                 latency_ms,
                 results_json,
-                detected_category
-            ) VALUES (?, ?, ?, ?, ?, ?, ?);
+                detected_category,
+                user_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
         """, (
             query_image_path,
             top_match_id,
@@ -408,33 +457,38 @@ def log_query(
             round(confidence_pct, 2),
             round(latency_ms, 2),
             json.dumps(results),
-            detected_category
+            detected_category,
+            user_id
         ))
         conn.commit()
         return cursor.lastrowid
 
 
-def get_query_logs(limit: int = 50) -> List[Dict[str, Any]]:
-    """Fetch recent query logs."""
+def get_query_logs(limit: int = 50, user_id: Optional[int] = None) -> List[Dict[str, Any]]:
+    """Fetch recent query logs, optionally filtered by user_id."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
-            SELECT * FROM query_logs
-            ORDER BY id DESC
-            LIMIT ?;
-        """, (limit,))
-        rows = cursor.fetchall()
-        result = []
-        for r in rows:
-            d = dict(r)
-            if "detected_category" not in d or not d["detected_category"]:
-                d["detected_category"] = "shoe"
-            try:
-                d["results"] = json.loads(d.get("results_json", "[]"))
-            except Exception:
-                d["results"] = []
-            result.append(d)
-        return result
+        if user_id is not None:
+            cursor.execute("""
+                SELECT * FROM query_logs
+                WHERE user_id = ?
+                ORDER BY id DESC
+                LIMIT ?;
+            """, (user_id, limit))
+        else:
+            cursor.execute("""
+                SELECT * FROM query_logs
+                ORDER BY id DESC
+                LIMIT ?;
+            """, (limit,))
+        logs = [dict(row) for row in cursor.fetchall()]
+        for log in logs:
+            if log.get("results_json"):
+                try:
+                    log["results"] = json.loads(log["results_json"])
+                except Exception:
+                    log["results"] = []
+        return logs
 
 
 def get_catalog_stats() -> Dict[str, Any]:

@@ -36,6 +36,304 @@ window.getImageUrl = function(path) {
   return base ? base + cleanPath : cleanPath;
 };
 
+window.getAuthToken = function() {
+  try {
+    return localStorage.getItem("shoematch_auth_token") || "";
+  } catch (e) {
+    return "";
+  }
+};
+
+window.setAuthToken = function(token) {
+  try {
+    if (token) localStorage.setItem("shoematch_auth_token", token);
+    else localStorage.removeItem("shoematch_auth_token");
+  } catch (e) {}
+};
+
+window.authenticatedFetch = async function(url, options = {}) {
+  const token = window.getAuthToken();
+  options.headers = options.headers || {};
+  if (token && !options.headers["Authorization"]) {
+    options.headers["Authorization"] = "Bearer " + token;
+  }
+  return fetch(url, options);
+};
+
+window.handleLoginSubmit = async function(e) {
+  if (e) e.preventDefault();
+  const usernameInput = document.getElementById("login-username");
+  const passwordInput = document.getElementById("login-password");
+  const alertEl = document.getElementById("login-error-alert");
+  if (alertEl) alertEl.style.display = "none";
+
+  const username = usernameInput ? usernameInput.value.trim() : "";
+  const password = passwordInput ? passwordInput.value.trim() : "";
+
+  if (!username || !password) {
+    if (alertEl) {
+      alertEl.textContent = "Please enter username and password.";
+      alertEl.style.display = "block";
+    }
+    return;
+  }
+
+  try {
+    const res = await fetch(window.getApiUrl("/api/auth/login"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      if (alertEl) {
+        alertEl.textContent = data.detail || "Authentication failed.";
+        alertEl.style.display = "block";
+      }
+      return;
+    }
+
+    window.setAuthToken(data.token);
+    window.updateUserUI(data.user);
+    const loginModal = document.getElementById("login-modal");
+    if (loginModal) loginModal.style.display = "none";
+    if (window.showToast) window.showToast(`Welcome back, ${data.user.full_name}!`, "success");
+    
+    if (window.loadCatalog) window.loadCatalog();
+  } catch (err) {
+    console.error("Login error:", err);
+    if (alertEl) {
+      alertEl.textContent = "Network error connecting to auth server.";
+      alertEl.style.display = "block";
+    }
+  }
+};
+
+window.handleLogout = async function() {
+  try {
+    await window.authenticatedFetch(window.getApiUrl("/api/auth/logout"), { method: "POST" });
+  } catch (e) {}
+  window.setAuthToken("");
+  window.updateUserUI(null);
+  const loginModal = document.getElementById("login-modal");
+  if (loginModal) loginModal.style.display = "flex";
+  if (window.showToast) window.showToast("Logged out successfully.", "info");
+};
+
+window.updateUserUI = function(user) {
+  const nameEl = document.getElementById("user-display-name");
+  const roleEl = document.getElementById("user-role-badge");
+  const avatarEl = document.getElementById("user-avatar-initials");
+  const loginModal = document.getElementById("login-modal");
+  const adminTabNav = document.getElementById("nav-admin");
+
+  if (user) {
+    if (nameEl) nameEl.textContent = user.full_name || user.username;
+    if (roleEl) roleEl.textContent = user.role.toUpperCase();
+    if (avatarEl) avatarEl.textContent = (user.full_name || user.username).charAt(0).toUpperCase();
+    if (loginModal) loginModal.style.display = "none";
+    if (adminTabNav) adminTabNav.style.display = (user.role === "admin") ? "flex" : "none";
+
+    window.fetchDashboardStats();
+    if (user.role === "admin") {
+      window.fetchAdminUsers();
+    }
+  } else {
+    if (nameEl) nameEl.textContent = "Guest";
+    if (roleEl) roleEl.textContent = "EMPLOYEE";
+    if (avatarEl) avatarEl.textContent = "G";
+    if (loginModal) loginModal.style.display = "flex";
+    if (adminTabNav) adminTabNav.style.display = "none";
+  }
+};
+
+window.fetchDashboardStats = async function() {
+  try {
+    const res = await window.authenticatedFetch(window.getApiUrl("/api/logs?limit=100"));
+    const data = await res.json();
+    const logs = data.logs || [];
+
+    const searchesCountEl = document.getElementById("dash-searches-count");
+    const accuracyPctEl = document.getElementById("dash-accuracy-pct");
+    const avgLatencyEl = document.getElementById("dash-avg-latency");
+    const recentLogsContainer = document.getElementById("dashboard-recent-logs-list");
+
+    if (searchesCountEl) searchesCountEl.textContent = logs.length;
+    
+    if (logs.length > 0) {
+      const highCount = logs.filter(l => (l.confidence_pct || 0) >= 85).length;
+      const accPct = Math.round((highCount / logs.length) * 100);
+      if (accuracyPctEl) accuracyPctEl.textContent = `${accPct}%`;
+
+      const avgLat = Math.round(logs.reduce((acc, l) => acc + (l.latency_ms || 0), 0) / logs.length);
+      if (avgLatencyEl) avgLatencyEl.textContent = `${avgLat} ms`;
+    } else {
+      if (accuracyPctEl) accuracyPctEl.textContent = "100%";
+      if (avgLatencyEl) avgLatencyEl.textContent = "-- ms";
+    }
+
+    if (recentLogsContainer) {
+      if (logs.length === 0) {
+        recentLogsContainer.innerHTML = `<div style="padding: 14px; text-align: center; color: var(--text-muted); font-size: 0.85rem;">No recent search activity logged yet.</div>`;
+      } else {
+        recentLogsContainer.innerHTML = logs.slice(0, 5).map(log => {
+          const matchName = log.top_match_name || log.top_match_id || "Unmatched";
+          const conf = log.confidence_pct ? `${log.confidence_pct}%` : "--%";
+          const cat = log.detected_category || "shoe";
+          const imgUrl = window.getImageUrl(log.query_image_path);
+          return `
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--bg-surface-subtle); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <img src="${imgUrl}" style="width: 40px; height: 40px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);" onerror="this.src='/static/placeholder.png'">
+                <div>
+                  <div style="font-size: 0.84rem; font-weight: 700; color: var(--text-primary);">${matchName}</div>
+                  <div style="font-size: 0.72rem; color: var(--text-muted);">${log.created_at || 'Just now'} • <span style="text-transform: uppercase;">${cat}</span></div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span class="preview-match-pill ${conf >= 85 ? 'high' : conf >= 70 ? 'moderate' : 'low'}">${conf} Match</span>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+    }
+  } catch (e) {
+    console.warn("Could not fetch dashboard stats:", e);
+  }
+};
+
+window.fetchAdminUsers = async function() {
+  try {
+    const res = await window.authenticatedFetch(window.getApiUrl("/api/admin/users"));
+    if (!res.ok) return;
+    const data = await res.json();
+    const users = data.users || [];
+
+    const countEl = document.getElementById("admin-stat-users-count");
+    if (countEl) countEl.textContent = users.length;
+
+    const tbody = document.getElementById("admin-users-tbody");
+    if (tbody) {
+      tbody.innerHTML = users.map(u => `
+        <tr>
+          <td style="font-family: var(--font-mono); font-weight: 700;">#${u.user_id}</td>
+          <td style="font-weight: 600; color: var(--text-primary);">${u.full_name}</td>
+          <td style="font-family: var(--font-mono);">${u.username}</td>
+          <td><span class="preview-match-pill ${u.role === 'admin' ? 'high' : 'moderate'}">${u.role.toUpperCase()}</span></td>
+          <td><span style="color: ${u.is_active ? 'var(--status-success-text)' : 'var(--status-danger-text)'}; font-weight: 700;">${u.is_active ? 'Active' : 'Disabled'}</span></td>
+          <td style="font-size: 0.75rem; color: var(--text-muted);">${u.last_login || 'Never'}</td>
+          <td>
+            <button class="btn btn-secondary btn-sm" onclick="window.toggleUserStatus(${u.user_id}, ${u.is_active})">
+              ${u.is_active ? 'Deactivate' : 'Activate'}
+            </button>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    // Fetch admin stats summary
+    const statsRes = await window.authenticatedFetch(window.getApiUrl("/api/admin/stats"));
+    if (statsRes.ok) {
+      const statsData = await statsRes.json();
+      const activeDes = document.getElementById("admin-stat-active-designs");
+      const archDes = document.getElementById("admin-stat-archived-designs");
+      const totalQ = document.getElementById("admin-stat-total-queries");
+
+      if (activeDes) activeDes.textContent = statsData.total_designs || 0;
+      if (archDes) archDes.textContent = "0";
+      if (totalQ) totalQ.textContent = statsData.total_queries || 0;
+    }
+  } catch (e) {
+    console.warn("Could not fetch admin users:", e);
+  }
+};
+
+window.openCreateUserModal = function() {
+  const modal = document.getElementById("create-user-modal");
+  const errEl = document.getElementById("create-user-error");
+  if (errEl) errEl.style.display = "none";
+  if (modal) modal.style.display = "flex";
+};
+
+window.closeCreateUserModal = function() {
+  const modal = document.getElementById("create-user-modal");
+  if (modal) modal.style.display = "none";
+};
+
+window.handleCreateUserSubmit = async function(e) {
+  if (e) e.preventDefault();
+  const fullName = document.getElementById("create-full-name")?.value.trim();
+  const username = document.getElementById("create-username")?.value.trim();
+  const password = document.getElementById("create-password")?.value.trim();
+  const role = document.getElementById("create-role")?.value;
+  const errEl = document.getElementById("create-user-error");
+
+  if (errEl) errEl.style.display = "none";
+
+  try {
+    const res = await window.authenticatedFetch(window.getApiUrl("/api/admin/users"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ full_name: fullName, username, password, role })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      if (errEl) {
+        errEl.textContent = data.detail || "Failed to create user.";
+        errEl.style.display = "block";
+      }
+      return;
+    }
+    window.closeCreateUserModal();
+    if (window.showToast) window.showToast(`User '${username}' created successfully!`, "success");
+    window.fetchAdminUsers();
+  } catch (err) {
+    if (errEl) {
+      errEl.textContent = "Network error creating user account.";
+      errEl.style.display = "block";
+    }
+  }
+};
+
+window.toggleUserStatus = async function(userId, currentStatus) {
+  const newStatus = currentStatus ? 0 : 1;
+  try {
+    const res = await window.authenticatedFetch(window.getApiUrl(`/api/admin/users/${userId}`), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_active: newStatus })
+    });
+    if (res.ok) {
+      if (window.showToast) window.showToast(`User ID ${userId} status updated!`, "success");
+      window.fetchAdminUsers();
+    }
+  } catch (e) {
+    console.error("Error toggling user status:", e);
+  }
+};
+
+window.checkAuthSession = async function() {
+  const token = window.getAuthToken();
+  if (!token) {
+    window.updateUserUI(null);
+    return;
+  }
+  try {
+    const res = await window.authenticatedFetch(window.getApiUrl("/api/auth/me"));
+    const data = await res.json();
+    if (data.authenticated && data.user) {
+      window.updateUserUI(data.user);
+    } else {
+      window.setAuthToken("");
+      window.updateUserUI(null);
+    }
+  } catch (e) {
+    window.updateUserUI(null);
+  }
+};
+
 window.openServerSettingsModal = function() {
   const modal = document.getElementById("server-settings-modal");
   const input = document.getElementById("input-server-url");
@@ -259,6 +557,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function init() {
     restoreSidebarState();
     setupEventListeners();
+    await window.checkAuthSession();
 
     // Check for native app first-run server IP prompt
     const savedServerUrl = window.getApiBaseUrl();

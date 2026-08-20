@@ -24,6 +24,7 @@ from backend.config import (
     DEBUG
 )
 from backend import database as db
+from backend import auth
 from backend.engine import EmbeddingEngine
 from backend.classifier import ZeroShotCategoryClassifier
 from backend.vector_store import VectorStore
@@ -101,6 +102,7 @@ async def health_check():
 
 @app.post("/api/match")
 async def match_shoe_design(
+    request: Request,
     file: UploadFile = File(...),
     top_k: int = Form(3)
 ):
@@ -136,6 +138,19 @@ async def match_shoe_design(
         query_image_save_path=rel_url,
         top_k=top_k
     )
+
+    # Attach current logged in user_id to logged query if authenticated
+    try:
+        user = await get_current_user(request)
+        if user and user.get("user_id"):
+            with db.get_db_connection() as conn:
+                conn.execute(
+                    "UPDATE query_logs SET user_id = ? WHERE id = (SELECT MAX(id) FROM query_logs)",
+                    (user["user_id"],)
+                )
+                conn.commit()
+    except Exception as e:
+        logger.warning(f"Could not bind user_id to query_log: {e}")
 
     return JSONResponse(content=result)
 
@@ -281,9 +296,14 @@ async def delete_catalog_design(design_id: str):
 
 
 @app.get("/api/logs")
-async def get_logs(limit: int = 50):
+async def get_logs(request: Request, limit: int = 50, user_id: Optional[int] = None):
     """Retrieve recent query audit logs."""
-    logs = db.get_query_logs(limit=limit)
+    current_user = await get_current_user(request)
+    filter_user_id = user_id
+    if current_user and current_user.get("role") == "employee":
+        filter_user_id = current_user.get("user_id")
+        
+    logs = db.get_query_logs(limit=limit, user_id=filter_user_id)
     return JSONResponse(content={"total": len(logs), "logs": logs})
 
 
@@ -329,6 +349,165 @@ async def trigger_evaluation():
     """Run catalog Leave-One-Out benchmark and return performance metrics."""
     report = run_evaluation()
     return JSONResponse(content=report)
+
+
+# ==========================================================================
+# Auth & Role Foundation Dependencies and Endpoints (Phase 1)
+# ==========================================================================
+
+async def get_current_user(request: Request) -> Optional[dict]:
+    """Extract authenticated user payload from Bearer header or cookie."""
+    auth_header = request.headers.get("Authorization")
+    token = None
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+    elif "session_token" in request.cookies:
+        token = request.cookies.get("session_token")
+        
+    if not token:
+        return None
+        
+    payload = auth.verify_token(token)
+    if not payload:
+        return None
+        
+    user = auth.get_user_by_id(payload["user_id"])
+    if not user or user.get("is_active") == 0:
+        return None
+        
+    return user
+
+
+async def require_authenticated_user(request: Request) -> dict:
+    """Dependency ensuring caller is authenticated."""
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    return user
+
+
+async def require_admin_user(request: Request) -> dict:
+    """Dependency ensuring caller is an Admin."""
+    user = await require_authenticated_user(request)
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+    return user
+
+
+@app.post("/api/auth/login")
+async def login_user(payload: dict):
+    """Authenticate user and return JWT token."""
+    username = payload.get("username", "").strip()
+    password = payload.get("password", "").strip()
+    
+    if not username or not password:
+        raise HTTPException(status_code=400, detail="Username and password are required")
+        
+    user = auth.authenticate_user(username, password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+        
+    token = auth.create_token(user["user_id"], user["username"], user["role"])
+    
+    response = JSONResponse(content={
+        "token": token,
+        "user": user,
+        "message": "Login successful"
+    })
+    response.set_cookie(key="session_token", value=token, httponly=True, max_age=86400)
+    return response
+
+
+@app.post("/api/auth/logout")
+async def logout_user():
+    """Logout current session."""
+    response = JSONResponse(content={"message": "Logged out successfully"})
+    response.delete_cookie(key="session_token")
+    return response
+
+
+@app.get("/api/auth/me")
+async def get_my_profile(request: Request):
+    """Get profile of current logged in user."""
+    user = await get_current_user(request)
+    if not user:
+        return JSONResponse(content={"authenticated": False, "user": None})
+    return JSONResponse(content={"authenticated": True, "user": user})
+
+
+# ==========================================================================
+# Admin Management & User CRUD Endpoints (Phase 3)
+# ==========================================================================
+
+@app.get("/api/admin/users")
+async def list_admin_users(request: Request):
+    """Retrieve list of registered users (Admin only)."""
+    _ = await require_admin_user(request)
+    users = auth.list_users()
+    return JSONResponse(content={"total": len(users), "users": users})
+
+
+@app.post("/api/admin/users")
+async def create_admin_user(payload: dict, request: Request):
+    """Create a new user account (Admin only)."""
+    _ = await require_admin_user(request)
+    username = payload.get("username", "").strip()
+    password = payload.get("password", "").strip()
+    role = payload.get("role", "employee").strip()
+    full_name = payload.get("full_name", "").strip()
+
+    if not username or not password or not full_name:
+        raise HTTPException(status_code=400, detail="Username, password, and full_name are required.")
+
+    if role not in ("employee", "admin"):
+        raise HTTPException(status_code=400, detail="Role must be 'employee' or 'admin'.")
+
+    user_id = auth.create_user(username, password, role, full_name)
+    if not user_id:
+        raise HTTPException(status_code=400, detail=f"Username '{username}' already exists.")
+
+    return JSONResponse(content={"success": True, "user_id": user_id, "message": f"User '{username}' created successfully."})
+
+
+@app.put("/api/admin/users/{user_id}")
+async def update_admin_user(user_id: int, payload: dict, request: Request):
+    """Update user role, active status, or reset password (Admin only)."""
+    _ = await require_admin_user(request)
+    role = payload.get("role")
+    full_name = payload.get("full_name")
+    is_active = payload.get("is_active")
+    password = payload.get("password")
+
+    success = auth.update_user(user_id, role=role, full_name=full_name, is_active=is_active, password=password)
+    if not success:
+        raise HTTPException(status_code=400, detail="Could not update user or no fields changed.")
+
+    return JSONResponse(content={"success": True, "message": f"User ID {user_id} updated successfully."})
+
+
+@app.get("/api/admin/stats")
+async def get_admin_system_stats(request: Request):
+    """Retrieve system analytics and match distribution stats (Admin only)."""
+    _ = await require_admin_user(request)
+    stats = db.get_catalog_stats()
+    users = auth.list_users()
+    logs = db.get_query_logs(limit=500)
+
+    # Compute confidence distribution
+    high_count = sum(1 for l in logs if (l.get("confidence_pct") or 0) >= 85)
+    mod_count = sum(1 for l in logs if 70 <= (l.get("confidence_pct") or 0) < 85)
+    low_count = sum(1 for l in logs if (l.get("confidence_pct") or 0) < 70)
+
+    return JSONResponse(content={
+        "total_users": len(users),
+        "total_designs": stats.get("total_designs", 0),
+        "total_queries": len(logs),
+        "confidence_distribution": {
+            "high": high_count,
+            "moderate": mod_count,
+            "low": low_count
+        }
+    })
 
 
 # Serve Frontend Web App
