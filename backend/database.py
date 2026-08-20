@@ -208,9 +208,6 @@ def init_db():
             """, (admin_pwd, emp_pwd))
             conn.commit()
             logger.info("Seeded default 'admin' and 'employee' accounts with forced password change on first login.")
-        # Ensure seeded default accounts require password change on first login
-        cursor.execute("UPDATE users SET must_change_password = 1 WHERE username IN ('admin', 'employee');")
-        conn.commit()
 
     logger.info(f"Database initialized successfully at {DB_PATH}")
 

@@ -26,6 +26,14 @@ window.getApiUrl = function(path) {
   return base ? base + cleanPath : cleanPath;
 };
 
+window.switchTab = function(tabId) {
+  const navBtns = document.querySelectorAll(".nav-item[data-tab]");
+  const tabPanes = document.querySelectorAll(".tab-pane");
+  navBtns.forEach(btn => btn.classList.toggle("active", btn.dataset.tab === tabId));
+  tabPanes.forEach(pane => pane.classList.toggle("active", pane.id === tabId));
+  if (tabId === "logs-tab" && window.fetchLogs) window.fetchLogs();
+};
+
 window.getImageUrl = function(path) {
   if (!path) return "";
   if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:") || path.startsWith("blob:")) {
@@ -108,6 +116,14 @@ window.handleLoginSubmit = async function(e) {
       alertEl.style.display = "block";
     }
   }
+};
+
+window.switchTab = function(tabId) {
+  const navBtns = document.querySelectorAll(".nav-item[data-tab]");
+  const tabPanes = document.querySelectorAll(".tab-pane");
+  navBtns.forEach(btn => btn.classList.toggle("active", btn.dataset.tab === tabId));
+  tabPanes.forEach(pane => pane.classList.toggle("active", pane.id === tabId));
+  if (tabId === "logs-tab" && window.fetchLogs) window.fetchLogs();
 };
 
 window.handleLogout = async function() {
@@ -687,7 +703,6 @@ document.addEventListener("DOMContentLoaded", () => {
   function switchTab(tabId) {
     state.currentTab = tabId;
 
-    // Update Navigation UI
     elements.navButtons.forEach(btn => {
       btn.classList.toggle("active", btn.dataset.tab === tabId);
     });
@@ -704,7 +719,9 @@ document.addEventListener("DOMContentLoaded", () => {
     // Refresh Tab-specific data
     if (tabId === "catalog-tab") fetchCatalog();
     if (tabId === "logs-tab") fetchLogs();
+    if (tabId === "admin-tab") fetchAdminUsers();
   }
+  window.switchTab = switchTab;
 
   // ==========================================
   // Event Listeners Setup
@@ -1904,11 +1921,36 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ==========================================
-  // Audit Logs
+  // Audit Logs & Pagination
   // ==========================================
+  state.logsCurrentPage = 1;
+  state.logsPerPage = 10;
+
+  window.handleLogsPerPageChange = function(val) {
+    state.logsPerPage = parseInt(val, 10) || 10;
+    state.logsCurrentPage = 1;
+    renderLogsTable(state.logs);
+  };
+
+  window.changeLogsPage = function(delta) {
+    const totalPages = Math.ceil((state.logs || []).length / state.logsPerPage) || 1;
+    const target = state.logsCurrentPage + delta;
+    if (target >= 1 && target <= totalPages) {
+      state.logsCurrentPage = target;
+      renderLogsTable(state.logs);
+    }
+  };
+
+  window.getLogThumbnailUrl = function(path) {
+    if (!path || path === "memory_query.jpg" || path === "none" || path === "undefined") {
+      return "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='1.5'><path d='M20.24 12.24a6 6 0 0 0-8.49-8.49L3.5 12.00a6 6 0 0 0 8.49 8.49l8.25-8.25z'/><path d='M16 8l-4 4'/></svg>";
+    }
+    return getImageUrl(path);
+  };
+
   async function fetchLogs() {
     try {
-      const res = await fetch(getApiUrl("/api/logs?limit=50"));
+      const res = await window.authenticatedFetch(getApiUrl("/api/logs?limit=200"));
       if (res.ok) {
         const data = await res.json();
         state.logs = data.logs || [];
@@ -1918,11 +1960,13 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Failed to fetch logs:", err);
     }
   }
+  window.fetchLogs = fetchLogs;
 
   function renderLogsTable(logs) {
+    if (!elements.logsTbody) return;
     elements.logsTbody.innerHTML = "";
 
-    if (logs.length === 0) {
+    if (!logs || logs.length === 0) {
       elements.logsTbody.innerHTML = `
         <tr>
           <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">
@@ -1930,37 +1974,76 @@ document.addEventListener("DOMContentLoaded", () => {
           </td>
         </tr>
       `;
+      const infoEl = document.getElementById("logs-pagination-info");
+      if (infoEl) infoEl.textContent = "Showing 0 of 0 entries";
       return;
     }
 
-    logs.forEach(log => {
+    const totalLogs = logs.length;
+    const totalPages = Math.ceil(totalLogs / state.logsPerPage) || 1;
+    state.logsCurrentPage = Math.min(state.logsCurrentPage, totalPages);
+
+    const startIdx = (state.logsCurrentPage - 1) * state.logsPerPage;
+    const pageLogs = logs.slice(startIdx, startIdx + state.logsPerPage);
+
+    // Update pagination info & controls
+    const infoEl = document.getElementById("logs-pagination-info");
+    if (infoEl) {
+      const endIdx = Math.min(startIdx + state.logsPerPage, totalLogs);
+      infoEl.textContent = `Showing ${startIdx + 1}-${endIdx} of ${totalLogs} entries (Page ${state.logsCurrentPage} of ${totalPages})`;
+    }
+    const prevBtn = document.getElementById("btn-logs-prev");
+    const nextBtn = document.getElementById("btn-logs-next");
+    if (prevBtn) prevBtn.disabled = (state.logsCurrentPage <= 1);
+    if (nextBtn) nextBtn.disabled = (state.logsCurrentPage >= totalPages);
+
+    const fallbackSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='1.5'><rect x='3' y='3' width='18' height='18' rx='2'/><path d='M8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z'/><path d='M21 15l-5-5L5 21'/></svg>";
+
+    pageLogs.forEach(log => {
       const tr = document.createElement("tr");
 
-      const level = (log.confidence_pct >= 85) ? "HIGH" : (log.confidence_pct >= 70) ? "MODERATE" : "LOW";
-      const color = (log.confidence_pct >= 85) ? "green" : (log.confidence_pct >= 70) ? "yellow" : "red";
-      const isNone = (log.detected_category === "none");
-      const isSlipper = (log.detected_category === "slipper");
-      const catBadge = isNone ? '<span style="color: #f87171; font-weight: 600; font-size: 0.8rem;">🚫 None</span>' :
-                       (isSlipper ? '<span style="color: #60a5fa; font-weight: 600; font-size: 0.8rem;">🩴 Slipper</span>' : '<span style="color: #34d399; font-weight: 600; font-size: 0.8rem;">👟 Shoe</span>');
+      const conf = log.confidence_pct != null ? parseFloat(log.confidence_pct) : 0;
+      const color = (conf >= 85) ? "high" : (conf >= 70) ? "moderate" : "low";
+      const cat = (log.detected_category || "shoe").toLowerCase();
+      
+      const isNone = (cat === "none");
+      const isSlipper = (cat === "slipper");
+      const catBadge = isNone ? '<span style="color: var(--status-danger-text); font-weight: 700; font-size: 0.78rem;">🚫 None</span>' :
+                       (isSlipper ? '<span style="color: #60a5fa; font-weight: 700; font-size: 0.78rem;">🩴 Slipper</span>' : '<span style="color: var(--status-success-text); font-weight: 700; font-size: 0.78rem;">👟 Shoe</span>');
+
+      let statusBadgeHtml = '<span class="log-status-badge success">✓ Success</span>';
+      if (isSlipper) {
+        statusBadgeHtml = '<span class="log-status-badge warning">🩴 Slipper Rej</span>';
+      } else if (isNone) {
+        statusBadgeHtml = '<span class="log-status-badge danger">🚫 No Object</span>';
+      } else if (conf < 70) {
+        statusBadgeHtml = '<span class="log-status-badge warning">⚠️ Low Match</span>';
+      }
+
+      const matchName = log.top_match_name || "No Match";
+      const matchId = log.top_match_id || "--";
+      const latencyStr = log.latency_ms ? `${Math.round(log.latency_ms)} ms` : "-- ms";
+      const imgSrc = window.getLogThumbnailUrl(log.query_image_path);
 
       tr.innerHTML = `
-        <td style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-muted);">${log.created_at}</td>
-        <td>
-          <img src="${getImageUrl(log.query_image_path)}" class="log-thumb" alt="Query" onerror="this.src='/static/placeholder.jpg'">
+        <td style="text-align: center; width: 64px;">
+          <div class="log-thumb-frame">
+            <img src="${imgSrc}" class="log-thumb" alt="Query Thumbnail" onerror="this.onerror=null; this.src='${fallbackSvg}';">
+          </div>
         </td>
+        <td style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-secondary); white-space: nowrap;">${log.created_at || 'Recently'}</td>
         <td>${catBadge}</td>
         <td>
-          <strong>${log.top_match_name || "No Match"}</strong>
-          <br><span style="font-size: 0.72rem; font-family: var(--font-mono); color: var(--text-muted);">${log.top_match_id || "--"}</span>
+          <div style="font-weight: 700; color: var(--text-primary); font-size: 0.85rem;">${matchName}</div>
+          <div style="font-size: 0.72rem; font-family: var(--font-mono); color: var(--text-muted);">${matchId}</div>
         </td>
-        <td style="font-family: var(--font-mono); font-weight: 700; font-size: 0.95rem;">
-          <span style="color: var(--color-${color});">${log.confidence_pct}%</span>
-          <br><span class="score-level-badge ${color}" style="font-size: 0.68rem; padding: 1px 6px;">${level}</span>
-        </td>
-        <td style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);">${log.latency_ms} ms</td>
         <td>
-          <button class="btn btn-secondary btn-sm" onclick="reMatchFromLog('${log.query_image_path}')">Re-match</button>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span class="preview-match-pill ${color}">${conf}%</span>
+          </div>
         </td>
+        <td style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-secondary); white-space: nowrap;">${latencyStr}</td>
+        <td>${statusBadgeHtml}</td>
       `;
 
       elements.logsTbody.appendChild(tr);
