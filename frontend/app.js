@@ -143,6 +143,9 @@ window.updateThemeToggleUI = function(theme) {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
+  const getApiUrl = window.getApiUrl;
+  const getImageUrl = window.getImageUrl;
+
   // Sync Theme Toggle UI
   const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
   window.updateThemeToggleUI(currentTheme);
@@ -756,7 +759,7 @@ document.addEventListener("DOMContentLoaded", () => {
           ` : ''}
           
           <div class="match-action-hint" style="margin-top: 6px;">
-            <button type="button" class="btn-inspect-quick-action" style="background: none; border: none; color: var(--brand-primary); font-size: 0.78rem; font-weight: 700; cursor: pointer; padding: 0; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation(); openShoeInspectionModal('${m.design_id}', ${JSON.stringify(m).replace(/"/g, '&quot;')});">
+            <button type="button" class="btn-inspect-quick-action" style="background: none; border: none; color: var(--brand-primary); font-size: 0.78rem; font-weight: 700; cursor: pointer; padding: 0; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation(); openShoeInspectionModal('${m.design_id}', ${m.confidence_pct});">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
               <span>Inspect Full Specs & Warehouse Shelf &rarr;</span>
             </button>
@@ -953,8 +956,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (skuBadge) skuBadge.textContent = `SKU: ${designId} • Loading specifications...`;
     if (titleEl) titleEl.textContent = `Shoe Inspection & Factory Shelf Location`;
 
-    // Force display flex with highest visibility to eliminate any layout delay
-    detailModal.style.setProperty("display", "flex", "important");
+    // Display modal preview
+    detailModal.style.display = "flex";
     detailModal.style.visibility = "visible";
     detailModal.style.opacity = "1";
 
@@ -1163,7 +1166,7 @@ document.addEventListener("DOMContentLoaded", () => {
   window.openShoeInspectionModal = openShoeInspectionModal;
   window.closeShoeInspectionModal = function() {
     const modal = document.getElementById("detail-modal");
-    if (modal) modal.style.setProperty("display", "none", "important");
+    if (modal) modal.style.display = "none";
   };
 
   // Switch active photo in preview modal
