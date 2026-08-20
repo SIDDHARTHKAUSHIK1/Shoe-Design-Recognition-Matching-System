@@ -1010,7 +1010,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const queryPreviewSrc = (elements.queryPreviewImg && elements.queryPreviewImg.src && elements.queryPreviewImg.src.length > 5) ? elements.queryPreviewImg.src : null;
       const hasQueryPhoto = Boolean(state.selectedQueryFile && queryPreviewSrc);
 
-      elements.detailModalBody.innerHTML = `
+      detailModalBody.innerHTML = `
         <div class="preview-layout">
           <!-- Left Column: Gallery & High-Res Viewer -->
           <div class="preview-gallery-col">
@@ -1143,13 +1143,13 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (err) {
       console.error(`Error loading design ${designId}:`, err);
       if (skuBadge) skuBadge.textContent = `SKU: ${designId} • Error`;
-      elements.detailModalBody.innerHTML = `
+      detailModalBody.innerHTML = `
         <div class="modal-error-state">
           <div class="error-icon-circle">⚠️</div>
           <h4>Unable to Load Design Details</h4>
           <p>Could not retrieve specifications for SKU <strong>${designId}</strong>. (${err.message})</p>
           <div style="display: flex; gap: 10px; margin-top: 8px;">
-            <button class="btn btn-secondary btn-sm" onclick="openShoeInspectionModal('${designId}', ${matchDataOrConfidence ? JSON.stringify(matchDataOrConfidence).replace(/"/g, '&quot;') : 'null'})">
+            <button class="btn btn-secondary btn-sm" onclick="openShoeInspectionModal('${designId}', null)">
               🔄 Retry
             </button>
             <button class="btn btn-primary btn-sm" onclick="document.getElementById('detail-modal').style.display = 'none'">
