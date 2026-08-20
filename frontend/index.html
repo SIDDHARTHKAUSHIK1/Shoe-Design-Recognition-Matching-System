@@ -193,10 +193,18 @@
               <p>Upload a shoe or slipper image on the left and click "Find Matches in Catalog" to view side-by-side rankings.</p>
             </div>
 
-            <!-- Loading State -->
+            <!-- Pipeline Loading State -->
             <div class="results-loading" id="results-loading" style="display: none;">
-              <div class="spinner"></div>
-              <h4>Searching in process...</h4>
+              <div class="pipeline-progress-box">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 14px;">
+                  <div class="stage-icon-spinner"></div>
+                  <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);" id="loading-stage-header">Running Match Pipeline...</h4>
+                </div>
+                <div class="pipeline-stage-item active" id="stage-1"><span style="font-family: var(--font-mono); font-size: 0.75rem;">[1/4]</span> Image Preprocessing & Contrast Normalization</div>
+                <div class="pipeline-stage-item" id="stage-2"><span style="font-family: var(--font-mono); font-size: 0.75rem;">[2/4]</span> Foreground Saliency Isolation (U2-Netp)</div>
+                <div class="pipeline-stage-item" id="stage-3"><span style="font-family: var(--font-mono); font-size: 0.75rem;">[3/4]</span> DINOv2 Invariant Feature Projection</div>
+                <div class="pipeline-stage-item" id="stage-4"><span style="font-family: var(--font-mono); font-size: 0.75rem;">[4/4]</span> FAISS Vector Space Cosine Search</div>
+              </div>
             </div>
 
             <!-- Matches List Container (Top 3) -->

@@ -405,13 +405,42 @@ document.addEventListener("DOMContentLoaded", () => {
   async function executeVisualMatch() {
     if (!state.selectedQueryFile) return;
 
-    // UI Loading State
+    // UI Loading State & Pipeline Progress Widget
     elements.resultsEmpty.style.display = "none";
     elements.matchesList.style.display = "none";
     elements.resultsLoading.style.display = "block";
     elements.btnRunMatch.disabled = true;
-    elements.resultsMetaText.textContent = "Searching catalog...";
+    elements.resultsMetaText.textContent = "Executing search pipeline...";
     if (elements.detectedCategoryBadge) elements.detectedCategoryBadge.style.display = "none";
+
+    // Reset pipeline stage items
+    for (let i = 1; i <= 4; i++) {
+      const el = document.getElementById(`stage-${i}`);
+      if (el) el.className = "pipeline-stage-item";
+    }
+
+    const s1 = document.getElementById("stage-1");
+    if (s1) s1.className = "pipeline-stage-item active";
+
+    const stageTimer1 = setTimeout(() => {
+      if (s1) s1.className = "pipeline-stage-item completed";
+      const s2 = document.getElementById("stage-2");
+      if (s2) s2.className = "pipeline-stage-item active";
+    }, 180);
+
+    const stageTimer2 = setTimeout(() => {
+      const s2 = document.getElementById("stage-2");
+      if (s2) s2.className = "pipeline-stage-item completed";
+      const s3 = document.getElementById("stage-3");
+      if (s3) s3.className = "pipeline-stage-item active";
+    }, 420);
+
+    const stageTimer3 = setTimeout(() => {
+      const s3 = document.getElementById("stage-3");
+      if (s3) s3.className = "pipeline-stage-item completed";
+      const s4 = document.getElementById("stage-4");
+      if (s4) s4.className = "pipeline-stage-item active";
+    }, 650);
 
     const fileToUpload = state.selectedQueryFile;
     const filename = fileToUpload.name || `mobile_photo_${Date.now()}.jpg`;
@@ -426,6 +455,15 @@ document.addEventListener("DOMContentLoaded", () => {
         body: formData
       });
 
+      clearTimeout(stageTimer1);
+      clearTimeout(stageTimer2);
+      clearTimeout(stageTimer3);
+
+      for (let i = 1; i <= 4; i++) {
+        const el = document.getElementById(`stage-${i}`);
+        if (el) el.className = "pipeline-stage-item completed";
+      }
+
       if (!response.ok) {
         const err = await response.json();
         throw new Error(err.detail || "Matching failed");
@@ -433,7 +471,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const data = await response.json();
       renderMatchResults(data);
-      fetchStats(); // Update query count in sidebar
+      fetchStats();
     } catch (err) {
       console.error("Match error:", err);
       showToast(err.message, "error");
@@ -518,6 +556,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const shelfLocation = m.shelf_location || "Warehouse A - Rack 03 - Shelf B-02";
 
+      const confLevel = m.confidence_pct >= 85 ? "high" : (m.confidence_pct >= 70 ? "medium" : "low");
+      const levelLabel = m.confidence_pct >= 85 ? "Strong Match" : (m.confidence_pct >= 70 ? "Variant" : "Low Certitude");
+
       card.innerHTML = `
         <div class="match-img-box" id="img-box-${m.design_id}">
           <img src="${m.best_matching_image_url}" alt="${m.design_name}">
@@ -525,48 +566,45 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
 
         <div class="match-details">
-          <div class="match-rank-badge">
-            <span>${rankLabel}</span>
+          <div class="match-card-header">
+            <span class="match-rank-tag">${rankLabel}</span>
+            <span class="precision-confidence-badge ${confLevel}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              <span>${m.confidence_pct}% ${levelLabel}</span>
+            </span>
           </div>
+
           <h4 class="match-title">${m.design_name}</h4>
           <span class="match-sku">SKU: ${m.design_id} &bull; ${m.category}</span>
           
-          <div class="match-card-shelf-badge">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            <span><strong>Shelf:</strong> ${shelfLocation}</span>
+          <div class="match-card-shelf-badge" title="Warehouse Location Coordinate">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span>${shelfLocation}</span>
           </div>
 
-          <p class="match-desc">${m.description || "Factory specification model."}</p>
+          <p class="match-desc" style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 6px;">${m.description || "Factory specification model."}</p>
           ${angleThumbsHtml}
           ${m.dominant_colors && m.dominant_colors.length > 0 ? `
             <div class="color-palette-strip" style="display: flex; gap: 6px; align-items: center; margin: 6px 0;" onclick="event.stopPropagation();">
               <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 500;">Colors:</span>
               ${m.dominant_colors.map(c => `
-                <span style="width: 14px; height: 14px; border-radius: 50%; background: ${c.hex}; border: 1px solid rgba(255,255,255,0.3); display: inline-block; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="${c.hex} (${c.percentage}%)"></span>
+                <span style="width: 14px; height: 14px; border-radius: 50%; background: ${c.hex}; border: 1px solid rgba(0,0,0,0.15); display: inline-block; box-shadow: 0 1px 2px rgba(0,0,0,0.1);" title="${c.hex} (${c.percentage}%)"></span>
               `).join("")}
             </div>
           ` : ''}
           
-          <div class="match-action-hint">
-            <button type="button" class="btn-inspect-quick-action" onclick="event.stopPropagation(); openShoeInspectionModal('${m.design_id}', ${JSON.stringify(m).replace(/"/g, '&quot;')});">
+          <div class="match-action-hint" style="margin-top: 6px;">
+            <button type="button" class="btn-inspect-quick-action" style="background: none; border: none; color: var(--brand-primary); font-size: 0.78rem; font-weight: 700; cursor: pointer; padding: 0; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation(); openShoeInspectionModal('${m.design_id}', ${JSON.stringify(m).replace(/"/g, '&quot;')});">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-              <span>Inspect Full Design & Shelf Location &rarr;</span>
+              <span>Inspect Full Specs & Warehouse Shelf &rarr;</span>
             </button>
           </div>
 
           <div class="match-feedback-row" onclick="event.stopPropagation();">
-            <span class="feedback-label">Feedback:</span>
+            <span class="feedback-label" style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Feedback:</span>
             <button type="button" class="btn-feedback correct" title="Confirm correct match" onclick="event.stopPropagation(); submitFeedback(${data.query_id || 'null'}, 'correct', '${m.design_id}', this)">👍 Correct</button>
             <button type="button" class="btn-feedback wrong" title="Report wrong design match" onclick="event.stopPropagation(); submitFeedback(${data.query_id || 'null'}, 'wrong_match', '${m.design_id}', this)">👎 Wrong</button>
             <button type="button" class="btn-feedback not-in-catalog" title="Footwear is not in catalog" onclick="event.stopPropagation(); submitFeedback(${data.query_id || 'null'}, 'not_in_catalog', null, this)">❓ Not in Catalog</button>
-          </div>
-        </div>
-
-        <div class="match-score-block">
-          <div class="score-pct ${m.match_color}">${m.confidence_pct}%</div>
-          <span class="score-level-badge ${m.match_color}">${m.match_level_label}</span>
-          <div class="score-bar-track">
-            <div class="score-bar-fill ${m.match_color}" style="width: ${Math.min(100, m.confidence_pct)}%;"></div>
           </div>
         </div>
       `;
