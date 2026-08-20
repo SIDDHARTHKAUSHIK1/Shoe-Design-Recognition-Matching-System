@@ -154,43 +154,55 @@
       </nav>
     </header>
 
-    <!-- 2. Hero Content (Centered below Nav) -->
-    <main class="relative z-10 flex flex-col items-center text-center px-4 max-w-5xl mx-auto my-auto mt-6 md:mt-12">
+    <!-- 2. Hero Content (Centered below Nav with Floating Shoe Visual) -->
+    <main class="relative z-10 flex flex-col md:flex-row items-center justify-between px-6 md:px-12 max-w-6xl mx-auto my-auto mt-4 md:mt-8 gap-8 md:gap-12">
       
-      <!-- Badge -->
-      <div class="anim-entry delay-badge mb-6 inline-flex items-center gap-2.5 rounded-xl border border-[#1B133C]/10 bg-white/80 backdrop-blur-sm px-4 py-2 text-sm font-medium text-[#1B133C] shadow-sm">
-        <div class="bg-amber-500 rounded w-5 h-5 flex items-center justify-center text-white flex-shrink-0">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
+      <!-- Left Column: Typography & CTAs -->
+      <div class="flex flex-col items-center md:items-start text-center md:text-left max-w-2xl flex-1">
+        <!-- Badge -->
+        <div class="anim-entry delay-badge mb-5 inline-flex items-center gap-2.5 rounded-xl border border-[#1B133C]/10 bg-white/80 backdrop-blur-sm px-4 py-2 text-sm font-medium text-[#1B133C] shadow-sm">
+          <div class="bg-amber-500 rounded w-5 h-5 flex items-center justify-center text-white flex-shrink-0">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <span>AI-Powered Visual Search</span>
         </div>
-        <span>AI-Powered Visual Search</span>
+
+        <!-- Heading -->
+        <h1 class="anim-entry delay-heading font-sans font-bold text-4xl sm:text-5xl md:text-6xl leading-[1.05] tracking-tight text-[#1B133C]">
+          Find any shoe <br>
+          <span class="text-amber-600 font-bold">in seconds, not shelves</span>
+        </h1>
+
+        <!-- Subtitle -->
+        <p class="anim-entry delay-subtitle mt-4 sm:mt-5 max-w-xl text-xs sm:text-sm md:text-base leading-relaxed text-[#1B133C]/70 font-normal">
+          Photograph a shoe and instantly get its matching catalog design, confidence score, and exact shelf location. No more manual searching through inventory — just point, shoot, and locate.
+        </p>
+
+        <!-- CTA Buttons -->
+        <div class="anim-entry delay-cta mt-6 sm:mt-7 flex flex-col sm:flex-row items-center gap-4">
+          <a href="/app" id="btn-launch-app" class="rounded-xl bg-[#1B133C] px-7 sm:px-8 py-3.5 text-sm font-semibold text-white shadow-[0px_4px_16px_rgba(27,19,60,0.25)] hover:shadow-[0px_6px_20px_rgba(27,19,60,0.35)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer inline-flex items-center gap-2.5">
+            <span>Launch Match Studio</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"/>
+              <polyline points="12 5 19 12 12 19"/>
+            </svg>
+          </a>
+          <button id="btn-cta-access" class="rounded-xl bg-[#FEFEFE] px-6 sm:px-7 py-3.5 text-sm font-semibold text-[#1B133C] shadow-[0px_4px_12px_rgba(0,0,0,0.12)] hover:shadow-[0px_6px_16px_rgba(0,0,0,0.18)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] border border-[#1B133C]/10 cursor-pointer inline-flex items-center gap-2">
+            <span>Get Early Access</span>
+          </button>
+        </div>
       </div>
 
-      <!-- Heading -->
-      <h1 class="anim-entry delay-heading font-sans font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-[1.05] tracking-tight text-[#1B133C] max-w-4xl">
-        Find any shoe <br>
-        <span class="text-amber-600 font-bold">in seconds, not shelves</span>
-      </h1>
-
-      <!-- Subtitle -->
-      <p class="anim-entry delay-subtitle mt-5 sm:mt-6 max-w-3xl text-xs sm:text-sm md:text-base leading-relaxed text-[#1B133C]/70 font-normal">
-        Photograph a shoe and instantly get its matching catalog design, confidence score, and exact shelf location. No more manual searching through inventory — just point, shoot, and locate.
-      </p>
-
-      <!-- CTA Buttons (Direct Launch App & Request Access) -->
-      <div class="anim-entry delay-cta mt-7 sm:mt-8 flex flex-col sm:flex-row items-center gap-4">
-        <a href="/app" id="btn-launch-app" class="rounded-xl bg-[#1B133C] px-7 sm:px-9 py-3.5 sm:py-4 text-sm font-semibold text-white shadow-[0px_4px_16px_rgba(27,19,60,0.25)] hover:shadow-[0px_6px_20px_rgba(27,19,60,0.35)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer inline-flex items-center gap-2.5">
-          <span>Launch Match Studio</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="5" y1="12" x2="19" y2="12"/>
-            <polyline points="12 5 19 12 12 19"/>
-          </svg>
-        </a>
-        <button id="btn-cta-access" class="rounded-xl bg-[#FEFEFE] px-6 sm:px-8 py-3.5 sm:py-4 text-sm font-semibold text-[#1B133C] shadow-[0px_4px_12px_rgba(0,0,0,0.12)] hover:shadow-[0px_6px_16px_rgba(0,0,0,0.18)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] border border-[#1B133C]/10 cursor-pointer inline-flex items-center gap-2">
-          <span>Get Early Access</span>
-        </button>
+      <!-- Right Column: Floating Shoe Visual Element -->
+      <div class="anim-entry delay-subtitle flex-shrink-0 flex items-center justify-center relative w-60 sm:w-72 md:w-80 lg:w-[380px] max-w-full mt-4 md:mt-0">
+        <div class="hero-shoe-container w-full">
+          <img src="/static/hero_shoe.png" alt="ShoeMatch AI Catalog Sample SHOE-001" class="hero-floating-shoe w-full max-h-[300px] object-contain" />
+          <div class="hero-shoe-shadow"></div>
+        </div>
       </div>
+
     </main>
 
     <!-- Bottom Margin Spacer -->
