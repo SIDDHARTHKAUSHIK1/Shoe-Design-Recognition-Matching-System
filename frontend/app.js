@@ -796,9 +796,45 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     if (elements.btnRunMatch) elements.btnRunMatch.addEventListener("click", executeVisualMatch);
 
-    // Catalog Actions
-    if (elements.catalogSearchInput) elements.catalogSearchInput.addEventListener("input", filterCatalogCards);
-    if (elements.catalogCategoryFilter) elements.catalogCategoryFilter.addEventListener("change", filterCatalogCards);
+    // Catalog & Design Library Controls
+    let searchDebounceTimer = null;
+    if (elements.catalogSearchInput) {
+      elements.catalogSearchInput.addEventListener("input", (e) => {
+        state.catalogSearchQuery = e.target.value.trim();
+        state.catalogCurrentPage = 1;
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => {
+          fetchCatalog();
+        }, 300);
+      });
+    }
+
+    if (elements.catalogCategoryFilter) {
+      elements.catalogCategoryFilter.addEventListener("change", (e) => {
+        state.catalogCategoryFilter = e.target.value;
+        state.catalogCurrentPage = 1;
+        fetchCatalog();
+      });
+    }
+
+    const statusFilter = document.getElementById("catalog-status-filter");
+    if (statusFilter) {
+      statusFilter.addEventListener("change", (e) => {
+        state.catalogStatusFilter = e.target.value;
+        state.catalogCurrentPage = 1;
+        fetchCatalog();
+      });
+    }
+
+    const sortSelect = document.getElementById("catalog-sort-select");
+    if (sortSelect) {
+      sortSelect.addEventListener("change", (e) => {
+        state.catalogSortOrder = e.target.value;
+        state.catalogCurrentPage = 1;
+        fetchCatalog();
+      });
+    }
+
     if (elements.btnRefreshCatalog) elements.btnRefreshCatalog.addEventListener("click", fetchCatalog);
     if (elements.btnRefreshLogs) elements.btnRefreshLogs.addEventListener("click", fetchLogs);
 
@@ -1212,95 +1248,256 @@ document.addEventListener("DOMContentLoaded", () => {
       const angleTag = box.querySelector(".match-angle-tag");
       if (mainImg) mainImg.src = thumbEl.src;
       if (angleTag) angleTag.textContent = thumbEl.title.replace("Angle: ", "");
-
-      // Highlight active thumb
-      const parent = thumbEl.parentElement;
-      if (parent) {
-        parent.querySelectorAll(".angle-thumb").forEach(t => t.classList.remove("active"));
-        thumbEl.classList.add("active");
+        const parent = thumbEl.parentElement;
+        if (parent) {
+          parent.querySelectorAll(".angle-thumb").forEach(t => t.classList.remove("active"));
+          thumbEl.classList.add("active");
+        }
       }
-    }
-  };
+    };
 
-  // ==========================================
-  // Catalog Explorer
-  // ==========================================
-  async function fetchCatalog() {
-    try {
-      const res = await fetch(getApiUrl("/api/designs"));
-      if (res.ok) {
-        const data = await res.json();
-        state.catalog = data.designs || [];
-        renderCatalogGrid(state.catalog);
-        if (elements.navCatalogCount) elements.navCatalogCount.textContent = state.catalog.length;
+    // ==========================================
+    // Catalog & Design Library Explorer
+    // ==========================================
+    state.catalogViewMode = localStorage.getItem("shoematch_catalog_view") || "grid";
+    state.catalogCurrentPage = 1;
+    state.catalogPerPage = 10;
+    state.catalogSearchQuery = "";
+    state.catalogCategoryFilter = "";
+    state.catalogStatusFilter = "";
+    state.catalogSortOrder = "newest";
+
+    window.setCatalogViewMode = function(mode) {
+      state.catalogViewMode = mode;
+      try { localStorage.setItem("shoematch_catalog_view", mode); } catch (e) {}
+      
+      const gridBtn = document.getElementById("btn-view-grid");
+      const listBtn = document.getElementById("btn-view-list");
+      const gridWrap = document.getElementById("catalog-grid");
+      const listWrap = document.getElementById("catalog-list-wrap");
+
+      if (mode === "list") {
+        if (gridBtn) gridBtn.classList.remove("active");
+        if (listBtn) listBtn.classList.add("active");
+        if (gridWrap) gridWrap.style.display = "none";
+        if (listWrap) listWrap.style.display = "block";
+      } else {
+        if (gridBtn) gridBtn.classList.add("active");
+        if (listBtn) listBtn.classList.remove("active");
+        if (gridWrap) gridWrap.style.display = "grid";
+        if (listWrap) listWrap.style.display = "none";
       }
-    } catch (err) {
-      console.error("Failed to fetch catalog:", err);
+
+      renderCatalog();
+    };
+
+    window.handleCatalogPerPageChange = function(val) {
+      state.catalogPerPage = parseInt(val, 10) || 10;
+      state.catalogCurrentPage = 1;
+      fetchCatalog();
+    };
+
+    window.changeCatalogPage = function(delta) {
+      const totalPages = Math.ceil((state.catalogTotal || 0) / state.catalogPerPage) || 1;
+      const target = state.catalogCurrentPage + delta;
+      if (target >= 1 && target <= totalPages) {
+        state.catalogCurrentPage = target;
+        fetchCatalog();
+      }
+    };
+
+    function formatLocationDetails(d) {
+      const parts = [];
+      if (d.shelf_location) parts.push(`Shelf: ${d.shelf_location}`);
+      if (d.drawer) parts.push(`Drawer: ${d.drawer}`);
+      if (d.slot) parts.push(`Slot: ${d.slot}`);
+      if (d.shoe_match_tag) parts.push(`Tag: ${d.shoe_match_tag}`);
+      return parts.length > 0 ? parts.join(" • ") : "Warehouse Main Reserve";
     }
-  }
 
-  function renderCatalogGrid(designs) {
-    elements.catalogGrid.innerHTML = "";
+    async function fetchCatalog() {
+      try {
+        const qParams = new URLSearchParams();
+        if (state.catalogSearchQuery) qParams.set("search", state.catalogSearchQuery);
+        if (state.catalogCategoryFilter) qParams.set("category", state.catalogCategoryFilter);
+        if (state.catalogStatusFilter) qParams.set("status", state.catalogStatusFilter);
+        if (state.catalogSortOrder) qParams.set("sort", state.catalogSortOrder);
+        qParams.set("page", state.catalogCurrentPage);
+        qParams.set("limit", state.catalogPerPage);
 
-    if (designs.length === 0) {
-      elements.catalogGrid.innerHTML = `
-        <div class="results-empty" style="grid-column: 1 / -1;">
-          <h4>No Designs in Catalog</h4>
-          <p>Click "Add New Design" to upload reference photos.</p>
-        </div>
-      `;
-      return;
-    }
-
-    designs.forEach(d => {
-      const card = document.createElement("div");
-      card.className = "catalog-card";
-      card.onclick = () => openShoeInspectionModal(d.design_id, null);
-
-      const shelf = d.shelf_location || "Warehouse A - Rack 03 - Shelf B-02";
-
-      card.innerHTML = `
-        <div class="catalog-card-img">
-          <img src="${getImageUrl(d.thumbnail_path || '/static/placeholder.jpg')}" alt="${d.name}" loading="lazy">
-          <span class="catalog-card-pill">${d.design_id}</span>
-          <span class="catalog-card-count">${d.image_count || 1} angles</span>
-        </div>
-        <div class="catalog-card-body">
-          <h4 class="catalog-card-title">${d.name}</h4>
-          <span class="catalog-card-cat">${d.category} &bull; ${d.created_by}</span>
+        const res = await window.authenticatedFetch(getApiUrl(`/api/designs?${qParams.toString()}`));
+        if (res.ok) {
+          const data = await res.json();
+          state.catalog = data.designs || [];
+          state.catalogTotal = data.total || 0;
           
-          <div class="match-card-shelf-badge" style="margin: 6px 0;">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            <span><strong>Shelf:</strong> ${shelf}</span>
+          if (elements.navCatalogCount) elements.navCatalogCount.textContent = state.catalogTotal;
+          renderCatalog();
+        }
+      } catch (err) {
+        console.error("Failed to fetch catalog:", err);
+      }
+    }
+
+    function renderCatalog() {
+      const mode = state.catalogViewMode || "grid";
+      const gridBtn = document.getElementById("btn-view-grid");
+      const listBtn = document.getElementById("btn-view-list");
+      const gridWrap = document.getElementById("catalog-grid");
+      const listWrap = document.getElementById("catalog-list-wrap");
+
+      if (mode === "list") {
+        if (gridBtn) gridBtn.classList.remove("active");
+        if (listBtn) listBtn.classList.add("active");
+        if (gridWrap) gridWrap.style.display = "none";
+        if (listWrap) listWrap.style.display = "block";
+      } else {
+        if (gridBtn) gridBtn.classList.add("active");
+        if (listBtn) listBtn.classList.remove("active");
+        if (gridWrap) gridWrap.style.display = "grid";
+        if (listWrap) listWrap.style.display = "none";
+      }
+
+      const total = state.catalogTotal || 0;
+      const totalPages = Math.ceil(total / state.catalogPerPage) || 1;
+      state.catalogCurrentPage = Math.min(state.catalogCurrentPage, totalPages);
+
+      const infoEl = document.getElementById("catalog-pagination-info");
+      if (infoEl) {
+        const startIdx = total === 0 ? 0 : (state.catalogCurrentPage - 1) * state.catalogPerPage + 1;
+        const endIdx = Math.min(state.catalogCurrentPage * state.catalogPerPage, total);
+        infoEl.textContent = `Showing ${startIdx}-${endIdx} of ${total} entries (Page ${state.catalogCurrentPage} of ${totalPages})`;
+      }
+      const prevBtn = document.getElementById("btn-catalog-prev");
+      const nextBtn = document.getElementById("btn-catalog-next");
+      if (prevBtn) prevBtn.disabled = (state.catalogCurrentPage <= 1);
+      if (nextBtn) nextBtn.disabled = (state.catalogCurrentPage >= totalPages);
+
+      if (state.catalogViewMode === "list") {
+        renderCatalogList(state.catalog);
+      } else {
+        renderCatalogGrid(state.catalog);
+      }
+    }
+
+    function renderCatalogGrid(designs) {
+      if (!elements.catalogGrid) return;
+      elements.catalogGrid.innerHTML = "";
+
+      if (!designs || designs.length === 0) {
+        elements.catalogGrid.innerHTML = `
+          <div class="results-empty" style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--text-muted);">
+            <h4>No Designs Found</h4>
+            <p>No catalog items match your search, category, or status filter.</p>
           </div>
+        `;
+        return;
+      }
 
-          <p class="catalog-card-desc">${d.description || "Manufactured catalog specification."}</p>
-        </div>
-      `;
+      designs.forEach(d => {
+        const card = document.createElement("div");
+        card.className = "catalog-card";
+        card.onclick = () => openShoeInspectionModal(d.design_id, null);
 
-      elements.catalogGrid.appendChild(card);
-    });
-  }
+        const isArchived = d.is_archived === 1;
+        const isActive = d.is_active !== 0;
+        let statusBadgeHtml = '<span class="catalog-status-badge active">Active</span>';
+        if (isArchived) {
+          statusBadgeHtml = '<span class="catalog-status-badge archived">Archived</span>';
+        } else if (!isActive) {
+          statusBadgeHtml = '<span class="catalog-status-badge deactivated">Inactive</span>';
+        }
 
-  function filterCatalogCards() {
-    const query = elements.catalogSearchInput.value.toLowerCase().trim();
-    const category = elements.catalogCategoryFilter.value;
+        const locationStr = formatLocationDetails(d);
+        const thumb = window.getLogThumbnailUrl(d.thumbnail_path);
 
-    const filtered = state.catalog.filter(d => {
-      const matchesQuery = d.name.toLowerCase().includes(query) ||
-                           d.design_id.toLowerCase().includes(query) ||
-                           (d.shelf_location && d.shelf_location.toLowerCase().includes(query)) ||
-                           (d.description && d.description.toLowerCase().includes(query));
-      const matchesCategory = category === "ALL" || d.category === category;
-      return matchesQuery && matchesCategory;
-    });
+        card.innerHTML = `
+          <div class="catalog-card-img">
+            <img src="${thumb}" alt="${d.name}" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'1.5\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\'/><path d=\'M8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z\'/><path d=\'M21 15l-5-5L5 21\'/></svg>';">
+            <span class="catalog-card-pill">${d.design_id}</span>
+            ${statusBadgeHtml}
+            <span class="catalog-card-count">${d.image_count || 1} angles</span>
+          </div>
+          <div class="catalog-card-body">
+            <h4 class="catalog-card-title">${d.name}</h4>
+            <span class="catalog-card-cat">${d.category} &bull; ${d.created_by || 'Design Team'}</span>
+            
+            <div class="catalog-location-pill" style="margin: 8px 0;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              <span>${locationStr}</span>
+            </div>
 
-    renderCatalogGrid(filtered);
-  }
+            <p class="catalog-card-desc">${d.description || "Manufactured catalog specification."}</p>
+          </div>
+        `;
+
+        elements.catalogGrid.appendChild(card);
+      });
+    }
+
+    function renderCatalogList(designs) {
+      const tbody = document.getElementById("catalog-list-tbody");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      if (!designs || designs.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">
+              No catalog items match your criteria.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      designs.forEach(d => {
+        const tr = document.createElement("tr");
+        tr.style.cursor = "pointer";
+        tr.onclick = () => openShoeInspectionModal(d.design_id, null);
+
+        const isArchived = d.is_archived === 1;
+        const isActive = d.is_active !== 0;
+        let statusBadgeHtml = '<span class="log-status-badge success">Active</span>';
+        if (isArchived) {
+          statusBadgeHtml = '<span class="log-status-badge danger">Archived</span>';
+        } else if (!isActive) {
+          statusBadgeHtml = '<span class="log-status-badge warning">Inactive</span>';
+        }
+
+        const locationStr = formatLocationDetails(d);
+        const thumb = window.getLogThumbnailUrl(d.thumbnail_path);
+
+        tr.innerHTML = `
+          <td style="text-align: center; width: 64px;">
+            <div class="log-thumb-frame">
+              <img src="${thumb}" class="log-thumb" alt="${d.name}" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'1.5\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\'/><path d=\'M8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z\'/><path d=\'M21 15l-5-5L5 21\'/></svg>';">
+            </div>
+          </td>
+          <td>
+            <div style="font-weight: 700; color: var(--text-primary); font-size: 0.88rem;">${d.name}</div>
+            <div style="font-size: 0.72rem; font-family: var(--font-mono); color: var(--text-muted);">${d.design_id}</div>
+          </td>
+          <td><span style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">${d.category}</span></td>
+          <td>${statusBadgeHtml}</td>
+          <td>
+            <div class="catalog-location-pill">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              <span>${locationStr}</span>
+            </div>
+          </td>
+          <td style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted); text-align: center;">${d.image_count || 1}</td>
+          <td>
+            <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); openShoeInspectionModal('${d.design_id}', null);">Inspect</button>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+    }
 
   // ==========================================================================
   // Full Shoe Inspection & Warehouse Shelf Location Modal
-  // ==========================================================================
   async function openShoeInspectionModal(designId, matchDataOrConfidence) {
     console.log("[ShoeMatch] Opening inspection modal for SKU:", designId);
     const detailModal = elements.detailModal || document.getElementById("detail-modal");

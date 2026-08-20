@@ -1033,11 +1033,88 @@ body {
   object-fit: cover;
 }
 
+.catalog-card-pill {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.85);
+  color: #ffffff;
+  z-index: 2;
+}
+
+.catalog-card-count {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.75);
+  color: #ffffff;
+  z-index: 2;
+}
+
 .catalog-card-body {
   padding: 16px;
   display: flex;
   flex-direction: column;
   flex: 1;
+}
+
+.view-toggle-group button.btn-icon.active {
+  background: var(--bg-surface) !important;
+  color: var(--brand-primary) !important;
+  box-shadow: var(--shadow-xs);
+}
+
+.catalog-location-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface-subtle);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.catalog-status-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+  z-index: 2;
+}
+
+.catalog-status-badge.active {
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
+  border: 1px solid var(--status-success-border);
+}
+
+.catalog-status-badge.deactivated {
+  background: var(--status-warning-bg);
+  color: var(--status-warning-text);
+  border: 1px solid var(--status-warning-border);
+}
+
+.catalog-status-badge.archived {
+  background: var(--status-danger-bg);
+  color: var(--status-danger-text);
+  border: 1px solid var(--status-danger-border);
 }
 
 /* Audit Logs Table */
