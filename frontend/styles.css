@@ -6,6 +6,7 @@
   /* Typography Families (Enterprise Font System) */
   --font-heading: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: var(--font-sans);
   --font-mono: 'IBM Plex Mono', monospace;
 
   /* Primary Color System (Light Default) */
@@ -20,6 +21,7 @@
   --border-chrome: rgba(27, 19, 60, 0.1);
 
   --brand-primary: #1B133C;
+  --brand-primary-hover: #2A1E5C;
   --brand-accent: #D97706;
   --brand-accent-hover: #B45309;
   --brand-accent-bg: rgba(217, 119, 6, 0.1);
@@ -86,6 +88,7 @@ html[data-theme="dark"] {
   --border-chrome: rgba(255, 255, 255, 0.12);
 
   --brand-primary: #F8FAF9;
+  --brand-primary-hover: #CBD5E1;
   --brand-accent: #F59E0B;
   --brand-accent-hover: #FBBF24;
   --brand-accent-bg: rgba(245, 158, 11, 0.15);
@@ -1272,8 +1275,19 @@ body {
 }
 
 /* ==========================================================================
-   Shoe Inspection Modal (#detail-modal) Redesign Styles
+   Shoe Inspection Modal (#detail-modal) Redesign & Visual Polish
    ========================================================================== */
+
+@keyframes modalScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
 
 .shoe-preview-modal {
   max-width: 920px;
@@ -1281,6 +1295,8 @@ body {
   max-height: 90vh;
   display: flex;
   flex-direction: column;
+  box-shadow: var(--shadow-modal);
+  animation: modalScaleIn var(--transition-fast);
 }
 
 .shoe-preview-modal .modal-body {
@@ -1316,10 +1332,16 @@ body {
   background: var(--bg-surface-subtle);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: box-shadow var(--transition-fast);
+}
+
+.preview-main-viewer:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .preview-main-viewer img {
@@ -1327,7 +1349,7 @@ body {
   height: 100%;
   object-fit: contain;
   padding: 10px;
-  transition: transform 0.2s ease;
+  transition: transform var(--transition-normal);
 }
 
 .viewer-angle-pill {
@@ -1340,7 +1362,7 @@ body {
   font-family: var(--font-mono);
   font-size: 0.72rem;
   padding: 3px 8px;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -1359,11 +1381,12 @@ body {
   font-weight: 600;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
-  transition: background 0.15s ease;
+  transition: background var(--transition-fast), transform var(--transition-fast);
 }
 
 .viewer-toggle-btn:hover {
   background: var(--brand-primary-hover);
+  transform: translateY(-1px);
 }
 
 .preview-thumb-container {
@@ -1399,7 +1422,7 @@ body {
   padding: 2px;
   cursor: pointer;
   overflow: hidden;
-  transition: all 0.15s ease;
+  transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .preview-thumb-btn img {
@@ -1409,8 +1432,13 @@ body {
   border-radius: calc(var(--radius-sm) - 2px);
 }
 
-.preview-thumb-btn.active,
 .preview-thumb-btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--brand-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.preview-thumb-btn.active {
   border-color: var(--brand-primary);
   box-shadow: 0 0 0 2px var(--brand-accent-bg);
 }
@@ -1419,8 +1447,8 @@ body {
   position: absolute;
   bottom: 2px;
   right: 2px;
-  background: rgba(0, 0, 0, 0.7);
-  color: #fff;
+  background: rgba(0, 0, 0, 0.75);
+  color: #ffffff;
   font-size: 0.58rem;
   font-family: var(--font-mono);
   padding: 1px 3px;
@@ -1434,35 +1462,37 @@ body {
   gap: 14px;
 }
 
-/* Match Confidence Banner */
+/* Match Confidence Banner — Primary Visual Anchor */
 .preview-match-banner {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 10px 14px;
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-strong);
   background: var(--bg-surface-subtle);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-fast);
 }
 
 .preview-match-banner.high,
 .preview-match-banner.green {
-  background: rgba(16, 185, 129, 0.08);
-  border-color: rgba(16, 185, 129, 0.3);
+  background: var(--status-success-bg);
+  border-color: var(--status-success-border);
 }
 
 .preview-match-banner.moderate,
 .preview-match-banner.yellow {
-  background: rgba(245, 158, 11, 0.08);
-  border-color: rgba(245, 158, 11, 0.3);
+  background: var(--status-warning-bg);
+  border-color: var(--status-warning-border);
 }
 
 .preview-match-banner.low,
 .preview-match-banner.red {
-  background: rgba(239, 68, 68, 0.08);
-  border-color: rgba(239, 68, 68, 0.3);
+  background: var(--status-danger-bg);
+  border-color: var(--status-danger-border);
 }
 
 .preview-match-title {
@@ -1479,7 +1509,7 @@ body {
   font-size: 0.75rem;
   font-weight: 700;
   padding: 2px 8px;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   white-space: nowrap;
 }
 
@@ -1507,15 +1537,22 @@ body {
   white-space: nowrap;
 }
 
-/* Warehouse Locator Card */
+/* Warehouse Locator Card — Primary Visual Anchor */
 .warehouse-locator-card {
   background: var(--bg-surface-subtle);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
   padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.warehouse-locator-card:hover {
+  box-shadow: var(--shadow-lg);
+  border-color: var(--border-focus);
 }
 
 .locator-card-header {
@@ -1545,9 +1582,9 @@ body {
   font-family: var(--font-mono);
   padding: 2px 6px;
   border-radius: var(--radius-sm);
-  background: rgba(59, 130, 246, 0.1);
-  color: var(--brand-primary);
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: var(--brand-accent-bg);
+  color: var(--brand-accent-hover);
+  border: 1px solid var(--brand-accent-border);
 }
 
 .shelf-coordinate-display {
@@ -1558,14 +1595,15 @@ body {
   border: 1px solid var(--border-subtle);
   padding: 10px;
   border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
 }
 
 .shelf-icon-box {
   width: 32px;
   height: 32px;
   border-radius: var(--radius-sm);
-  background: rgba(59, 130, 246, 0.12);
-  color: var(--brand-primary);
+  background: var(--brand-accent-bg);
+  color: var(--brand-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1598,12 +1636,13 @@ body {
   padding: 5px 10px;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
 }
 
 .btn-tertiary:hover {
   background: var(--bg-surface-hover);
   border-color: var(--brand-primary);
+  transform: translateY(-1px);
 }
 
 .shelf-edit-form {
@@ -1617,7 +1656,7 @@ body {
 
 .edit-label {
   font-size: 0.72rem;
-  color: var(--brand-primary);
+  color: var(--brand-accent);
   font-weight: 600;
 }
 
@@ -1632,10 +1671,16 @@ body {
   background: var(--bg-surface-subtle);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
   padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  transition: box-shadow var(--transition-fast);
+}
+
+.factory-specs-card:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .specs-section-title {
@@ -1704,9 +1749,12 @@ body {
   background: var(--status-danger);
   color: #ffffff;
   border: none;
+  transition: background var(--transition-fast), transform var(--transition-fast);
 }
 
 .btn-danger:hover {
   background: #dc2626;
+  transform: translateY(-1px);
 }
+
 
