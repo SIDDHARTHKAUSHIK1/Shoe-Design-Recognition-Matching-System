@@ -285,11 +285,6 @@ class ZeroShotCategoryClassifier:
             "top_ids": raw_ids[:5]
         })
 
-        # Hard rejection if similarity to catalog is exceedingly low
-        if max_sim < 0.30:
-            conf = max(0.0, min(1.0, 1.0 - max_sim))
-            return "none", round(conf, 4), "below_threshold", combined_diag
-
         # 5. Prototype-Based Shoe vs. Slipper Classification
         shoe_slipper_cat, shoe_slipper_conf = gate.classify_shoe_vs_slipper(emb)
         if shoe_slipper_cat == "slipper":

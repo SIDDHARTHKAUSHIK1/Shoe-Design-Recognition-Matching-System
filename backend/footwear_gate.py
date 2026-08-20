@@ -187,13 +187,17 @@ class BinaryFootwearGate:
         proto_pos_sim = float(np.dot(self.pos_prototype, q_vec))
         proto_neg_sim = float(np.dot(self.neg_prototype, q_vec))
 
-        # Margin: positive advantage over negative domain
-        margin = top3_pos_mean - top3_neg_mean
+        # Nearest-Neighbor Margin: primary positive advantage over non-footwear domain
+        margin = max_pos_sim - max_neg_sim
+        top3_margin = top3_pos_mean - top3_neg_mean
 
-        # Softmax probability over positive vs negative domain
+        # Softmax probability over positive vs negative domain using nearest-neighbor affinity
         tau = 0.08
-        pos_logit = top3_pos_mean / tau
-        neg_logit = top3_neg_mean / tau
+        pos_score = 0.70 * max_pos_sim + 0.30 * top3_pos_mean
+        neg_score = 0.70 * max_neg_sim + 0.30 * top3_neg_mean
+        pos_logit = pos_score / tau
+        neg_logit = neg_score / tau
+        
         # Numerically stable softmax
         max_l = max(pos_logit, neg_logit)
         prob_footwear = float(np.exp(pos_logit - max_l) / (np.exp(pos_logit - max_l) + np.exp(neg_logit - max_l)))
@@ -206,6 +210,7 @@ class BinaryFootwearGate:
             "proto_pos_sim": round(proto_pos_sim, 4),
             "proto_neg_sim": round(proto_neg_sim, 4),
             "margin": round(margin, 4),
+            "top3_margin": round(top3_margin, 4),
             "prob_footwear": round(prob_footwear, 4)
         }
 
@@ -240,9 +245,14 @@ class BinaryFootwearGate:
         Returns:
             Tuple of (category: 'shoe' | 'slipper', confidence: float[0.0, 1.0])
         """
-        if self.slipper_embeddings is None or self.slipper_prototype is None:
+        if (
+            self.slipper_embeddings is None
+            or self.slipper_prototype is None
+            or np.all(self.slipper_embeddings == 0)
+            or np.linalg.norm(self.slipper_prototype) < 1e-6
+        ):
             # No slipper bank available — default to shoe
-            return "shoe", 0.70
+            return "shoe", 0.95
 
         q_vec = np.squeeze(query_embedding).astype(np.float32)
         norm = np.linalg.norm(q_vec)
@@ -254,17 +264,15 @@ class BinaryFootwearGate:
         top3_slipper = float(np.mean(np.sort(sim_to_slipper)[-3:]))
         proto_slipper = float(np.dot(self.slipper_prototype, q_vec))
 
-        # Overall footwear prototype similarity (includes both shoe + slipper)
+        # Overall footwear prototype similarity
         proto_footwear = float(np.dot(self.pos_prototype, q_vec))
 
         # Weighted slipper score
         slipper_score = 0.6 * top3_slipper + 0.4 * proto_slipper
-        # Shoe score: footwear affinity adjusted away from slipper domain
-        shoe_score = proto_footwear - 0.3 * slipper_score
+        shoe_score = proto_footwear
 
-        if slipper_score > shoe_score:
-            conf = max(0.5, min(1.0, slipper_score / (shoe_score + slipper_score + 1e-9)))
+        if slipper_score > 0.45 and slipper_score > (shoe_score + 0.08):
+            conf = max(0.5, min(1.0, slipper_score))
             return "slipper", round(conf, 4)
         else:
-            conf = max(0.5, min(1.0, shoe_score / (shoe_score + slipper_score + 1e-9)))
-            return "shoe", round(conf, 4)
+            return "shoe", 0.95
