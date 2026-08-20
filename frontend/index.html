@@ -3,500 +3,280 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ShoeMatch AI — Visual Design Recognition & Similarity Search</title>
+  <title>ShoeMatch AI — Find Any Shoe Instantly</title>
+  
+  <!-- Google Fonts: Instrument Serif & Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=2.2">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/index.css">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: '#1B133C',
+          },
+          fontFamily: {
+            serif: ['"Instrument Serif"', 'serif'],
+            sans: ['Inter', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Required CSS Reset */
+    body { 
+      font-family: 'Inter', sans-serif; 
+      color: #1B133C; 
+      background-color: #FFFFFF; 
+    }
+
+    /* Entry Animations */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .anim-entry {
+      opacity: 0;
+      animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .delay-badge { animation-delay: 60ms; }
+    .delay-heading { animation-delay: 140ms; }
+    .delay-subtitle { animation-delay: 240ms; }
+    .delay-cta { animation-delay: 340ms; }
+
+    /* Nav Scroll Shrink Effect */
+    .nav-pill-scrolled {
+      padding-top: 0.5rem !important;
+      padding-bottom: 0.5rem !important;
+      backdrop-filter: blur(16px) !important;
+      background-color: rgba(255, 255, 255, 0.92) !important;
+      box-shadow: 0 4px 20px -2px rgba(27, 19, 60, 0.1) !important;
+    }
+
+    /* Pulse for Signature Confidence Chip */
+    @keyframes subtlePulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+
+    .animate-chip-pulse {
+      animation: subtlePulse 4s ease-in-out infinite;
+    }
+
+    /* Respect Prefers-Reduced-Motion */
+    @media (prefers-reduced-motion: reduce) {
+      .anim-entry {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+      .animate-chip-pulse {
+        animation: none !important;
+      }
+      video {
+        display: none !important;
+      }
+    }
+  </style>
 </head>
-<body>
-  <div class="app-layout">
-    <!-- Sidebar Navigation -->
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-top">
-        <div class="brand">
-          <div class="brand-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M2.5 13.5C2.5 13.5 6 10 9 10C12 10 13 13 16 13C19 13 21.5 10.5 21.5 10.5V17.5C21.5 19 20 20 18.5 20H4C2.5 20 2.5 18.5 2.5 17.5V13.5Z"/>
-              <path d="M7 10V6C7 4.5 8.5 3 10.5 3H12C13 3 14 3.8 14 5V10"/>
-              <path d="M3 16H21"/>
+<body class="antialiased selection:bg-amber-500/20 selection:text-[#1B133C]">
+
+  <!-- Single Full-Screen Hero Section (100vh) -->
+  <section class="relative h-screen w-full overflow-hidden flex flex-col justify-between" id="hero-section">
+    
+    <!-- Background Video Layer (z-0, bright high-key footage) -->
+    <div class="absolute inset-0 z-0 overflow-hidden bg-slate-50">
+      <video autoplay muted loop playsinline class="w-full h-[130%] object-cover object-top opacity-85 filter brightness-[1.04] contrast-[0.96]">
+        <source src="https://assets.mixkit.co/videos/preview/mixkit-white-sneaker-rotating-on-a-display-42867-large.mp4" type="video/mp4">
+      </video>
+      <!-- Light Overlay Layers for High-Key Legibility -->
+      <div class="absolute inset-0 bg-white/20 backdrop-blur-[1px]"></div>
+      <div class="absolute inset-0 bg-gradient-to-b from-white/70 via-white/30 to-white/80"></div>
+    </div>
+
+    <!-- 1. Navigation Bar (Centered at Top) -->
+    <header class="relative z-10 w-full pt-4 md:pt-6 px-4 flex justify-center">
+      <nav id="nav-pill" class="bg-white/80 backdrop-blur-md rounded-xl px-4 md:px-6 py-3 shadow-sm border border-[#1B133C]/10 flex items-center justify-between gap-6 md:gap-10 transition-all duration-300">
+        
+        <!-- Custom SVG Logo (Two Chevrons Search Motif) -->
+        <a href="#" class="flex items-center gap-2.5 group text-decoration-none">
+          <div class="w-8 h-8 rounded-lg bg-[#1B133C] flex items-center justify-center text-white shadow-sm transition-transform duration-300 group-hover:scale-105">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="7 13 12 18 17 13"/>
+              <polyline points="7 6 12 11 17 6"/>
             </svg>
           </div>
-          <div class="brand-text">
-            <h1>ShoeMatch<span class="badge-ai">PRO</span></h1>
-            <p class="brand-sub">Visual Catalog AI Engine</p>
-          </div>
+          <span class="font-['Instrument_Serif'] text-2xl font-normal tracking-tight text-[#1B133C]">
+            ShoeMatch <span class="italic text-amber-600 font-normal">AI</span>
+          </span>
+        </a>
+
+        <!-- Nav Links (Hidden on Mobile, shown sm: and up) -->
+        <div class="hidden sm:flex items-center gap-6 md:gap-8">
+          <a href="#how-it-works" class="text-sm font-medium text-[#1B133C]/80 hover:text-[#1B133C] transition-colors duration-200">How it works</a>
+          <a href="#accuracy" class="text-sm font-medium text-[#1B133C]/80 hover:text-[#1B133C] transition-colors duration-200">Accuracy</a>
+          <a href="#warehouses" class="text-sm font-medium text-[#1B133C]/80 hover:text-[#1B133C] transition-colors duration-200">For Warehouses</a>
+          <a href="#contact" class="text-sm font-medium text-[#1B133C]/80 hover:text-[#1B133C] transition-colors duration-200">Contact</a>
         </div>
-        <button class="sidebar-toggle-btn" id="btn-toggle-sidebar" title="Collapse / Expand Sidebar (Full View)">
-          <svg class="toggle-icon-collapse" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-          <svg class="toggle-icon-expand" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
-      </div>
-
-      <nav class="nav-menu">
-        <button class="nav-item active" data-tab="match-tab" id="nav-match" title="Visual Match Studio">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <span>Visual Match Studio</span>
-        </button>
-
-        <button class="nav-item" data-tab="catalog-tab" id="nav-catalog" title="Design Catalog">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-          <span>Design Catalog</span>
-          <span class="pill-count" id="nav-catalog-count">0</span>
-        </button>
-
-        <button class="nav-item" data-tab="logs-tab" id="nav-logs" title="Audit Logs">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-          <span>Audit Logs</span>
-        </button>
       </nav>
-    </aside>
+    </header>
 
-    <!-- Main Content Area -->
-    <main class="main-content">
-      <!-- Top Bar Header -->
-      <header class="top-bar">
-        <div class="page-title-wrap">
-          <button class="topbar-toggle-btn" id="btn-topbar-toggle" title="Toggle Sidebar">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-          </button>
-          <div class="page-title-area">
-            <h2 id="page-title">Visual Match Studio</h2>
-            <p id="page-description">Upload a shoe photo to query the factory reference catalog and inspect Top-3 ranked matches.</p>
-          </div>
+    <!-- 2. Hero Content (Centered below Nav) -->
+    <main class="relative z-10 flex flex-col items-center text-center px-4 max-w-5xl mx-auto my-auto mt-6 md:mt-12">
+      
+      <!-- Badge -->
+      <div class="anim-entry delay-badge mb-6 inline-flex items-center gap-2.5 rounded-xl border border-[#1B133C]/10 bg-white/80 backdrop-blur-sm px-4 py-2 text-sm font-medium text-[#1B133C] shadow-sm">
+        <div class="bg-amber-500 rounded w-5 h-5 flex items-center justify-center text-white flex-shrink-0">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
         </div>
-        <div class="top-bar-actions">
-          <button class="btn btn-primary" id="btn-open-add-modal">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            <span>Add New Design</span>
-          </button>
-        </div>
-      </header>
-
-      <!-- TAB 1: Visual Match Studio -->
-      <section class="tab-pane active" id="match-tab">
-        <div class="match-grid">
-          <!-- Left Column: Query Upload Card -->
-          <div class="card query-card">
-            <div class="card-header">
-              <div class="card-title-group">
-                <h3>1. Query Photo</h3>
-                <span class="card-hint">Drop an image, paste from clipboard, or browse</span>
-              </div>
-              <button class="btn-text-sm" id="btn-clear-query" style="display: none;">Clear</button>
-            </div>
-
-            <!-- Hidden native inputs with standard off-screen accessibility -->
-            <input type="file" id="query-file-input" accept="image/jpeg,image/png,image/webp" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; opacity: 0;">
-            <input type="file" id="camera-native-input" accept="image/*" capture="environment" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; opacity: 0;">
-
-            <!-- Dedicated Input Toolbar (Native mobile shutter & file trigger) -->
-            <div class="query-source-toolbar" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
-              <label for="query-file-input" class="btn btn-secondary btn-sm" id="btn-browse-file" style="justify-content: center; height: 42px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; user-select: none;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                <span>Browse File</span>
-              </label>
-              <label for="camera-native-input" class="btn btn-primary btn-sm" id="btn-open-camera" style="justify-content: center; height: 42px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #3b82f6, #2563eb); text-decoration: none; user-select: none;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                <span>Take Photo / Camera</span>
-              </label>
-            </div>
-
-            <!-- Upload Drop Area -->
-            <div class="drop-zone" id="query-dropzone">
-              <div class="drop-prompt" id="drop-prompt">
-                <div class="upload-icon-circle">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="17 8 12 3 7 8"/>
-                    <line x1="12" y1="3" x2="12" y2="15"/>
-                  </svg>
-                </div>
-                <h4>Drag & Drop Shoe or Slipper Photo</h4>
-                <p>or click inside this box to browse photos</p>
-              </div>
-
-              <!-- Query Image Preview -->
-              <div class="query-preview-wrapper" id="query-preview-container" style="display: none;">
-                <img id="query-preview-img" src="" alt="Query Shoe Preview">
-                <div class="preview-overlay">
-                  <span class="preview-badge">Query Target</span>
-                  <div style="display: flex; gap: 6px;">
-                    <label for="camera-native-input" class="btn-icon" id="btn-recapture-camera" title="Retake with Camera" style="cursor: pointer; display: inline-flex; align-items: center; justify-content: center;">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                    </label>
-                    <label for="query-file-input" class="btn-icon" id="btn-change-image" title="Browse / Change Image" style="cursor: pointer; display: inline-flex; align-items: center; justify-content: center;">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Action Area -->
-            <div class="query-actions">
-              <button class="btn btn-primary btn-block btn-lg" id="btn-run-match" disabled>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                <span>Find Matches in Catalog</span>
-              </button>
-            </div>
-
-            <!-- Confidence Legend -->
-            <div class="threshold-legend">
-              <div class="legend-title">Confidence Scale:</div>
-              <div class="legend-items">
-                <div class="legend-pill green">
-                  <span class="pill-dot"></span>
-                  <span>≥ 85% Strong Match</span>
-                </div>
-                <div class="legend-pill yellow">
-                  <span class="pill-dot"></span>
-                  <span>70–84% Variant</span>
-                </div>
-                <div class="legend-pill red">
-                  <span class="pill-dot"></span>
-                  <span>&lt; 70% Unique Design</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Right Column: Top 3 Results Stream -->
-          <div class="card results-card">
-            <div class="card-header">
-              <div class="card-title-group">
-                <h3>2. Top 3 Catalog Matches</h3>
-                <span class="card-hint" id="results-meta-text">Awaiting query image</span>
-              </div>
-              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                <div class="detected-category-badge" id="detected-category-badge" style="display: none; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); padding: 4px 10px; border-radius: 9999px; font-size: 0.78rem; font-weight: 600; color: #93c5fd; display: inline-flex; align-items: center; gap: 5px;">
-                  <span id="detected-cat-icon">👟</span>
-                  <span id="detected-cat-text">Detected: Shoe (98.2%)</span>
-                </div>
-                <div class="latency-badge" id="latency-badge" style="display: none;">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  <span id="latency-text">0 ms</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Empty State -->
-            <div class="results-empty" id="results-empty">
-              <div class="empty-icon">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <circle cx="11" cy="11" r="8"/>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                  <path d="M11 8v6M8 11h6"/>
-                </svg>
-              </div>
-              <h4>No Query Executed Yet</h4>
-              <p>Upload a shoe or slipper image on the left and click "Find Matches in Catalog" to view side-by-side rankings.</p>
-            </div>
-
-            <!-- Pipeline Loading State -->
-            <div class="results-loading" id="results-loading" style="display: none;">
-              <div class="pipeline-progress-box">
-                <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 14px;">
-                  <div class="stage-icon-spinner"></div>
-                  <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);" id="loading-stage-header">Running Match Pipeline...</h4>
-                </div>
-                <div class="pipeline-stage-item active" id="stage-1"><span style="font-family: var(--font-mono); font-size: 0.75rem;">[1/4]</span> Image Preprocessing & Contrast Normalization</div>
-                <div class="pipeline-stage-item" id="stage-2"><span style="font-family: var(--font-mono); font-size: 0.75rem;">[2/4]</span> Foreground Saliency Isolation (U2-Netp)</div>
-                <div class="pipeline-stage-item" id="stage-3"><span style="font-family: var(--font-mono); font-size: 0.75rem;">[3/4]</span> DINOv2 Invariant Feature Projection</div>
-                <div class="pipeline-stage-item" id="stage-4"><span style="font-family: var(--font-mono); font-size: 0.75rem;">[4/4]</span> FAISS Vector Space Cosine Search</div>
-              </div>
-            </div>
-
-            <!-- Matches List Container (Top 3) -->
-            <div class="matches-list" id="matches-list" style="display: none;">
-              <!-- Match cards injected dynamically by app.js -->
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- TAB 2: Design Catalog Explorer -->
-      <section class="tab-pane" id="catalog-tab">
-        <div class="catalog-header-bar">
-          <div class="search-box">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="catalog-search-input" placeholder="Search by model name, SKU, materials, or location...">
-          </div>
-          <div class="filter-group">
-            <select id="catalog-category-filter">
-              <option value="">All Categories (Shoes & Slippers)</option>
-              <optgroup label="Shoes">
-                <option value="Sneaker">Sneakers</option>
-                <option value="Running Shoe">Running Shoes</option>
-                <option value="Casual Trainer">Casual Trainers</option>
-                <option value="Slip-On Loafer">Slip-On Loafers</option>
-                <option value="Classic Oxford">Classic Oxfords</option>
-                <option value="Hiking Boot">Hiking Boots</option>
-              </optgroup>
-              <optgroup label="Slippers & Slides">
-                <option value="Slide Sandal">Slide Sandals</option>
-                <option value="Flip-Flop">Flip-Flops</option>
-                <option value="House Slipper">House Slippers</option>
-                <option value="Mule Slipper">Mule Slippers</option>
-              </optgroup>
-            </select>
-            <button class="btn btn-secondary btn-sm" id="btn-refresh-catalog" title="Refresh Catalog">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-            </button>
-          </div>
-        </div>
-        <div class="catalog-grid" id="catalog-grid">
-          <!-- Catalog Cards Injected by JS -->
-        </div>
-      </section>
-
-      <!-- TAB 3: Query Logs & Audit Explorer -->
-      <section class="tab-pane" id="logs-tab">
-        <div class="logs-header-bar">
-          <div class="logs-info">
-            <h3>Audit Inspection History</h3>
-            <span class="card-hint">Real-time log of visual similarity searches and factory shelf queries</span>
-          </div>
-          <button class="btn btn-secondary btn-sm" id="btn-refresh-logs">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-            <span>Refresh Logs</span>
-          </button>
-        </div>
-
-        <div class="table-responsive">
-          <table class="logs-table">
-            <thead>
-              <tr>
-                <th>Timestamp</th>
-                <th>Query Image</th>
-                <th>Category</th>
-                <th>Top Match</th>
-                <th>Confidence</th>
-                <th>Latency</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody id="logs-tbody">
-              <!-- Logs injected by app.js -->
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </main>
-  </div>
-
-  <!-- MODAL: Add New Design -->
-  <div class="modal-backdrop" id="add-modal" style="display: none;">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-header">
-        <div class="modal-title-wrap">
-          <div class="modal-icon-badge">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-          </div>
-          <div>
-            <h3>Add New Reference Design</h3>
-            <span style="font-size: 0.78rem; color: var(--text-muted);">Indexes reference photos with sub-second incremental FAISS vector ingestion</span>
-          </div>
-        </div>
-        <button class="btn-close" id="btn-close-add-modal">&times;</button>
+        <span>AI-Powered Visual Search</span>
       </div>
 
-      <form id="add-design-form">
-        <div class="modal-body">
-          <!-- Template Quick Fill Selector -->
-          <div class="form-group" style="background: rgba(59, 130, 246, 0.08); padding: 12px; border-radius: var(--radius-sm); border: 1px dashed rgba(59, 130, 246, 0.3); margin-bottom: 16px;">
-            <label for="template-selector" style="color: #93c5fd; font-weight: 700;">⚡ Quick-Fill Design Template Preset:</label>
-            <select id="template-selector" onchange="applyDesignTemplate(this.value)">
-              <option value="">-- Select Design Template Preset (Optional) --</option>
-              <optgroup label="👟 Shoes">
-                <option value="monk_loafer">Monk Strap Leather Loafer (VIP Sample Vault - Shelf 1)</option>
-                <option value="pro_runner">Pro Speed Track Runner (Building A - Rack A-08)</option>
-                <option value="brogue_oxford">Heritage Brogue Oxford (Building A - Shelf 3)</option>
-                <option value="trail_boot">All-Terrain Hiking Boot (Building B - Rack E-01)</option>
-                <option value="minimal_trainer">Minimalist Leather Street Sneaker (Building A - Rack A-03)</option>
-              </optgroup>
-              <optgroup label="🩴 Slippers & Slides">
-                <option value="cloud_slide">Comfort Cloud Slide Sandal (Warehouse B - Rack 01 - Shelf S-01)</option>
-                <option value="breeze_flipflop">Breeze Ergonomic Flip-Flop (Warehouse B - Rack 01 - Shelf S-02)</option>
-                <option value="cozy_slipper">Cozy Velvet Bedroom Slipper (Warehouse B - Rack 02 - Shelf S-03)</option>
-                <option value="urban_mule">Urban Suede Mule Slide (Warehouse B - Rack 02 - Shelf S-04)</option>
-              </optgroup>
-            </select>
-          </div>
+      <!-- Heading -->
+      <h1 class="anim-entry delay-heading font-['Instrument_Serif'] text-4xl sm:text-5xl md:text-7xl lg:text-8xl leading-[0.95] tracking-tight text-[#1B133C] max-w-4xl font-normal">
+        Find any shoe <br>
+        <span class="italic font-normal">in seconds, not shelves</span>
+      </h1>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label for="new-design-id">Design SKU / ID *</label>
-              <input type="text" id="new-design-id" placeholder="e.g. SHOE-025 or SLIP-005" required>
-            </div>
-            <div class="form-group">
-              <label for="new-design-name">Model / Design Name *</label>
-              <input type="text" id="new-design-name" placeholder="e.g. Apex HyperKnit V2" required>
-            </div>
-          </div>
+      <!-- Subtitle -->
+      <p class="anim-entry delay-subtitle mt-5 sm:mt-6 max-w-3xl text-xs sm:text-sm md:text-base leading-relaxed text-[#1B133C]/70 font-normal">
+        Photograph a shoe and instantly get its matching catalog design, confidence score, and exact shelf location. No more manual searching through inventory — just point, shoot, and locate.
+      </p>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label for="new-design-category">Category</label>
-              <select id="new-design-category">
-                <optgroup label="Shoes">
-                  <option value="Sneaker">Sneaker</option>
-                  <option value="Running Shoe">Running Shoe</option>
-                  <option value="Casual Trainer">Casual Trainer</option>
-                  <option value="Slip-On Loafer">Slip-On Loafer</option>
-                  <option value="Classic Oxford">Classic Oxford</option>
-                  <option value="Hiking Boot">Hiking Boot</option>
-                </optgroup>
-                <optgroup label="Slippers & Slides">
-                  <option value="Slide Sandal">Slide Sandal</option>
-                  <option value="Flip-Flop">Flip-Flop</option>
-                  <option value="House Slipper">House Slipper</option>
-                  <option value="Mule Slipper">Mule Slipper</option>
-                </optgroup>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="new-design-creator">Created By</label>
-              <input type="text" id="new-design-creator" value="Design Studio" required>
-          </div>
+      <!-- CTA Button -->
+      <div class="anim-entry delay-cta mt-7 sm:mt-8">
+        <button id="btn-cta-access" class="rounded-xl bg-[#FEFEFE] px-6 sm:px-8 py-3 sm:py-3.5 text-sm font-semibold text-[#1B133C] shadow-[0px_4px_12px_rgba(0,0,0,0.15)] hover:shadow-[0px_6px_16px_rgba(0,0,0,0.2)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] border border-[#1B133C]/10 cursor-pointer inline-flex items-center gap-2">
+          <span>Get Early Access</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/>
+            <polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </button>
+      </div>
+    </main>
 
-        <!-- Warehouse Shelf Location & Production Specs -->
-        <div class="form-row">
-          <div class="form-group">
-            <label for="new-design-shelf">
-              <span class="label-with-icon">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                Company Shelf Location *
-              </span>
-            </label>
-            <input type="text" id="new-design-shelf" placeholder="e.g. Building A - Rack 03 - Shelf B-02" value="Building A - Section 1 - Rack B-01 - Shelf 1" required>
-          </div>
-          <div class="form-group">
-            <label for="new-design-status">Production / Sample Status</label>
-            <select id="new-design-status">
-              <option value="Active Sample Room">Active Sample Room</option>
-              <option value="Production Line Floor">Production Line Floor</option>
-              <option value="QC Archive">QC Archive</option>
-              <option value="Master Craftsman Vault">Master Craftsman Vault</option>
-              <option value="R&D Prototype Rack">R&D Prototype Rack</option>
-            </select>
-          </div>
+    <!-- Bottom Margin Spacer -->
+    <div class="relative z-10 pb-6 text-center text-xs text-[#1B133C]/40 font-medium">
+      ShoeMatch AI Engine &bull; Sub-Second Visual Search Infrastructure
+    </div>
+
+    <!-- 3. Signature Motion Element (Floating Confidence Score Chip) -->
+    <div id="confidence-chip" class="absolute bottom-6 right-6 md:bottom-10 md:right-10 z-20 hidden sm:flex items-center gap-3 bg-white/85 backdrop-blur-md border border-[#1B133C]/10 rounded-2xl p-3.5 shadow-xl transition-all duration-500 hover:scale-105 animate-chip-pulse">
+      <div class="w-11 h-11 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-600 font-mono font-bold text-xs shadow-inner">
+        <span id="chip-score-display">0.0%</span>
+      </div>
+      <div class="text-left">
+        <div class="text-xs font-semibold text-[#1B133C] flex items-center gap-1.5">
+          <span>Top-1 Visual Match</span>
+          <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
         </div>
+        <div class="text-[11px] font-mono text-[#1B133C]/60 mt-0.5">LOCATION: SHELF A-03 &bull; 38ms</div>
+      </div>
+    </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label for="new-design-materials">Materials & Construction</label>
-            <input type="text" id="new-design-materials" placeholder="e.g. Full Grain Leather / Vibram Outsole" value="Full Grain Leather / Durable Rubber Sole">
-          </div>
-          <div class="form-group">
-            <label for="new-design-season">Season / Collection</label>
-            <input type="text" id="new-design-season" placeholder="e.g. Fall/Winter 2026" value="Collection 2026">
-          </div>
-        </div>
+  </section>
 
-        <div class="form-group">
-          <label for="new-design-desc">Description / Factory Specs</label>
-          <textarea id="new-design-desc" rows="2" placeholder="Material, sole type, stitching notes..."></textarea>
+  <!-- Early Access / Launch Modal -->
+  <div id="access-modal" class="fixed inset-0 z-50 bg-[#1B133C]/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-[#1B133C]/10 relative animate-fade-in-up">
+      <button id="btn-close-modal" class="absolute top-4 right-4 text-[#1B133C]/50 hover:text-[#1B133C] text-xl font-bold p-1">&times;</button>
+      <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center mb-4">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h3 class="font-['Instrument_Serif'] text-3xl font-normal text-[#1B133C] mb-2">Request Early Access</h3>
+      <p class="text-xs text-[#1B133C]/70 mb-5 leading-relaxed">Join factory managers and warehouse teams using ShoeMatch AI to streamline visual catalog searches.</p>
+      
+      <form id="access-form" onsubmit="handleAccessSubmit(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-[#1B133C] mb-1">Work Email</label>
+          <input type="email" required placeholder="manager@factory.com" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-[#1B133C]/20 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition-all">
         </div>
-
-        <div class="form-group">
-          <label>Upload Multi-Angle Reference Photos * (Side, Top, Sole, 3/4, Heel)</label>
-          <div class="drop-zone-sm" id="modal-dropzone">
-            <input type="file" id="modal-files-input" multiple accept="image/*" hidden>
-            <div class="drop-prompt-sm">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              <span>Click or Drag & Drop Multiple Photos (3–10 photos recommended)</span>
-            </div>
-          </div>
-          <div class="modal-previews" id="modal-previews"></div>
+        <div>
+          <label class="block text-xs font-semibold text-[#1B133C] mb-1">Company / Facility Name</label>
+          <input type="text" required placeholder="Acro Footwear Logistics" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-[#1B133C]/20 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition-all">
         </div>
-
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" id="btn-cancel-add">Cancel</button>
-          <button type="submit" class="btn btn-primary" id="btn-submit-add">
-            <span>Index Design (Incremental Add)</span>
-          </button>
-        </div>
+        <button type="submit" class="w-full py-3 rounded-xl bg-[#1B133C] text-white text-sm font-semibold hover:bg-[#1B133C]/90 transition-all shadow-md">Submit Early Access Request</button>
       </form>
     </div>
   </div>
 
-  <!-- MODAL: Shoe Inspection & Warehouse Shelf Location Preview -->
-  <div class="modal-backdrop" id="detail-modal" style="display: none;">
-    <div class="modal-dialog modal-xl shoe-preview-modal">
-      <div class="modal-header">
-        <div class="modal-title-wrap">
-          <div class="modal-icon-badge preview-badge">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-          </div>
-          <div>
-            <h3 id="detail-title">Shoe Inspection & Factory Shelf Location</h3>
-            <span class="preview-sku-tag" id="detail-sku-badge">SKU: SHOE-001 &bull; Sneaker</span>
-          </div>
-        </div>
-        <button class="btn-close" id="btn-close-detail-modal">&times;</button>
-      </div>
+  <script>
+    // Live Ticking Score Motion Effect for Signature Confidence Chip
+    document.addEventListener("DOMContentLoaded", () => {
+      const display = document.getElementById("chip-score-display");
+      if (!display) return;
+      
+      let current = 0.0;
+      const target = 98.4;
+      const duration = 1200;
+      const startTime = performance.now();
 
-      <div class="modal-body" id="detail-modal-body">
-        <!-- Injected dynamically by JS -->
-      </div>
-    </div>
-  </div>
+      function updateScore(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(1, elapsed / duration);
+        // Ease out quad
+        const eased = 1 - (1 - progress) * (1 - progress);
+        current = (eased * target).toFixed(1);
+        display.textContent = `${current}%`;
 
-  <!-- MODAL: Live Camera Capture -->
-  <div class="modal-backdrop" id="camera-modal" style="display: none;">
-    <div class="modal-dialog modal-md" style="max-width: 520px;">
-      <div class="modal-header">
-        <div class="modal-title-wrap">
-          <div class="modal-icon-badge" style="background: rgba(59, 130, 246, 0.2); color: var(--brand-primary); width: 36px; height: 36px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          </div>
-          <div>
-            <h3>Live Camera Capture</h3>
-            <span style="font-size: 0.76rem; color: var(--text-muted);">Position footwear in center and snap photo</span>
-          </div>
-        </div>
-        <button class="btn-close" id="btn-close-camera">&times;</button>
-      </div>
+        if (progress < 1) {
+          requestAnimationFrame(updateScore);
+        } else {
+          display.textContent = "98.4%";
+        }
+      }
+      setTimeout(() => requestAnimationFrame(updateScore), 300);
+    });
 
-      <div class="modal-body" style="padding: 16px;">
-        <div class="camera-feed-container" id="camera-feed-container" style="position: relative; width: 100%; height: 340px; background: #000; border-radius: var(--radius-md); overflow: hidden; display: flex; align-items: center; justify-content: center;">
-          <video id="camera-video" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
-          <canvas id="camera-canvas" style="display: none;"></canvas>
-          <div class="camera-target-reticle" style="position: absolute; border: 2px dashed rgba(59, 130, 246, 0.7); width: 75%; height: 75%; border-radius: var(--radius-md); pointer-events: none; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);"></div>
-          <div id="camera-loading-notice" style="position: absolute; color: #fff; font-size: 0.85rem; display: none;">Starting camera feed...</div>
-        </div>
+    // Nav Scroll Shrink Effect
+    window.addEventListener("scroll", () => {
+      const nav = document.getElementById("nav-pill");
+      if (window.scrollY > 20) {
+        nav.classList.add("nav-pill-scrolled");
+      } else {
+        nav.classList.remove("nav-pill-scrolled");
+      }
+    });
 
-        <!-- Camera Error / Fallback State -->
-        <div id="camera-error-container" style="display: none; text-align: center; padding: 28px 16px; background: rgba(15, 23, 42, 0.6); border-radius: var(--radius-md); border: 1px solid var(--border-color);">
-          <div style="font-size: 2.2rem; margin-bottom: 10px;">📸</div>
-          <h4 style="margin-bottom: 8px; font-size: 1rem; color: #fff;">Camera Access Notice</h4>
-          <p id="camera-error-message" style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 18px; line-height: 1.4;">
-            Live webcam stream could not be started. You can capture directly using your device's camera shutter below.
-          </p>
-          <button type="button" class="btn btn-primary" id="btn-camera-error-fallback" style="margin: 0 auto; display: inline-flex; align-items: center; gap: 8px;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-            <span>Open Device Camera</span>
-          </button>
-        </div>
-      </div>
+    // Modal Triggers
+    const modal = document.getElementById("access-modal");
+    const btnCta = document.getElementById("btn-cta-access");
+    const btnClose = document.getElementById("btn-close-modal");
 
-      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 14px 18px;">
-        <button type="button" class="btn btn-secondary" id="btn-switch-camera" style="display: none;">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-          <span>Switch Camera</span>
-        </button>
-        <button type="button" class="btn btn-primary btn-lg" id="btn-snap-photo" style="margin: 0 auto; min-width: 200px;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
-          <span>Capture Photo</span>
-        </button>
-      </div>
-    </div>
-  </div>
+    if (btnCta && modal) {
+      btnCta.onclick = () => {
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+      };
+    }
 
-  <!-- Toast Notification Container -->
-  <div class="toast-container" id="toast-container"></div>
+    if (btnClose && modal) {
+      btnClose.onclick = () => {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+      };
+    }
 
-  <script src="/static/app.js?v=2.2"></script>
+    function handleAccessSubmit(e) {
+      e.preventDefault();
+      alert("Thank you! Your early access request for ShoeMatch AI has been received.");
+      if (modal) {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+      }
+    }
+  </script>
 </body>
 </html>

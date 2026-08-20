@@ -1,0 +1,6 @@
+/* CSS Reset & Primary Design Tokens for ShoeMatch AI Landing Page */
+body { 
+  font-family: 'Inter', sans-serif; 
+  color: #1B133C; 
+  background-color: #FFFFFF; 
+}
