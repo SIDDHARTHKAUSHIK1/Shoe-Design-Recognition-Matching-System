@@ -124,7 +124,7 @@ def get_user_by_id(user_id: int) -> Optional[Dict[str, Any]]:
     """Fetch user info by user_id."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT user_id, username, role, full_name, is_active, created_at, last_login FROM users WHERE user_id = ?", (user_id,))
+        cursor.execute("SELECT user_id, username, role, full_name, is_active, must_change_password, created_at, last_login FROM users WHERE user_id = ?", (user_id,))
         row = cursor.fetchone()
         return dict(row) if row else None
 
@@ -133,8 +133,25 @@ def list_users() -> list:
     """List all users in the system."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT user_id, username, role, full_name, is_active, created_at, last_login FROM users ORDER BY user_id ASC")
+        cursor.execute("SELECT user_id, username, role, full_name, is_active, must_change_password, created_at, last_login FROM users ORDER BY user_id ASC")
         return [dict(r) for r in cursor.fetchall()]
+
+
+def change_user_password(user_id: int, old_password: str, new_password: str) -> bool:
+    """Change user password after verifying old password, and reset must_change_password flag."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT password_hash FROM users WHERE user_id = ?", (user_id,))
+        row = cursor.fetchone()
+        if not row:
+            return False
+        if not verify_password(old_password, row["password_hash"]):
+            return False
+            
+        new_hash = hash_password(new_password)
+        cursor.execute("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE user_id = ?", (new_hash, user_id))
+        conn.commit()
+        return True
 
 
 def create_user(username: str, password: str, role: str, full_name: str) -> Optional[int]:

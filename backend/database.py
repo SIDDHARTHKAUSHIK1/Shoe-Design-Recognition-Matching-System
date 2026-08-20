@@ -79,10 +79,16 @@ def init_db():
                 role TEXT NOT NULL CHECK(role IN ('employee', 'admin')),
                 full_name TEXT NOT NULL,
                 is_active INTEGER NOT NULL DEFAULT 1,
+                must_change_password INTEGER NOT NULL DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 last_login TIMESTAMP NULL
             );
         """)
+
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0;")
+        except sqlite3.OperationalError:
+            pass
 
         # 2. Designs Table
         cursor.execute("""
@@ -195,13 +201,16 @@ def init_db():
             admin_pwd = hash_password("admin123")
             emp_pwd = hash_password("emp123")
             cursor.execute("""
-                INSERT INTO users (username, password_hash, role, full_name)
+                INSERT INTO users (username, password_hash, role, full_name, must_change_password)
                 VALUES 
-                    ('admin', ?, 'admin', 'System Administrator'),
-                    ('employee', ?, 'employee', 'Warehouse Operations Staff');
+                    ('admin', ?, 'admin', 'System Administrator', 1),
+                    ('employee', ?, 'employee', 'Warehouse Operations Staff', 1);
             """, (admin_pwd, emp_pwd))
             conn.commit()
-            logger.info("Seeded default 'admin' and 'employee' user accounts.")
+            logger.info("Seeded default 'admin' and 'employee' accounts with forced password change on first login.")
+        # Ensure seeded default accounts require password change on first login
+        cursor.execute("UPDATE users SET must_change_password = 1 WHERE username IN ('admin', 'employee');")
+        conn.commit()
 
     logger.info(f"Database initialized successfully at {DB_PATH}")
 
@@ -260,6 +269,45 @@ def update_design_location(design_id: str, shelf_location: str, production_statu
                 SET shelf_location = ?
                 WHERE design_id = ?;
             """, (shelf_location, design_id))
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def update_design_status(design_id: str, is_active: Optional[int] = None, is_archived: Optional[int] = None) -> bool:
+    """Update active/archived status for a catalog design."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        updates = []
+        params = []
+        if is_active is not None:
+            updates.append("is_active = ?")
+            params.append(is_active)
+        if is_archived is not None:
+            updates.append("is_archived = ?")
+            params.append(is_archived)
+        if not updates:
+            return False
+        params.append(design_id)
+        cursor.execute(f"UPDATE designs SET {', '.join(updates)} WHERE design_id = ?", tuple(params))
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def update_design_metadata(design_id: str, **kwargs) -> bool:
+    """Update general design metadata attributes."""
+    allowed = {"name", "category", "description", "shelf_location", "materials", "season", "production_status", "drawer", "slot", "shoe_match_tag"}
+    updates = []
+    params = []
+    for k, v in kwargs.items():
+        if k in allowed and v is not None:
+            updates.append(f"{k} = ?")
+            params.append(v)
+    if not updates:
+        return False
+    params.append(design_id)
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(f"UPDATE designs SET {', '.join(updates)} WHERE design_id = ?", tuple(params))
         conn.commit()
         return cursor.rowcount > 0
 
@@ -359,7 +407,7 @@ def get_reference_image_by_faiss_id(faiss_id: int) -> Optional[Dict[str, Any]]:
                 d.production_status
             FROM reference_images r
             JOIN designs d ON r.design_id = d.design_id
-            WHERE r.faiss_id = ?;
+            WHERE r.faiss_id = ? AND (d.is_active IS NULL OR d.is_active = 1) AND (d.is_archived IS NULL OR d.is_archived = 0);
         """, (faiss_id,))
         row = cursor.fetchone()
         return dict(row) if row else None

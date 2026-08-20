@@ -236,10 +236,88 @@ async def update_shoe_shelf_location(
 
 
 @app.get("/api/designs")
-async def list_designs():
-    """Retrieve all catalog shoe designs with thumbnails and image counts."""
+async def list_designs(
+    category: Optional[str] = None,
+    status: Optional[str] = None,
+    search: Optional[str] = None,
+    sort: Optional[str] = "newest",
+    page: int = 1,
+    limit: int = 100
+):
+    """Retrieve catalog shoe designs with optional filter, search, sort, and pagination."""
     designs = db.get_all_designs()
-    return JSONResponse(content={"total": len(designs), "designs": designs})
+    
+    # Filter by category
+    if category and category.strip():
+        c_lower = category.strip().lower()
+        designs = [d for d in designs if (d.get("category") or "").lower() == c_lower]
+
+    # Filter by status (active/archived)
+    if status and status.strip():
+        st = status.strip().lower()
+        if st == "active":
+            designs = [d for d in designs if d.get("is_active", 1) == 1 and d.get("is_archived", 0) == 0]
+        elif st == "archived":
+            designs = [d for d in designs if d.get("is_archived", 0) == 1]
+        elif st == "deactivated":
+            designs = [d for d in designs if d.get("is_active", 1) == 0]
+
+    # Filter by search string
+    if search and search.strip():
+        q = search.strip().lower()
+        designs = [
+            d for d in designs
+            if q in (d.get("name") or "").lower() or
+               q in (d.get("design_id") or "").lower() or
+               q in (d.get("materials") or "").lower() or
+               q in (d.get("shelf_location") or "").lower()
+        ]
+
+    # Sort
+    if sort == "oldest":
+        designs = sorted(designs, key=lambda x: x.get("created_at") or "")
+    elif sort == "name_asc":
+        designs = sorted(designs, key=lambda x: (x.get("name") or "").lower())
+    elif sort == "name_desc":
+        designs = sorted(designs, key=lambda x: (x.get("name") or "").lower(), reverse=True)
+    else:
+        designs = sorted(designs, key=lambda x: x.get("created_at") or "", reverse=True)
+
+    total = len(designs)
+    start_idx = max(0, (page - 1) * limit)
+    paginated_designs = designs[start_idx : start_idx + limit]
+
+    return JSONResponse(content={"total": total, "designs": paginated_designs, "page": page, "limit": limit})
+
+
+@app.put("/api/designs/{design_id}")
+async def update_design(design_id: str, payload: dict, request: Request):
+    """Update design attributes (name, category, materials, shelf_location, etc.)."""
+    _ = await require_authenticated_user(request)
+    design = db.get_design(design_id)
+    if not design:
+        raise HTTPException(status_code=404, detail=f"Design '{design_id}' not found.")
+
+    success = db.update_design_metadata(design_id, **payload)
+    if not success:
+        raise HTTPException(status_code=400, detail="No metadata attributes updated.")
+
+    return JSONResponse(content={"success": True, "design_id": design_id, "message": "Design metadata updated successfully."})
+
+
+@app.put("/api/admin/designs/{design_id}/status")
+async def toggle_admin_design_status(design_id: str, payload: dict, request: Request):
+    """Activate, deactivate, or archive a design (Admin only). Excluded from candidate pool when inactive/archived."""
+    _ = await require_admin_user(request)
+    design = db.get_design(design_id)
+    if not design:
+        raise HTTPException(status_code=404, detail=f"Design '{design_id}' not found.")
+
+    is_active = payload.get("is_active")
+    is_archived = payload.get("is_archived")
+
+    success = db.update_design_status(design_id, is_active=is_active, is_archived=is_archived)
+    return JSONResponse(content={"success": True, "design_id": design_id, "is_active": is_active, "is_archived": is_archived})
 
 
 @app.get("/api/designs/{design_id}")
@@ -433,6 +511,26 @@ async def get_my_profile(request: Request):
     if not user:
         return JSONResponse(content={"authenticated": False, "user": None})
     return JSONResponse(content={"authenticated": True, "user": user})
+
+
+@app.post("/api/auth/change-password")
+async def change_password(payload: dict, request: Request):
+    """Change current user's password."""
+    user = await require_authenticated_user(request)
+    old_password = payload.get("old_password", "").strip()
+    new_password = payload.get("new_password", "").strip()
+
+    if not old_password or not new_password:
+        raise HTTPException(status_code=400, detail="old_password and new_password are required.")
+
+    if len(new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters.")
+
+    success = auth.change_user_password(user["user_id"], old_password, new_password)
+    if not success:
+        raise HTTPException(status_code=400, detail="Current password is incorrect.")
+
+    return JSONResponse(content={"success": True, "message": "Password changed successfully. Forced change flag reset."})
 
 
 # ==========================================================================

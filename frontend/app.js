@@ -126,6 +126,7 @@ window.updateUserUI = function(user) {
   const roleEl = document.getElementById("user-role-badge");
   const avatarEl = document.getElementById("user-avatar-initials");
   const loginModal = document.getElementById("login-modal");
+  const pwdModal = document.getElementById("change-password-modal");
   const adminTabNav = document.getElementById("nav-admin");
 
   if (user) {
@@ -134,6 +135,13 @@ window.updateUserUI = function(user) {
     if (avatarEl) avatarEl.textContent = (user.full_name || user.username).charAt(0).toUpperCase();
     if (loginModal) loginModal.style.display = "none";
     if (adminTabNav) adminTabNav.style.display = (user.role === "admin") ? "flex" : "none";
+
+    // Trigger forced password change if user must_change_password === 1
+    if (user.must_change_password === 1) {
+      if (pwdModal) pwdModal.style.display = "flex";
+    } else {
+      if (pwdModal) pwdModal.style.display = "none";
+    }
 
     window.fetchDashboardStats();
     if (user.role === "admin") {
@@ -144,7 +152,70 @@ window.updateUserUI = function(user) {
     if (roleEl) roleEl.textContent = "EMPLOYEE";
     if (avatarEl) avatarEl.textContent = "G";
     if (loginModal) loginModal.style.display = "flex";
+    if (pwdModal) pwdModal.style.display = "none";
     if (adminTabNav) adminTabNav.style.display = "none";
+  }
+};
+
+window.handleChangePasswordSubmit = async function(e) {
+  if (e) e.preventDefault();
+  const oldPassword = document.getElementById("change-old-password")?.value.trim();
+  const newPassword = document.getElementById("change-new-password")?.value.trim();
+  const confirmPassword = document.getElementById("change-confirm-password")?.value.trim();
+  const errEl = document.getElementById("change-password-error");
+
+  if (errEl) errEl.style.display = "none";
+
+  if (!oldPassword || !newPassword || !confirmPassword) {
+    if (errEl) {
+      errEl.textContent = "All fields are required.";
+      errEl.style.display = "block";
+    }
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    if (errEl) {
+      errEl.textContent = "New password and confirmation do not match.";
+      errEl.style.display = "block";
+    }
+    return;
+  }
+
+  if (newPassword === oldPassword) {
+    if (errEl) {
+      errEl.textContent = "New password cannot be the same as the default password.";
+      errEl.style.display = "block";
+    }
+    return;
+  }
+
+  try {
+    const res = await window.authenticatedFetch(window.getApiUrl("/api/auth/change-password"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ old_password: oldPassword, new_password: newPassword })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      if (errEl) {
+        errEl.textContent = data.detail || "Failed to update password.";
+        errEl.style.display = "block";
+      }
+      return;
+    }
+
+    const pwdModal = document.getElementById("change-password-modal");
+    if (pwdModal) pwdModal.style.display = "none";
+    if (window.showToast) window.showToast("Password updated successfully!", "success");
+    
+    // Refresh auth session
+    window.checkAuthSession();
+  } catch (err) {
+    if (errEl) {
+      errEl.textContent = "Network error updating password.";
+      errEl.style.display = "block";
+    }
   }
 };
 

@@ -791,6 +791,54 @@
     </div>
   </div>
 
+  <!-- MODAL: Forced Password Change on First Login -->
+  <div class="modal-backdrop" id="change-password-modal" style="display: none; z-index: 1050;">
+    <div class="modal-dialog modal-md" style="max-width: 440px; box-shadow: var(--shadow-modal);">
+      <div class="modal-header" style="background: var(--status-warning-bg); border-bottom: 1px solid var(--status-warning-border); padding: 20px 24px;">
+        <div class="modal-title-wrap">
+          <div class="modal-icon-badge" style="background: var(--status-warning-border); color: var(--status-warning-text);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.778-7.778zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+          </div>
+          <div>
+            <h3 style="font-size: 1.2rem; font-weight: 700; color: var(--status-warning-text);">Security Action Required</h3>
+            <span style="font-size: 0.78rem; color: var(--text-muted);">Default seed password must be changed on first login</span>
+          </div>
+        </div>
+      </div>
+
+      <form id="change-password-form" onsubmit="handleChangePasswordSubmit(event)">
+        <div class="modal-body" style="padding: 24px;">
+          <div id="change-password-error" style="display: none; padding: 10px 14px; border-radius: var(--radius-sm); background: var(--status-danger-bg); border: 1px solid var(--status-danger-border); color: var(--status-danger-text); font-size: 0.82rem; margin-bottom: 16px;"></div>
+
+          <div style="background: var(--bg-surface-subtle); padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 16px;">
+            ⚠️ You are currently using default initial credentials. Please enter your current password and choose a strong new password to secure your account.
+          </div>
+
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label style="display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Current Password</label>
+            <input type="password" id="change-old-password" placeholder="Current default password" required style="width: 100%; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-strong); background: var(--bg-surface); color: var(--text-primary); font-size: 0.88rem;">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label style="display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">New Password (Min 6 characters)</label>
+            <input type="password" id="change-new-password" placeholder="Enter new password" required minlength="6" style="width: 100%; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-strong); background: var(--bg-surface); color: var(--text-primary); font-size: 0.88rem;">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label style="display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Confirm New Password</label>
+            <input type="password" id="change-confirm-password" placeholder="Re-enter new password" required minlength="6" style="width: 100%; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-strong); background: var(--bg-surface); color: var(--text-primary); font-size: 0.88rem;">
+          </div>
+        </div>
+
+        <div class="modal-footer" style="padding: 16px 24px; background: var(--bg-surface-subtle); border-top: 1px solid var(--border-subtle);">
+          <button type="submit" class="btn btn-primary btn-block" style="width: 100%; justify-content: center; height: 42px;">
+            <span>Update Password & Continue</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- MODAL: User Authentication & Login -->
   <div class="modal-backdrop" id="login-modal" style="display: flex; z-index: 1000;">
     <div class="modal-dialog modal-md" style="max-width: 420px; box-shadow: var(--shadow-modal);">
