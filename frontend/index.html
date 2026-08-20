@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ShoeMatch AI — Find Any Shoe Instantly</title>
   
-  <!-- Google Fonts: Instrument Serif & Inter -->
+  <!-- Google Fonts: IBM Plex Sans & IBM Plex Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/index.css">
   
   <!-- Tailwind CSS CDN -->
@@ -21,9 +21,8 @@
             navy: '#1B133C',
           },
           fontFamily: {
-            serif: ['"Instrument Serif"', 'serif'],
-            sans: ['Inter', 'sans-serif'],
-            mono: ['"JetBrains Mono"', 'monospace'],
+            sans: ['"IBM Plex Sans"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['"IBM Plex Mono"', 'monospace'],
           }
         }
       }
@@ -33,7 +32,7 @@
   <style>
     /* Required CSS Reset */
     body { 
-      font-family: 'Inter', sans-serif; 
+      font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif; 
       color: #1B133C; 
       background-color: #FFFFFF; 
     }
@@ -128,8 +127,8 @@
               <polyline points="7 6 12 11 17 6"/>
             </svg>
           </div>
-          <span class="font-['Instrument_Serif'] text-2xl font-normal tracking-tight text-[#1B133C]">
-            ShoeMatch <span class="italic text-amber-600 font-normal">AI</span>
+          <span class="font-sans font-bold text-xl tracking-tight text-[#1B133C]">
+            ShoeMatch <span class="font-mono text-amber-600 font-bold text-base">AI</span>
           </span>
         </a>
 
@@ -169,9 +168,9 @@
       </div>
 
       <!-- Heading -->
-      <h1 class="anim-entry delay-heading font-['Instrument_Serif'] text-4xl sm:text-5xl md:text-7xl lg:text-8xl leading-[0.95] tracking-tight text-[#1B133C] max-w-4xl font-normal">
+      <h1 class="anim-entry delay-heading font-sans font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-[1.05] tracking-tight text-[#1B133C] max-w-4xl">
         Find any shoe <br>
-        <span class="italic font-normal">in seconds, not shelves</span>
+        <span class="text-amber-600 font-bold">in seconds, not shelves</span>
       </h1>
 
       <!-- Subtitle -->
@@ -222,7 +221,7 @@
       <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center mb-4">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
-      <h3 class="font-['Instrument_Serif'] text-3xl font-normal text-[#1B133C] mb-2">Request Early Access</h3>
+      <h3 class="font-sans font-bold text-2xl text-[#1B133C] mb-2">Request Early Access</h3>
       <p class="text-xs text-[#1B133C]/70 mb-5 leading-relaxed">Join factory managers and warehouse teams using ShoeMatch AI to streamline visual catalog searches.</p>
       
       <form id="access-form" onsubmit="handleAccessSubmit(event)" class="space-y-4">

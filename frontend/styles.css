@@ -3,10 +3,10 @@
    ========================================================================== */
 
 :root {
-  /* Typography Families */
-  --font-heading: 'Instrument Serif', serif;
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+  /* Typography Families (Enterprise Font System) */
+  --font-heading: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
 
   /* Primary Color System (Light Default) */
   --color-navy: #1B133C;
@@ -206,21 +206,25 @@ body {
 
 .brand-text h1 {
   font-family: var(--font-heading);
-  font-size: 1.4rem;
-  font-weight: 400;
-  letter-spacing: -0.01em;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--text-primary);
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   white-space: nowrap;
 }
 
 .badge-ai {
-  font-family: var(--font-heading);
-  font-style: italic;
-  font-size: 1.2rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  background: var(--brand-accent-bg);
   color: var(--brand-accent);
+  border: 1px solid var(--brand-accent-border);
 }
 
 .brand-sub {
@@ -378,9 +382,9 @@ body {
 
 .page-title-area h2 {
   font-family: var(--font-heading);
-  font-size: 1.8rem;
-  font-weight: 400;
-  letter-spacing: -0.01em;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--text-primary);
 }
 
@@ -433,8 +437,9 @@ body {
 
 .card-title-group h3 {
   font-family: var(--font-heading);
-  font-size: 1.4rem;
-  font-weight: 400;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   color: var(--text-primary);
 }
 

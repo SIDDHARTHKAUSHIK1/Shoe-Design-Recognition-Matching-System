@@ -61,7 +61,7 @@ html[data-theme="dark"] {
 
 /* Base Body Application */
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--text-primary);
   background-color: var(--bg-canvas);
   transition: var(--transition-theme);
