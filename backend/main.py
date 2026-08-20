@@ -2,6 +2,8 @@
 FastAPI Application Backend for Shoe Design Recognition & Matching System.
 """
 import os
+import io
+import csv
 import time
 import shutil
 import logging
@@ -10,7 +12,7 @@ from contextlib import asynccontextmanager
 from typing import List, Optional
 
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Request, Query, Depends
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -25,6 +27,7 @@ from backend.config import (
 )
 from backend import database as db
 from backend import auth
+from backend import bulk_import
 from backend.engine import EmbeddingEngine
 from backend.classifier import ZeroShotCategoryClassifier
 from backend.vector_store import VectorStore
@@ -606,6 +609,115 @@ async def get_admin_system_stats(request: Request):
             "low": low_count
         }
     })
+
+
+# ==============================================================================
+# BULK DATA MANAGEMENT ENDPOINTS (CSV/EXCEL & PAIRED ZIP)
+# ==============================================================================
+
+@app.post("/api/admin/bulk-import/preview")
+async def bulk_import_preview_endpoint(
+    file: UploadFile = File(...),
+    images_zip: Optional[UploadFile] = File(None),
+    current_user: dict = Depends(require_admin_user)
+):
+    """
+    Parse spreadsheet (.csv, .xlsx) and optional ZIP image archive.
+    Validates all rows and returns preview breakdown before any database writes occur.
+    """
+    if not file or not file.filename:
+        raise HTTPException(status_code=400, detail="Spreadsheet file (.csv or .xlsx) is required")
+
+    spreadsheet_bytes = await file.read()
+    if not spreadsheet_bytes:
+        raise HTTPException(status_code=400, detail="Empty spreadsheet file uploaded")
+
+    try:
+        rows = bulk_import.parse_spreadsheet_bytes(spreadsheet_bytes, file.filename)
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to parse spreadsheet: {e}")
+
+    if not rows:
+        raise HTTPException(status_code=400, detail="No data rows found in spreadsheet")
+
+    # Extract images from paired ZIP if provided
+    zip_images = {}
+    if images_zip and images_zip.filename and images_zip.filename.lower().endswith(".zip"):
+        zip_bytes = await images_zip.read()
+        if zip_bytes:
+            try:
+                zip_images = bulk_import.extract_zip_images(zip_bytes)
+            except Exception as ze:
+                raise HTTPException(status_code=400, detail=f"Failed to parse ZIP archive: {ze}")
+
+    summary, validated_rows = bulk_import.validate_bulk_rows(rows, zip_images)
+    
+    return JSONResponse(content={
+        "summary": summary,
+        "rows": validated_rows,
+        "filename": file.filename,
+        "has_zip_images": bool(zip_images),
+        "total_zip_designs_found": len(zip_images)
+    })
+
+
+@app.post("/api/admin/bulk-import/execute")
+async def bulk_import_execute_endpoint(
+    payload: dict,
+    current_user: dict = Depends(require_admin_user)
+):
+    """
+    Execute batch ingestion for validated rows calling single-design ingestion path in loop.
+    Accepts duplicate_handling strategy ('skip' or 'overwrite').
+    """
+    validated_rows = payload.get("rows", [])
+    duplicate_handling = payload.get("duplicate_handling", "skip")
+    
+    if not validated_rows:
+        raise HTTPException(status_code=400, detail="No rows provided for execution")
+
+    # If ZIP images passed in payload or session, fetch
+    zip_images = {}
+    
+    result = bulk_import.execute_bulk_import_batch(
+        validated_rows=validated_rows,
+        zip_images=zip_images,
+        duplicate_handling=duplicate_handling
+    )
+
+    return JSONResponse(content=result)
+
+
+@app.post("/api/admin/bulk-import/export-failed")
+async def export_failed_rows_csv_endpoint(
+    payload: dict,
+    current_user: dict = Depends(require_admin_user)
+):
+    """Generate and return a downloadable CSV of failed rows with error reasons."""
+    details = payload.get("details", [])
+    failed_items = [d for d in details if d.get("status") == "failed"]
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Row Number", "Design ID", "Name", "Status", "Failure Reason"])
+    
+    for item in failed_items:
+        writer.writerow([
+            item.get("row_num", ""),
+            item.get("design_id", ""),
+            item.get("name", ""),
+            item.get("status", ""),
+            item.get("reason", "")
+        ])
+
+    csv_content = output.getvalue()
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=failed_import_rows.csv"}
+    )
 
 
 # ==============================================================================

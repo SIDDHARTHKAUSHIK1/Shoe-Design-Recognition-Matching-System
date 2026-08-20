@@ -2971,6 +2971,209 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  // ==========================================================================
+  // Bulk Data Management (CSV/Excel Import)
+  // ==========================================================================
+  state.bulkImportData = null;
+
+  window.handleBulkImportPreview = async function(e) {
+    e.preventDefault();
+    const spreadsheetInput = document.getElementById("bulk-spreadsheet-input");
+    const zipInput = document.getElementById("bulk-zip-input");
+    const previewBtn = document.getElementById("btn-bulk-preview");
+
+    if (!spreadsheetInput || !spreadsheetInput.files || spreadsheetInput.files.length === 0) {
+      showToast("Please select a valid CSV or Excel spreadsheet file.", "warning");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", spreadsheetInput.files[0]);
+
+    if (zipInput && zipInput.files && zipInput.files.length > 0) {
+      formData.append("images_zip", zipInput.files[0]);
+    }
+
+    if (previewBtn) {
+      previewBtn.disabled = true;
+      previewBtn.innerHTML = '<span>Parsing & Validating...</span>';
+    }
+
+    try {
+      const res = await window.authenticatedFetch(getApiUrl("/api/admin/bulk-import/preview"), {
+        method: "POST",
+        body: formData
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Failed to parse spreadsheet");
+      }
+
+      const data = await res.json();
+      state.bulkImportData = data;
+      renderBulkImportPreview(data);
+      showToast(`Spreadsheet validated! ${data.summary.ready_count} rows ready for import.`, "success");
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      if (previewBtn) {
+        previewBtn.disabled = false;
+        previewBtn.innerHTML = '<span>Parse & Validate Spreadsheet</span>';
+      }
+    }
+  };
+
+  function renderBulkImportPreview(data) {
+    const previewWrap = document.getElementById("bulk-preview-wrap");
+    const tbody = document.getElementById("bulk-preview-tbody");
+    const statTotal = document.getElementById("bulk-stat-total");
+    const statReady = document.getElementById("bulk-stat-ready");
+    const statDups = document.getElementById("bulk-stat-duplicates");
+    const statErrors = document.getElementById("bulk-stat-errors");
+
+    if (previewWrap) previewWrap.style.display = "block";
+    if (tbody) tbody.innerHTML = "";
+
+    const s = data.summary || {};
+    if (statTotal) statTotal.textContent = s.total_rows || 0;
+    if (statReady) statReady.textContent = s.ready_count || 0;
+    if (statDups) statDups.textContent = (s.duplicate_file_count || 0) + (s.duplicate_catalog_count || 0);
+    if (statErrors) statErrors.textContent = s.error_count || 0;
+
+    const rows = data.rows || [];
+    rows.forEach(r => {
+      const tr = document.createElement("tr");
+      
+      let badgeHtml = "";
+      if (r.status === "ready") {
+        badgeHtml = `<span class="log-status-badge success">Ready</span>`;
+      } else if (r.status === "duplicate_file") {
+        badgeHtml = `<span class="log-status-badge warning">Duplicate (In File)</span>`;
+      } else if (r.status === "duplicate_catalog") {
+        badgeHtml = `<span class="log-status-badge warning">Duplicate (In Catalog)</span>`;
+      } else {
+        const errText = (r.errors || []).join(", ");
+        badgeHtml = `<span class="log-status-badge danger" title="${errText}">Error: ${errText}</span>`;
+      }
+
+      tr.innerHTML = `
+        <td style="font-family: var(--font-mono); font-size: 0.78rem;">#${r._row_num}</td>
+        <td style="font-family: var(--font-mono); font-weight: 700;">${r.design_id || '--'}</td>
+        <td style="font-weight: 600;">${r.name || '--'}</td>
+        <td><span style="font-size: 0.8rem;">${r.category || 'Sneaker'}</span></td>
+        <td><span style="font-size: 0.78rem; font-family: var(--font-mono);">${r.images_found_count || 0} photo(s)</span></td>
+        <td>${badgeHtml}</td>
+      `;
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  window.handleExecuteBulkImport = async function() {
+    if (!state.bulkImportData || !state.bulkImportData.rows) {
+      showToast("No validated dataset ready for import", "warning");
+      return;
+    }
+
+    const strategySelect = document.getElementById("bulk-duplicate-strategy");
+    const strategy = strategySelect ? strategySelect.value : "skip";
+
+    const executeBtn = document.getElementById("btn-execute-bulk");
+    const progressWrap = document.getElementById("bulk-progress-wrap");
+    const progressText = document.getElementById("bulk-progress-text");
+    const progressPct = document.getElementById("bulk-progress-pct");
+    const progressFill = document.getElementById("bulk-progress-fill");
+    const resultsWrap = document.getElementById("bulk-results-wrap");
+    const resultsText = document.getElementById("bulk-results-summary-text");
+    const exportBtn = document.getElementById("btn-export-failed-csv");
+
+    if (!confirm(`Execute bulk import of ${state.bulkImportData.rows.length} rows? Duplicate handling: '${strategy.toUpperCase()}'.`)) {
+      return;
+    }
+
+    if (executeBtn) executeBtn.disabled = true;
+    if (progressWrap) progressWrap.style.display = "block";
+    if (progressFill) progressFill.style.width = "10%";
+    if (progressText) progressText.textContent = "Processing rows through AI embedding pipeline...";
+    if (progressPct) progressPct.textContent = "10%";
+
+    try {
+      const res = await window.authenticatedFetch(getApiUrl("/api/admin/bulk-import/execute"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rows: state.bulkImportData.rows,
+          duplicate_handling: strategy
+        })
+      });
+
+      if (progressFill) progressFill.style.width = "100%";
+      if (progressPct) progressPct.textContent = "100%";
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Bulk import execution failed");
+      }
+
+      const result = await res.json();
+      state.lastBulkResult = result;
+
+      if (resultsWrap) resultsWrap.style.display = "block";
+      if (resultsText) {
+        resultsText.innerHTML = `
+          <strong>Import Complete!</strong><br>
+          • Total Processed: <strong>${result.total_processed}</strong><br>
+          • Successfully Ingested: <strong style="color: var(--status-success-text);">${result.succeeded}</strong><br>
+          • Skipped (Duplicates): <strong>${result.skipped}</strong><br>
+          • Failed Rows: <strong style="color: var(--status-danger-text);">${result.failed}</strong>
+        `;
+      }
+
+      if (exportBtn) {
+        exportBtn.style.display = result.failed > 0 ? "block" : "none";
+      }
+
+      showToast(`Bulk Import Finished! Ingested: ${result.succeeded}, Failed: ${result.failed}, Skipped: ${result.skipped}`, "success");
+      fetchCatalog();
+      fetchStats();
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      if (executeBtn) executeBtn.disabled = false;
+    }
+  };
+
+  window.handleExportFailedCSV = async function() {
+    if (!state.lastBulkResult || !state.lastBulkResult.details) {
+      showToast("No failed rows recorded in current session", "warning");
+      return;
+    }
+
+    try {
+      const res = await window.authenticatedFetch(getApiUrl("/api/admin/bulk-import/export-failed"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ details: state.lastBulkResult.details })
+      });
+
+      if (!res.ok) throw new Error("Failed to generate CSV export");
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "failed_import_rows.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      showToast("Downloaded failed_import_rows.csv", "info");
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  };
+
   // Start Application
   init();
 });

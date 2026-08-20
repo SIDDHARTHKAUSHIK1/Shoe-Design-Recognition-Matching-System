@@ -572,6 +572,121 @@
               </table>
             </div>
           </div>
+
+          <!-- Bulk Data Management Panel (CSV/Excel & Paired ZIP Import) -->
+          <div class="card" style="padding: 20px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">Bulk Catalog Import (CSV / Excel & ZIP Images)</h3>
+                <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">Batch ingest reference designs, specifications, and images with pre-commit validation and duplicate handling.</p>
+              </div>
+            </div>
+
+            <!-- Upload Dropzone Area -->
+            <form id="bulk-import-form" onsubmit="handleBulkImportPreview(event)">
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                <!-- Spreadsheet File Input -->
+                <div style="border: 2px dashed var(--border-strong); border-radius: var(--radius-md); padding: 20px; text-align: center; background: var(--bg-surface-subtle);">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--brand-primary); margin-bottom: 8px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                  <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary);">1. Select Metadata Spreadsheet *</div>
+                  <div style="font-size: 0.75rem; color: var(--text-muted); margin: 4px 0 10px;">Supports .csv, .xlsx, .xls</div>
+                  <input type="file" id="bulk-spreadsheet-input" accept=".csv, .xlsx, .xls" required style="font-size: 0.78rem;">
+                </div>
+
+                <!-- Paired ZIP Images Input -->
+                <div style="border: 2px dashed var(--border-strong); border-radius: var(--radius-md); padding: 20px; text-align: center; background: var(--bg-surface-subtle);">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--brand-primary); margin-bottom: 8px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                  <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary);">2. Paired Reference Images (Optional)</div>
+                  <div style="font-size: 0.75rem; color: var(--text-muted); margin: 4px 0 10px;">Upload .zip archive or use image_urls column</div>
+                  <input type="file" id="bulk-zip-input" accept=".zip" style="font-size: 0.78rem;">
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 10px; align-items: center; justify-content: flex-end;">
+                <button type="submit" class="btn btn-primary btn-sm" id="btn-bulk-preview">
+                  <span>Parse & Validate Spreadsheet</span>
+                </button>
+              </div>
+            </form>
+
+            <!-- Preview & Confirm Section (Hidden by default) -->
+            <div id="bulk-preview-wrap" style="display: none; margin-top: 24px; border-top: 1px solid var(--border-subtle); padding-top: 20px;">
+              <!-- Summary Counters -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                <div style="padding: 12px; background: var(--bg-surface-subtle); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                  <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Rows</span>
+                  <h4 style="font-size: 1.2rem; font-weight: 700; color: var(--text-primary);" id="bulk-stat-total">0</h4>
+                </div>
+                <div style="padding: 12px; background: var(--status-success-bg); border-radius: var(--radius-sm); border: 1px solid var(--status-success-border);">
+                  <span style="font-size: 0.7rem; font-weight: 700; color: var(--status-success-text); text-transform: uppercase;">Ready to Import</span>
+                  <h4 style="font-size: 1.2rem; font-weight: 700; color: var(--status-success-text);" id="bulk-stat-ready">0</h4>
+                </div>
+                <div style="padding: 12px; background: var(--status-warning-bg); border-radius: var(--radius-sm); border: 1px solid var(--status-warning-border);">
+                  <span style="font-size: 0.7rem; font-weight: 700; color: var(--status-warning-text); text-transform: uppercase;">Duplicates</span>
+                  <h4 style="font-size: 1.2rem; font-weight: 700; color: var(--status-warning-text);" id="bulk-stat-duplicates">0</h4>
+                </div>
+                <div style="padding: 12px; background: var(--status-danger-bg); border-radius: var(--radius-sm); border: 1px solid var(--status-danger-border);">
+                  <span style="font-size: 0.7rem; font-weight: 700; color: var(--status-danger-text); text-transform: uppercase;">Errors</span>
+                  <h4 style="font-size: 1.2rem; font-weight: 700; color: var(--status-danger-text);" id="bulk-stat-errors">0</h4>
+                </div>
+              </div>
+
+              <!-- Duplicate Handling Strategy Selector -->
+              <div style="display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; background: var(--bg-surface-subtle); padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <label for="bulk-duplicate-strategy" style="font-size: 0.82rem; font-weight: 700; color: var(--text-primary);">Duplicate Strategy:</label>
+                  <select id="bulk-duplicate-strategy" style="padding: 4px 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong); background: var(--bg-surface); color: var(--text-primary); font-size: 0.8rem;">
+                    <option value="skip" selected>Skip Duplicate Entries</option>
+                    <option value="overwrite">Overwrite Existing Catalog Entries</option>
+                  </select>
+                </div>
+                <button class="btn btn-primary btn-sm" id="btn-execute-bulk" onclick="handleExecuteBulkImport()">
+                  <span>Confirm & Execute Bulk Ingestion</span>
+                </button>
+              </div>
+
+              <!-- Live Progress Bar -->
+              <div id="bulk-progress-wrap" style="display: none; margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.78rem; font-family: var(--font-mono); color: var(--text-secondary); margin-bottom: 4px;">
+                  <span id="bulk-progress-text">Ingesting designs...</span>
+                  <span id="bulk-progress-pct">0%</span>
+                </div>
+                <div style="height: 8px; width: 100%; background: var(--border-subtle); border-radius: 4px; overflow: hidden;">
+                  <div id="bulk-progress-fill" style="height: 100%; width: 0%; background: var(--brand-primary); transition: width 0.2s;"></div>
+                </div>
+              </div>
+
+              <!-- Preview Table -->
+              <div class="table-responsive">
+                <table class="logs-table">
+                  <thead>
+                    <tr>
+                      <th>Row</th>
+                      <th>Design SKU</th>
+                      <th>Model Name</th>
+                      <th>Category</th>
+                      <th>Images</th>
+                      <th>Validation Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="bulk-preview-tbody">
+                    <!-- Rows injected by JS -->
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Final Results & Error Reporting (Hidden by default) -->
+              <div id="bulk-results-wrap" style="display: none; margin-top: 20px; padding: 16px; background: var(--bg-surface-subtle); border: 1px solid var(--border-strong); border-radius: var(--radius-md);">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">Batch Import Execution Report</h4>
+                  <button class="btn btn-secondary btn-sm" id="btn-export-failed-csv" onclick="handleExportFailedCSV()" style="display: none;">
+                    <span>Download Failed Rows CSV</span>
+                  </button>
+                </div>
+                <div id="bulk-results-summary-text" style="font-size: 0.82rem; color: var(--text-secondary);"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
