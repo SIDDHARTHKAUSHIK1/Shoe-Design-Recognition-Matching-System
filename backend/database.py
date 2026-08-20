@@ -289,15 +289,30 @@ def reconcile_and_migrate_locations(cursor: sqlite3.Cursor, conn: sqlite3.Connec
             cursor.execute("INSERT INTO drawers (shelf_id, name) VALUES (?, ?);", (shelf_id, drawer_name))
             drawer_id = cursor.lastrowid
 
-        # 4. Slot
-        cursor.execute("SELECT id FROM slots WHERE drawer_id = ? AND name = ?;", (drawer_id, slot_name))
-        row = cursor.fetchone()
-        if row:
-            slot_id = row[0]
-            cursor.execute("UPDATE slots SET is_occupied = 1, assigned_design_id = ? WHERE id = ?;", (design_id, slot_id))
-        else:
-            cursor.execute("INSERT INTO slots (drawer_id, name, is_occupied, assigned_design_id) VALUES (?, ?, 1, ?);", (drawer_id, slot_name, design_id))
-            slot_id = cursor.lastrowid
+        # 4. Slot (Disambiguate so every design gets its own unique physical slot)
+        base_slot_name = slot_name
+        candidate_slot_name = base_slot_name
+        suffix_counter = 1
+
+        while True:
+            cursor.execute("SELECT id, is_occupied, assigned_design_id FROM slots WHERE drawer_id = ? AND name = ?;", (drawer_id, candidate_slot_name))
+            row = cursor.fetchone()
+            if not row:
+                cursor.execute("INSERT INTO slots (drawer_id, name, is_occupied, assigned_design_id) VALUES (?, ?, 1, ?);", (drawer_id, candidate_slot_name, design_id))
+                slot_id = cursor.lastrowid
+                break
+            else:
+                existing_slot_id, is_occ, existing_design_id = row[0], row[1], row[2]
+                if existing_design_id == design_id:
+                    slot_id = existing_slot_id
+                    break
+                elif is_occ == 0 or existing_design_id is None:
+                    cursor.execute("UPDATE slots SET is_occupied = 1, assigned_design_id = ? WHERE id = ?;", (design_id, existing_slot_id))
+                    slot_id = existing_slot_id
+                    break
+                else:
+                    suffix_counter += 1
+                    candidate_slot_name = f"{base_slot_name}-{suffix_counter}"
 
         cursor.execute("UPDATE designs SET slot_id = ? WHERE design_id = ?;", (slot_id, design_id))
 
