@@ -121,12 +121,15 @@
           </span>
         </a>
 
-        <!-- Nav Links (Hidden on Mobile, shown sm: and up) -->
+        <!-- Nav Links & Launch App CTA -->
         <div class="hidden sm:flex items-center gap-6 md:gap-8">
           <a href="#how-it-works" class="text-sm font-medium text-[#1B133C]/80 hover:text-[#1B133C] transition-colors duration-200">How it works</a>
           <a href="#accuracy" class="text-sm font-medium text-[#1B133C]/80 hover:text-[#1B133C] transition-colors duration-200">Accuracy</a>
           <a href="#warehouses" class="text-sm font-medium text-[#1B133C]/80 hover:text-[#1B133C] transition-colors duration-200">For Warehouses</a>
-          <a href="#contact" class="text-sm font-medium text-[#1B133C]/80 hover:text-[#1B133C] transition-colors duration-200">Contact</a>
+          <a href="/app" class="rounded-lg bg-[#1B133C] text-white px-4 py-2 text-xs font-semibold hover:bg-amber-600 transition-colors shadow-sm flex items-center gap-1.5">
+            <span>Launch App</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </a>
         </div>
       </nav>
     </header>
@@ -155,14 +158,17 @@
         Photograph a shoe and instantly get its matching catalog design, confidence score, and exact shelf location. No more manual searching through inventory — just point, shoot, and locate.
       </p>
 
-      <!-- CTA Button -->
-      <div class="anim-entry delay-cta mt-7 sm:mt-8">
-        <button id="btn-cta-access" class="rounded-xl bg-[#FEFEFE] px-6 sm:px-8 py-3 sm:py-3.5 text-sm font-semibold text-[#1B133C] shadow-[0px_4px_12px_rgba(0,0,0,0.15)] hover:shadow-[0px_6px_16px_rgba(0,0,0,0.2)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] border border-[#1B133C]/10 cursor-pointer inline-flex items-center gap-2">
-          <span>Get Early Access</span>
+      <!-- CTA Buttons (Direct Launch App & Request Access) -->
+      <div class="anim-entry delay-cta mt-7 sm:mt-8 flex flex-col sm:flex-row items-center gap-4">
+        <a href="/app" id="btn-launch-app" class="rounded-xl bg-[#1B133C] px-7 sm:px-9 py-3.5 sm:py-4 text-sm font-semibold text-white shadow-[0px_4px_16px_rgba(27,19,60,0.25)] hover:shadow-[0px_6px_20px_rgba(27,19,60,0.35)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer inline-flex items-center gap-2.5">
+          <span>Launch Match Studio</span>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"/>
             <polyline points="12 5 19 12 12 19"/>
           </svg>
+        </a>
+        <button id="btn-cta-access" class="rounded-xl bg-[#FEFEFE] px-6 sm:px-8 py-3.5 sm:py-4 text-sm font-semibold text-[#1B133C] shadow-[0px_4px_12px_rgba(0,0,0,0.12)] hover:shadow-[0px_6px_16px_rgba(0,0,0,0.18)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] border border-[#1B133C]/10 cursor-pointer inline-flex items-center gap-2">
+          <span>Get Early Access</span>
         </button>
       </div>
     </main>

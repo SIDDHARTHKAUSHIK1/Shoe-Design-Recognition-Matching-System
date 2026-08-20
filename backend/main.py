@@ -336,8 +336,8 @@ if FRONTEND_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="frontend_static")
 
 @app.get("/")
-async def serve_index():
-    """Serve main application interface."""
+async def serve_landing():
+    """Serve landing page interface."""
     index_file = FRONTEND_DIR / "index.html"
     if index_file.exists():
         return FileResponse(
@@ -349,3 +349,19 @@ async def serve_index():
             }
         )
     return JSONResponse(content={"message": "Shoe Design Matching API running. Frontend not found."})
+
+
+@app.get("/app")
+async def serve_app():
+    """Serve main working application interface."""
+    app_file = FRONTEND_DIR / "app.html"
+    if app_file.exists():
+        return FileResponse(
+            str(app_file),
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
+        )
+    return JSONResponse(content={"message": "Shoe Design Matching API running. App file not found."})
