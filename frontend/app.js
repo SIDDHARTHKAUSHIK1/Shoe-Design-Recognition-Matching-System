@@ -707,7 +707,7 @@ document.addEventListener("DOMContentLoaded", () => {
       let angleThumbsHtml = "";
       if (m.all_angles && m.all_angles.length > 0) {
         angleThumbsHtml = `
-          <div class="angles-strip" onclick="event.stopPropagation();">
+          <div class="angles-strip">
             <span style="font-size: 0.7rem; color: var(--text-muted);">Angles:</span>
             ${m.all_angles.map(a => `
               <img src="${getImageUrl(a.image_path)}" 
@@ -750,7 +750,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <p class="match-desc" style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 6px;">${m.description || "Factory specification model."}</p>
           ${angleThumbsHtml}
           ${m.dominant_colors && m.dominant_colors.length > 0 ? `
-            <div class="color-palette-strip" style="display: flex; gap: 6px; align-items: center; margin: 6px 0;" onclick="event.stopPropagation();">
+            <div class="color-palette-strip" style="display: flex; gap: 6px; align-items: center; margin: 6px 0;">
               <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 500;">Colors:</span>
               ${m.dominant_colors.map(c => `
                 <span style="width: 14px; height: 14px; border-radius: 50%; background: ${c.hex}; border: 1px solid rgba(0,0,0,0.15); display: inline-block; box-shadow: 0 1px 2px rgba(0,0,0,0.1);" title="${c.hex} (${c.percentage}%)"></span>
@@ -759,7 +759,7 @@ document.addEventListener("DOMContentLoaded", () => {
           ` : ''}
           
           <div class="match-action-hint" style="margin-top: 6px;">
-            <button type="button" class="btn-inspect-quick-action" style="background: none; border: none; color: var(--brand-primary); font-size: 0.78rem; font-weight: 700; cursor: pointer; padding: 0; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation(); openShoeInspectionModal('${m.design_id}', ${m.confidence_pct});">
+            <button type="button" class="btn-inspect-quick-action" style="background: none; border: none; color: var(--brand-primary); font-size: 0.78rem; font-weight: 700; cursor: pointer; padding: 0; display: inline-flex; align-items: center; gap: 4px;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
               <span>Inspect Full Specs & Warehouse Shelf &rarr;</span>
             </button>
@@ -775,7 +775,7 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
 
       card.onclick = (e) => {
-        if (e.target && (e.target.closest(".match-feedback-row") || e.target.closest(".angles-strip") || e.target.closest(".color-palette-strip"))) {
+        if (e.target && e.target.closest(".match-feedback-row")) {
           return;
         }
         openShoeInspectionModal(m.design_id, m);
