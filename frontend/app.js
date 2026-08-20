@@ -2,6 +2,120 @@
  * ShoeMatch AI — Frontend Application Logic (Vanilla JavaScript)
  */
 
+// ==========================================
+// Native Server Base URL & API Helpers
+// ==========================================
+window.getApiBaseUrl = function() {
+  try {
+    const saved = localStorage.getItem("shoematch_api_base_url");
+    if (saved && saved.trim()) {
+      let url = saved.trim();
+      return url.endsWith("/") ? url.slice(0, -1) : url;
+    }
+  } catch (e) {}
+  return "";
+};
+
+window.getApiUrl = function(path) {
+  if (!path) return "";
+  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:") || path.startsWith("blob:")) {
+    return path;
+  }
+  const base = window.getApiBaseUrl();
+  const cleanPath = path.startsWith("/") ? path : "/" + path;
+  return base ? base + cleanPath : cleanPath;
+};
+
+window.getImageUrl = function(path) {
+  if (!path) return "";
+  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:") || path.startsWith("blob:")) {
+    return path;
+  }
+  const base = window.getApiBaseUrl();
+  const cleanPath = path.startsWith("/") ? path : "/" + path;
+  return base ? base + cleanPath : cleanPath;
+};
+
+window.openServerSettingsModal = function() {
+  const modal = document.getElementById("server-settings-modal");
+  const input = document.getElementById("input-server-url");
+  const alertEl = document.getElementById("server-status-alert");
+  if (input) {
+    input.value = window.getApiBaseUrl() || (window.location.origin.startsWith("http") ? window.location.origin : "http://localhost:8000");
+  }
+  if (alertEl) alertEl.style.display = "none";
+  if (modal) modal.style.display = "flex";
+};
+
+window.closeServerSettingsModal = function() {
+  const modal = document.getElementById("server-settings-modal");
+  if (modal) modal.style.display = "none";
+};
+
+window.testServerConnection = async function() {
+  const input = document.getElementById("input-server-url");
+  const alertEl = document.getElementById("server-status-alert");
+  if (!input || !alertEl) return;
+  
+  let targetUrl = input.value.trim();
+  if (targetUrl.endsWith("/")) targetUrl = targetUrl.slice(0, -1);
+  const healthEndpoint = (targetUrl ? targetUrl : "") + "/api/health";
+  
+  alertEl.style.display = "block";
+  alertEl.style.background = "var(--status-warning-bg)";
+  alertEl.style.color = "var(--status-warning-text)";
+  alertEl.style.border = "1px solid var(--status-warning-border)";
+  alertEl.textContent = "Testing connection to " + healthEndpoint + "...";
+  
+  try {
+    const res = await fetch(healthEndpoint, { method: "GET" });
+    if (res.ok) {
+      const data = await res.json();
+      alertEl.style.background = "var(--status-success-bg)";
+      alertEl.style.color = "var(--status-success-text)";
+      alertEl.style.border = "1px solid var(--status-success-border)";
+      alertEl.textContent = `Connected! ${data.service || 'ShoeMatch AI'} (${data.total_vectors || 0} catalog vectors ready).`;
+    } else {
+      throw new Error(`HTTP ${res.status}`);
+    }
+  } catch (err) {
+    alertEl.style.background = "var(--status-danger-bg)";
+    alertEl.style.color = "var(--status-danger-text)";
+    alertEl.style.border = "1px solid var(--status-danger-border)";
+    alertEl.textContent = "Connection failed (" + err.message + "). Please verify server IP and ensure run_server.py is running on port 8000.";
+  }
+};
+
+window.saveServerUrl = function() {
+  const input = document.getElementById("input-server-url");
+  if (!input) return;
+  let targetUrl = input.value.trim();
+  if (targetUrl.endsWith("/")) targetUrl = targetUrl.slice(0, -1);
+  
+  try {
+    if (targetUrl && targetUrl !== window.location.origin) {
+      localStorage.setItem("shoematch_api_base_url", targetUrl);
+    } else {
+      localStorage.removeItem("shoematch_api_base_url");
+    }
+  } catch (e) {}
+  
+  window.closeServerSettingsModal();
+  if (window.showToast) window.showToast("Server base URL updated to " + (targetUrl || "same-origin"), "success");
+  setTimeout(() => window.location.reload(), 400);
+};
+
+window.resetServerUrl = function() {
+  try {
+    localStorage.removeItem("shoematch_api_base_url");
+  } catch (e) {}
+  const input = document.getElementById("input-server-url");
+  if (input) input.value = window.location.origin;
+  window.closeServerSettingsModal();
+  if (window.showToast) window.showToast("Server URL reset to same-origin", "success");
+  setTimeout(() => window.location.reload(), 400);
+};
+
 // Theme Toggle Functions
 window.toggleTheme = function() {
   const html = document.documentElement;
@@ -142,6 +256,25 @@ document.addEventListener("DOMContentLoaded", () => {
   async function init() {
     restoreSidebarState();
     setupEventListeners();
+
+    // Check for native app first-run server IP prompt
+    const savedServerUrl = window.getApiBaseUrl();
+    const isNativeContext = Boolean(
+      (window.Capacitor && window.Capacitor.isNativePlatform()) ||
+      window.location.protocol === "file:" ||
+      window.location.protocol === "capacitor:" ||
+      window.location.protocol === "tauri:"
+    );
+
+    if (isNativeContext && !savedServerUrl) {
+      setTimeout(() => {
+        window.openServerSettingsModal();
+        if (window.showToast) {
+          window.showToast("Welcome to ShoeMatch AI Native! Please enter your warehouse server IP address.", "warning");
+        }
+      }, 500);
+    }
+
     await fetchStats();
     await fetchCatalog();
     await fetchLogs();
@@ -161,7 +294,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function fetchStats() {
     try {
-      const res = await fetch("/api/stats");
+      const res = await fetch(getApiUrl("/api/stats"));
       if (res.ok) {
         const stats = await res.json();
         if (elements.navCatalogCount) elements.navCatalogCount.textContent = stats.total_designs || 0;
@@ -479,7 +612,7 @@ document.addEventListener("DOMContentLoaded", () => {
     formData.append("top_k", "3");
 
     try {
-      const response = await fetch("/api/match", {
+      const response = await fetch(getApiUrl("/api/match"), {
         method: "POST",
         body: formData
       });
@@ -574,7 +707,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="angles-strip" onclick="event.stopPropagation();">
             <span style="font-size: 0.7rem; color: var(--text-muted);">Angles:</span>
             ${m.all_angles.map(a => `
-              <img src="${a.image_path}" 
+              <img src="${getImageUrl(a.image_path)}" 
                    class="angle-thumb ${a.image_path === m.best_matching_image_url ? 'active' : ''}" 
                    title="Angle: ${a.angle}" 
                    onclick="event.stopPropagation(); swapMatchImage(this, '${m.design_id}')">
@@ -590,7 +723,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       card.innerHTML = `
         <div class="match-img-box" id="img-box-${m.design_id}">
-          <img src="${m.best_matching_image_url}" alt="${m.design_name}">
+          <img src="${getImageUrl(m.best_matching_image_url)}" alt="${m.design_name}">
           <span class="match-angle-tag">${m.best_matching_angle}</span>
         </div>
 
@@ -704,7 +837,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // ==========================================
   async function fetchCatalog() {
     try {
-      const res = await fetch("/api/designs");
+      const res = await fetch(getApiUrl("/api/designs"));
       if (res.ok) {
         const data = await res.json();
         state.catalog = data.designs || [];
@@ -738,7 +871,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       card.innerHTML = `
         <div class="catalog-card-img">
-          <img src="${d.thumbnail_path || '/static/placeholder.jpg'}" alt="${d.name}" loading="lazy">
+          <img src="${getImageUrl(d.thumbnail_path || '/static/placeholder.jpg')}" alt="${d.name}" loading="lazy">
           <span class="catalog-card-pill">${d.design_id}</span>
           <span class="catalog-card-count">${d.image_count || 1} angles</span>
         </div>
@@ -834,7 +967,7 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
 
     try {
-      const res = await fetch(`/api/designs/${designId}`);
+      const res = await fetch(getApiUrl(`/api/designs/${designId}`));
       if (!res.ok) {
         throw new Error(`Server returned HTTP ${res.status}: Could not load design ${designId}`);
       }
@@ -844,7 +977,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (titleEl) titleEl.textContent = `${design.name}`;
 
       const referenceImages = design.reference_images || [];
-      const firstImage = referenceImages.length > 0 ? referenceImages[0].image_path : (design.thumbnail_path || '/static/placeholder.jpg');
+      const rawFirstImage = referenceImages.length > 0 ? referenceImages[0].image_path : (design.thumbnail_path || '/static/placeholder.jpg');
+      const firstImage = getImageUrl(rawFirstImage);
       const firstAngle = referenceImages.length > 0 ? referenceImages[0].angle : 'side';
 
       // Match Banner HTML (if opened from match results or confidence provided)
@@ -895,9 +1029,9 @@ document.addEventListener("DOMContentLoaded", () => {
               <div class="preview-thumbnails-strip" id="preview-thumb-strip">
                 ${referenceImages.map((img, idx) => `
                   <button class="preview-thumb-btn ${idx === 0 ? 'active' : ''}" 
-                          onclick="selectPreviewAngle('${img.image_path}', '${img.angle}', this)"
+                          onclick="selectPreviewAngle('${getImageUrl(img.image_path)}', '${img.angle}', this)"
                           title="View ${img.angle} angle">
-                    <img src="${img.image_path}" alt="${img.angle}">
+                    <img src="${getImageUrl(img.image_path)}" alt="${img.angle}">
                     <span class="preview-thumb-tag">${img.angle}</span>
                   </button>
                 `).join("")}
@@ -1111,7 +1245,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const formData = new FormData();
       formData.append("shelf_location", newLocation);
 
-      const res = await fetch(`/api/designs/${designId}/location`, {
+      const res = await fetch(getApiUrl(`/api/designs/${designId}/location`), {
         method: "PUT",
         body: formData
       });
@@ -1163,7 +1297,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!confirm(`Are you sure you want to delete ${designId}? This will re-index the catalog.`)) return;
 
     try {
-      const res = await fetch(`/api/designs/${designId}`, { method: "DELETE" });
+      const res = await fetch(getApiUrl(`/api/designs/${designId}`), { method: "DELETE" });
       if (res.ok) {
         showToast(`Design ${designId} deleted successfully`, "success");
         elements.detailModal.style.display = "none";
@@ -1376,7 +1510,7 @@ document.addEventListener("DOMContentLoaded", () => {
     submitBtn.querySelector("span").textContent = "Indexing (Incremental Add)...";
 
     try {
-      const res = await fetch("/api/designs", {
+      const res = await fetch(getApiUrl("/api/designs"), {
         method: "POST",
         body: formData
       });
@@ -1404,7 +1538,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // ==========================================
   async function fetchLogs() {
     try {
-      const res = await fetch("/api/logs?limit=50");
+      const res = await fetch(getApiUrl("/api/logs?limit=50"));
       if (res.ok) {
         const data = await res.json();
         state.logs = data.logs || [];
@@ -1442,7 +1576,7 @@ document.addEventListener("DOMContentLoaded", () => {
       tr.innerHTML = `
         <td style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-muted);">${log.created_at}</td>
         <td>
-          <img src="${log.query_image_path}" class="log-thumb" alt="Query" onerror="this.src='/static/placeholder.jpg'">
+          <img src="${getImageUrl(log.query_image_path)}" class="log-thumb" alt="Query" onerror="this.src='/static/placeholder.jpg'">
         </td>
         <td>${catBadge}</td>
         <td>
@@ -1479,15 +1613,38 @@ document.addEventListener("DOMContentLoaded", () => {
   // ==========================================
   // Live Camera & Native Capture Handling
   // ==========================================
-  function handleCameraClick(e) {
+  async function handleCameraClick(e) {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
 
+    // Check for native Capacitor mobile camera plugin first
+    if (window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins && window.Capacitor.Plugins.Camera) {
+      try {
+        const camera = window.Capacitor.Plugins.Camera;
+        const image = await camera.getPhoto({
+          quality: 90,
+          allowEditing: false,
+          resultType: 'uri',
+          source: 'CAMERA'
+        });
+        if (image && image.webPath) {
+          const res = await fetch(image.webPath);
+          const blob = await res.blob();
+          const file = new File([blob], `camera_photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
+          setQueryFile(file);
+          showToast("Photo captured from native camera shutter!", "success");
+          return;
+        }
+      } catch (err) {
+        console.warn("Native Capacitor camera cancelled or error:", err);
+      }
+    }
+
     const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
     
-    // On mobile devices, opening the native hardware camera shutter provides 4K quality and autofocus
+    // On mobile devices, opening native hardware camera shutter provides 4K quality and autofocus
     if (isMobile && elements.cameraNativeInput) {
       elements.cameraNativeInput.click();
       return;

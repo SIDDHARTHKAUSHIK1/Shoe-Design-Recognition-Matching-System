@@ -1,0 +1,31 @@
+{
+  "name": "shoe-design-detection",
+  "version": "1.0.0",
+  "description": "ShoeMatch AI — Native Visual Search & Catalog Matching Application",
+  "main": "frontend/app.js",
+  "scripts": {
+    "cap:sync": "cap sync",
+    "cap:open:android": "cap open android",
+    "cap:run:android": "cap run android",
+    "tauri": "tauri"
+  },
+  "keywords": [
+    "shoematch",
+    "fastapi",
+    "dinov2",
+    "faiss",
+    "capacitor",
+    "tauri"
+  ],
+  "author": "ShoeMatch AI Team",
+  "license": "MIT",
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/camera": "^6.0.2",
+    "@capacitor/cli": "^6.2.0",
+    "@capacitor/core": "^6.2.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.1.0"
+  }
+}

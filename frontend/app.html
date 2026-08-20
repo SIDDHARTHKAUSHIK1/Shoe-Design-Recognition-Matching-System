@@ -84,6 +84,14 @@
           </div>
         </div>
         <div class="top-bar-actions">
+          <!-- Server Settings Gear Icon -->
+          <button id="btn-open-server-settings" class="btn-theme-toggle" onclick="openServerSettingsModal()" aria-label="Server settings" title="Warehouse Server Settings">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </button>
+
           <!-- Dark Mode Toggle -->
           <button id="btn-theme-toggle" class="btn-theme-toggle" onclick="toggleTheme()" aria-label="Switch theme mode" aria-pressed="false" title="Switch theme mode">
             <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -520,6 +528,51 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
           <span>Capture Photo</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Warehouse Server Settings -->
+  <div class="modal-backdrop" id="server-settings-modal" style="display: none;">
+    <div class="modal-dialog modal-md" style="max-width: 480px;">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-icon-badge" style="background: rgba(217, 119, 6, 0.15); color: var(--brand-accent); width: 36px; height: 36px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary);">Warehouse Server Settings</h3>
+            <span style="font-size: 0.76rem; color: var(--text-muted);">Configure backend central IP address</span>
+          </div>
+        </div>
+        <button class="btn-close" id="btn-close-server-settings" onclick="closeServerSettingsModal()">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 20px;">
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label style="display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Server Base URL</label>
+          <input type="text" id="input-server-url" placeholder="e.g. http://192.168.1.100:8000" style="width: 100%; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-strong); background: var(--bg-surface); color: var(--text-primary); font-family: var(--font-mono); font-size: 0.88rem;">
+          <span style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">Leave empty to connect to same-origin web server.</span>
+        </div>
+
+        <div id="server-status-alert" style="display: none; padding: 10px 14px; border-radius: var(--radius-md); font-size: 0.82rem; margin-bottom: 16px;"></div>
+      </div>
+
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; background: var(--bg-surface-subtle); border-top: 1px solid var(--border-subtle);">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="testServerConnection()">
+          <span>Test Connection</span>
+        </button>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="resetServerUrl()">
+            <span>Reset</span>
+          </button>
+          <button type="button" class="btn btn-primary btn-sm" onclick="saveServerUrl()">
+            <span>Save & Connect</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
