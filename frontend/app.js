@@ -992,16 +992,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
         matchBannerHtml = `
           <div class="preview-match-banner ${normalizedMatch.match_color}">
-            <div class="preview-match-meta">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <h4 style="color: var(--brand-primary); font-weight: 700;">${rankTitle}</h4>
-                <span class="match-level-pill ${normalizedMatch.match_color}">${normalizedMatch.match_level_label}</span>
-              </div>
-              <span>Query Match Confidence: <strong>${normalizedMatch.confidence_pct}%</strong>${normalizedMatch.cosine_similarity !== undefined ? ` &bull; Visual Cosine: ${(normalizedMatch.cosine_similarity * 100).toFixed(1)}%` : ''}</span>
+            <div class="preview-match-title">
+              <span>${rankTitle}</span>
+              <span class="preview-match-pill ${normalizedMatch.match_color}">${normalizedMatch.confidence_pct}% (${normalizedMatch.match_level_label})</span>
             </div>
-            <div class="preview-score-badge ${normalizedMatch.match_color}">
-              ${normalizedMatch.confidence_pct}%
-            </div>
+            ${normalizedMatch.cosine_similarity !== undefined ? `
+              <span class="preview-cosine-tag mono">Visual Cosine: ${(normalizedMatch.cosine_similarity * 100).toFixed(1)}%</span>
+            ` : ''}
           </div>
         `;
       }
@@ -1025,24 +1022,24 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
 
             <!-- Multi-Angle Thumbnails Strip -->
-            <div>
-              <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase;">
-                Multi-Angle Reference Photos (${referenceImages.length} angle${referenceImages.length === 1 ? '' : 's'} available)
+            ${referenceImages.length > 1 ? `
+              <div class="preview-thumb-container">
+                <span class="thumb-section-label">Multi-Angle Reference Photos (${referenceImages.length})</span>
+                <div class="preview-thumbnails-strip" id="preview-thumb-strip">
+                  ${referenceImages.map((img, idx) => `
+                    <button class="preview-thumb-btn ${idx === 0 ? 'active' : ''}" 
+                            onclick="selectPreviewAngle('${getImageUrl(img.image_path)}', '${img.angle}', this)"
+                            title="View ${img.angle} angle">
+                      <img src="${getImageUrl(img.image_path)}" alt="${img.angle}">
+                      <span class="preview-thumb-tag">${img.angle}</span>
+                    </button>
+                  `).join("")}
+                </div>
               </div>
-              <div class="preview-thumbnails-strip" id="preview-thumb-strip">
-                ${referenceImages.map((img, idx) => `
-                  <button class="preview-thumb-btn ${idx === 0 ? 'active' : ''}" 
-                          onclick="selectPreviewAngle('${getImageUrl(img.image_path)}', '${img.angle}', this)"
-                          title="View ${img.angle} angle">
-                    <img src="${getImageUrl(img.image_path)}" alt="${img.angle}">
-                    <span class="preview-thumb-tag">${img.angle}</span>
-                  </button>
-                `).join("")}
-              </div>
-            </div>
+            ` : ''}
           </div>
 
-          <!-- Right Column: Warehouse Location & Specifications -->
+          <!-- Right Column: Details & Specs -->
           <div class="preview-info-col">
             ${matchBannerHtml}
 
@@ -1050,35 +1047,35 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="warehouse-locator-card">
               <div class="locator-card-header">
                 <div class="locator-header-title">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                  <span>Company Shelf Location</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  <span class="card-label">Company Shelf Location</span>
                 </div>
-                <span class="locator-badge">${design.production_status || "Sample Room Archive"}</span>
+                <span class="locator-status-badge">${design.production_status || "Active Sample Room"}</span>
               </div>
 
               <div class="shelf-coordinate-display">
                 <div class="shelf-icon-box">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
                 </div>
-                <div>
-                  <div class="shelf-main-location" id="display-shelf-text">${design.shelf_location || "Warehouse A - Rack 03 - Shelf B-02"}</div>
-                  <div class="shelf-sub-desc">Physical shelf coordinate in factory inventory system</div>
+                <div class="shelf-text-wrap">
+                  <div class="shelf-main-location mono" id="display-shelf-text">${design.shelf_location || "Warehouse A - Rack 03 - Shelf B-02"}</div>
+                  <div class="shelf-sub-desc">Physical shelf coordinate in inventory system</div>
                 </div>
               </div>
 
               <div class="shelf-actions-bar">
-                <button class="btn-shelf-edit" onclick="toggleShelfEditForm('${design.design_id}')">
-                  ✏️ Edit Shelf Location
+                <button class="btn btn-tertiary btn-sm" onclick="toggleShelfEditForm('${design.design_id}')">
+                  ✏️ Edit Shelf
                 </button>
-                <button class="btn-shelf-edit" onclick="printSampleTicket('${design.design_id}', '${design.name}', '${design.shelf_location}')">
-                  🖨️ Print Shelf Tag
+                <button class="btn btn-tertiary btn-sm" onclick="printSampleTicket('${design.design_id}', '${design.name}', '${design.shelf_location}')">
+                  🖨️ Print Tag
                 </button>
               </div>
 
               <!-- Inline Shelf Edit Form (Hidden by default) -->
               <div class="shelf-edit-form" id="shelf-edit-form" style="display: none;">
-                <label style="font-size: 0.75rem; color: #93c5fd;">Update Company Warehouse Shelf Coordinates:</label>
-                <input type="text" id="input-shelf-location" value="${design.shelf_location || 'Warehouse A - Rack 03 - Shelf B-02'}" placeholder="e.g. Building B - Rack C-04 - Shelf 2">
+                <label class="edit-label">Update Warehouse Shelf Coordinates:</label>
+                <input type="text" id="input-shelf-location" value="${design.shelf_location || ''}" placeholder="e.g. Building B - Rack C-04 - Shelf 2">
                 <div class="shelf-edit-actions">
                   <button type="button" class="btn btn-secondary btn-sm" onclick="toggleShelfEditForm('${design.design_id}')">Cancel</button>
                   <button type="button" class="btn btn-primary btn-sm" onclick="saveShelfLocation('${design.design_id}')">Save Location</button>
@@ -1090,7 +1087,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="factory-specs-card">
               <div class="specs-section-title">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-                <span>Manufacturing & Technical Specs</span>
+                <span class="card-label">Manufacturing & Technical Specs</span>
               </div>
 
               <div class="specs-grid">
@@ -1104,7 +1101,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
                 <div class="spec-item">
                   <span class="spec-label">Materials</span>
-                  <span class="spec-val">${design.materials || "Full Grain Leather / Rubber Sole"}</span>
+                  <span class="spec-val">${design.materials || "Leather / Rubber Sole"}</span>
                 </div>
                 <div class="spec-item">
                   <span class="spec-label">Collection Season</span>
@@ -1116,25 +1113,25 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
                 <div class="spec-item">
                   <span class="spec-label">Registered Date</span>
-                  <span class="spec-val">${design.created_at || "Recent"}</span>
+                  <span class="spec-val mono">${design.created_at || "Recent"}</span>
                 </div>
               </div>
 
-              <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-color);">
-                <span class="spec-label">Design Description:</span>
-                <p style="font-size: 0.85rem; color: var(--text-primary); margin-top: 4px; line-height: 1.4;">
-                  ${design.description || "Manufactured factory model registered in production catalog."}
-                </p>
-              </div>
+              ${design.description ? `
+                <div class="spec-description-box">
+                  <span class="spec-label">Design Description</span>
+                  <p class="spec-desc-text">${design.description}</p>
+                </div>
+              ` : ''}
             </div>
 
             <!-- Modal Footer Actions -->
             <div class="preview-modal-footer">
-              <button class="btn btn-danger btn-sm" onclick="deleteDesign('${design.design_id}')">
-                Delete Design
-              </button>
               <button class="btn btn-secondary btn-sm" onclick="document.getElementById('detail-modal').style.display = 'none'">
                 Close Preview
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="deleteDesign('${design.design_id}')">
+                Delete Design
               </button>
             </div>
           </div>
