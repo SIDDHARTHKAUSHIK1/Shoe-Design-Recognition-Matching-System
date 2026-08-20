@@ -189,27 +189,119 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         """)
-        
-        conn.commit()
 
-    # Seed Default Admin and Employee Accounts if users table is empty
-    from backend.auth import hash_password
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM users")
-        if cursor.fetchone()[0] == 0:
-            admin_pwd = hash_password("admin123")
-            emp_pwd = hash_password("emp123")
-            cursor.execute("""
-                INSERT INTO users (username, password_hash, role, full_name, must_change_password)
-                VALUES 
-                    ('admin', ?, 'admin', 'System Administrator', 1),
-                    ('employee', ?, 'employee', 'Warehouse Operations Staff', 1);
-            """, (admin_pwd, emp_pwd))
-            conn.commit()
-            logger.info("Seeded default 'admin' and 'employee' accounts with forced password change on first login.")
+        # 6. Location Hierarchy Tables (Zone/Shoe Match -> Shelf -> Drawer -> Slot)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS shoe_matches (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL,
+                description TEXT DEFAULT '',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS shelves (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                shoe_match_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (shoe_match_id) REFERENCES shoe_matches(id) ON DELETE CASCADE
+            );
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS drawers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                shelf_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (shelf_id) REFERENCES shelves(id) ON DELETE CASCADE
+            );
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS slots (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                drawer_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                is_occupied INTEGER DEFAULT 0,
+                assigned_design_id TEXT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (drawer_id) REFERENCES drawers(id) ON DELETE CASCADE,
+                FOREIGN KEY (assigned_design_id) REFERENCES designs(design_id) ON DELETE SET NULL
+            );
+        """)
+
+        try:
+            cursor.execute("ALTER TABLE designs ADD COLUMN slot_id INTEGER NULL REFERENCES slots(id);")
+        except sqlite3.OperationalError:
+            pass
+
+        # Perform reconciliation and migration of flat string locations
+        reconcile_and_migrate_locations(cursor, conn)
 
     logger.info(f"Database initialized successfully at {DB_PATH}")
+
+
+def reconcile_and_migrate_locations(cursor: sqlite3.Cursor, conn: sqlite3.Connection):
+    """Reconcile and migrate flat string locations from designs into location hierarchy tables."""
+    cursor.execute("SELECT design_id, name, shelf_location, drawer, slot, shoe_match_tag, slot_id FROM designs;")
+    designs = cursor.fetchall()
+    if not designs:
+        return
+
+    for d in designs:
+        design_id = d["design_id"]
+        tag = (d["shoe_match_tag"] or "").strip() or "Main Zone Alpha"
+        shelf_name = (d["shelf_location"] or "").strip() or "Building A - Section 1 - Rack B-01 - Shelf 1"
+        drawer_name = (d["drawer"] or "").strip() or "Drawer 01"
+        slot_name = (d["slot"] or "").strip() or "Slot A"
+        current_slot_id = d["slot_id"]
+
+        if current_slot_id:
+            continue
+
+        # 1. Shoe Match / Zone
+        cursor.execute("SELECT id FROM shoe_matches WHERE name = ?;", (tag,))
+        row = cursor.fetchone()
+        if row:
+            shoe_match_id = row[0]
+        else:
+            cursor.execute("INSERT INTO shoe_matches (name, description) VALUES (?, ?);", (tag, f"Zone / Shoe Match tag '{tag}'"))
+            shoe_match_id = cursor.lastrowid
+
+        # 2. Shelf
+        cursor.execute("SELECT id FROM shelves WHERE shoe_match_id = ? AND name = ?;", (shoe_match_id, shelf_name))
+        row = cursor.fetchone()
+        if row:
+            shelf_id = row[0]
+        else:
+            cursor.execute("INSERT INTO shelves (shoe_match_id, name) VALUES (?, ?);", (shoe_match_id, shelf_name))
+            shelf_id = cursor.lastrowid
+
+        # 3. Drawer
+        cursor.execute("SELECT id FROM drawers WHERE shelf_id = ? AND name = ?;", (shelf_id, drawer_name))
+        row = cursor.fetchone()
+        if row:
+            drawer_id = row[0]
+        else:
+            cursor.execute("INSERT INTO drawers (shelf_id, name) VALUES (?, ?);", (shelf_id, drawer_name))
+            drawer_id = cursor.lastrowid
+
+        # 4. Slot
+        cursor.execute("SELECT id FROM slots WHERE drawer_id = ? AND name = ?;", (drawer_id, slot_name))
+        row = cursor.fetchone()
+        if row:
+            slot_id = row[0]
+            cursor.execute("UPDATE slots SET is_occupied = 1, assigned_design_id = ? WHERE id = ?;", (design_id, slot_id))
+        else:
+            cursor.execute("INSERT INTO slots (drawer_id, name, is_occupied, assigned_design_id) VALUES (?, ?, 1, ?);", (drawer_id, slot_name, design_id))
+            slot_id = cursor.lastrowid
+
+        cursor.execute("UPDATE designs SET slot_id = ? WHERE design_id = ?;", (slot_id, design_id))
+
+    conn.commit()
 
 
 def add_design(
@@ -618,3 +710,270 @@ def get_feedback_logs(limit: int = 100) -> List[Dict[str, Any]]:
             LIMIT ?;
         """, (limit,))
         return [dict(r) for r in cursor.fetchall()]
+
+
+# ==============================================================================
+# LOCATION HIERARCHY & SLOT MANAGEMENT HELPERS
+# ==============================================================================
+
+def get_location_hierarchy() -> List[Dict[str, Any]]:
+    """Fetch the full nested location hierarchy (shoe_matches -> shelves -> drawers -> slots)."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, name, description, created_at FROM shoe_matches ORDER BY name ASC;")
+        shoe_matches = [dict(r) for r in cursor.fetchall()]
+
+        for sm in shoe_matches:
+            sm_id = sm["id"]
+            cursor.execute("SELECT id, shoe_match_id, name, created_at FROM shelves WHERE shoe_match_id = ? ORDER BY name ASC;", (sm_id,))
+            shelves = [dict(r) for r in cursor.fetchall()]
+            sm["shelves"] = shelves
+
+            for sh in shelves:
+                sh_id = sh["id"]
+                cursor.execute("SELECT id, shelf_id, name, created_at FROM drawers WHERE shelf_id = ? ORDER BY name ASC;", (sh_id,))
+                drawers = [dict(r) for r in cursor.fetchall()]
+                sh["drawers"] = drawers
+
+                for dr in drawers:
+                    dr_id = dr["id"]
+                    cursor.execute("""
+                        SELECT 
+                            s.id, s.drawer_id, s.name, s.is_occupied, s.assigned_design_id, s.created_at,
+                            d.name as design_name, d.category as design_category, d.thumbnail_path as design_thumbnail
+                        FROM slots s
+                        LEFT JOIN designs d ON s.assigned_design_id = d.design_id
+                        WHERE s.drawer_id = ?
+                        ORDER BY s.name ASC;
+                    """, (dr_id,))
+                    dr["slots"] = [dict(r) for r in cursor.fetchall()]
+
+        return shoe_matches
+
+
+def get_all_slots_flat(search: str = "", zone_id: Optional[int] = None, status_filter: str = "") -> List[Dict[str, Any]]:
+    """Fetch flat list of all slots joined with full parent path and assigned design details."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        sql = """
+            SELECT 
+                s.id as slot_id,
+                s.name as slot_name,
+                s.is_occupied,
+                s.assigned_design_id,
+                s.created_at as slot_created_at,
+                dr.id as drawer_id,
+                dr.name as drawer_name,
+                sh.id as shelf_id,
+                sh.name as shelf_name,
+                sm.id as shoe_match_id,
+                sm.name as shoe_match_name,
+                d.name as design_name,
+                d.category as design_category,
+                d.thumbnail_path as design_thumbnail
+            FROM slots s
+            JOIN drawers dr ON s.drawer_id = dr.id
+            JOIN shelves sh ON dr.shelf_id = sh.id
+            JOIN shoe_matches sm ON sh.shoe_match_id = sm.id
+            LEFT JOIN designs d ON s.assigned_design_id = d.design_id
+            WHERE 1=1
+        """
+        params = []
+        if zone_id:
+            sql += " AND sm.id = ?"
+            params.append(zone_id)
+
+        if status_filter == "occupied":
+            sql += " AND s.is_occupied = 1"
+        elif status_filter == "vacant":
+            sql += " AND s.is_occupied = 0"
+
+        if search:
+            sql += """ AND (
+                s.name LIKE ? OR 
+                dr.name LIKE ? OR 
+                sh.name LIKE ? OR 
+                sm.name LIKE ? OR 
+                s.assigned_design_id LIKE ? OR 
+                d.name LIKE ?
+            )"""
+            pattern = f"%{search}%"
+            params.extend([pattern, pattern, pattern, pattern, pattern, pattern])
+
+        sql += " ORDER BY sm.name ASC, sh.name ASC, dr.name ASC, s.name ASC;"
+        cursor.execute(sql, params)
+        return [dict(r) for r in cursor.fetchall()]
+
+
+def create_shoe_match(name: str, description: str = "") -> Dict[str, Any]:
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO shoe_matches (name, description) VALUES (?, ?);", (name.strip(), description.strip()))
+        conn.commit()
+        return {"id": cursor.lastrowid, "name": name, "description": description}
+
+
+def update_shoe_match(sm_id: int, name: str, description: str = "") -> bool:
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE shoe_matches SET name = ?, description = ? WHERE id = ?;", (name.strip(), description.strip(), sm_id))
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def delete_shoe_match(sm_id: int) -> bool:
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM shoe_matches WHERE id = ?;", (sm_id,))
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def create_shelf(shoe_match_id: int, name: str) -> Dict[str, Any]:
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO shelves (shoe_match_id, name) VALUES (?, ?);", (shoe_match_id, name.strip()))
+        conn.commit()
+        return {"id": cursor.lastrowid, "shoe_match_id": shoe_match_id, "name": name}
+
+
+def update_shelf(shelf_id: int, name: str) -> bool:
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE shelves SET name = ? WHERE id = ?;", (name.strip(), shelf_id))
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def delete_shelf(shelf_id: int) -> bool:
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM shelves WHERE id = ?;", (shelf_id,))
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def create_drawer(shelf_id: int, name: str) -> Dict[str, Any]:
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO drawers (shelf_id, name) VALUES (?, ?);", (shelf_id, name.strip()))
+        conn.commit()
+        return {"id": cursor.lastrowid, "shelf_id": shelf_id, "name": name}
+
+
+def update_drawer(drawer_id: int, name: str) -> bool:
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE drawers SET name = ? WHERE id = ?;", (name.strip(), drawer_id))
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def delete_drawer(drawer_id: int) -> bool:
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM drawers WHERE id = ?;", (drawer_id,))
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def create_slot(drawer_id: int, name: str) -> Dict[str, Any]:
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO slots (drawer_id, name, is_occupied) VALUES (?, ?, 0);", (drawer_id, name.strip()))
+        conn.commit()
+        return {"id": cursor.lastrowid, "drawer_id": drawer_id, "name": name, "is_occupied": 0}
+
+
+def update_slot(slot_id: int, name: str) -> bool:
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE slots SET name = ? WHERE id = ?;", (name.strip(), slot_id))
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def delete_slot(slot_id: int) -> bool:
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        # Unassign design first if occupied
+        cursor.execute("UPDATE designs SET slot_id = NULL WHERE slot_id = ?;", (slot_id,))
+        cursor.execute("DELETE FROM slots WHERE id = ?;", (slot_id,))
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def assign_design_to_slot(slot_id: int, design_id: str) -> Dict[str, Any]:
+    """Assign design_id to slot_id and synchronize flat location string fields on designs."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+
+        # 1. Fetch full location path for slot_id
+        cursor.execute("""
+            SELECT 
+                s.id as slot_id, s.name as slot_name,
+                dr.name as drawer_name,
+                sh.name as shelf_name,
+                sm.name as shoe_match_name
+            FROM slots s
+            JOIN drawers dr ON s.drawer_id = dr.id
+            JOIN shelves sh ON dr.shelf_id = sh.id
+            JOIN shoe_matches sm ON sh.shoe_match_id = sm.id
+            WHERE s.id = ?;
+        """, (slot_id,))
+        loc_row = cursor.fetchone()
+        if not loc_row:
+            raise ValueError(f"Slot ID {slot_id} not found.")
+
+        # 2. Clear any previous slot assigned to this design
+        cursor.execute("UPDATE slots SET is_occupied = 0, assigned_design_id = NULL WHERE assigned_design_id = ?;", (design_id,))
+
+        # 3. Clear any previous design assigned to this slot
+        cursor.execute("UPDATE designs SET slot_id = NULL WHERE slot_id = ?;", (slot_id,))
+
+        # 4. Assign target slot to design
+        cursor.execute("UPDATE slots SET is_occupied = 1, assigned_design_id = ? WHERE id = ?;", (design_id, slot_id))
+
+        # 5. Synchronize flat fields on designs table
+        cursor.execute("""
+            UPDATE designs
+            SET slot_id = ?,
+                shoe_match_tag = ?,
+                shelf_location = ?,
+                drawer = ?,
+                slot = ?
+            WHERE design_id = ?;
+        """, (
+            slot_id,
+            loc_row["shoe_match_name"],
+            loc_row["shelf_name"],
+            loc_row["drawer_name"],
+            loc_row["slot_name"],
+            design_id
+        ))
+
+        conn.commit()
+        return {
+            "status": "success",
+            "slot_id": slot_id,
+            "design_id": design_id,
+            "path": f"{loc_row['shoe_match_name']} > {loc_row['shelf_name']} > {loc_row['drawer_name']} > {loc_row['slot_name']}"
+        }
+
+
+def unassign_slot(slot_id: int) -> bool:
+    """Vacate slot_id and clear design's slot link."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT assigned_design_id FROM slots WHERE id = ?;", (slot_id,))
+        row = cursor.fetchone()
+        if not row:
+            return False
+        
+        design_id = row[0]
+        cursor.execute("UPDATE slots SET is_occupied = 0, assigned_design_id = NULL WHERE id = ?;", (slot_id,))
+        if design_id:
+            cursor.execute("UPDATE designs SET slot_id = NULL WHERE design_id = ?;", (design_id,))
+        
+        conn.commit()
+        return True

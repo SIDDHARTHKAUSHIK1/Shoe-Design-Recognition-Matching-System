@@ -144,6 +144,7 @@ window.updateUserUI = function(user) {
   const loginModal = document.getElementById("login-modal");
   const pwdModal = document.getElementById("change-password-modal");
   const adminTabNav = document.getElementById("nav-admin");
+  const locTabNav = document.getElementById("nav-locations");
 
   if (user) {
     if (nameEl) nameEl.textContent = user.full_name || user.username;
@@ -151,6 +152,7 @@ window.updateUserUI = function(user) {
     if (avatarEl) avatarEl.textContent = (user.full_name || user.username).charAt(0).toUpperCase();
     if (loginModal) loginModal.style.display = "none";
     if (adminTabNav) adminTabNav.style.display = (user.role === "admin") ? "flex" : "none";
+    if (locTabNav) locTabNav.style.display = (user.role === "admin") ? "flex" : "none";
 
     // Trigger forced password change if user must_change_password === 1
     if (user.must_change_password === 1) {
@@ -635,6 +637,14 @@ document.addEventListener("DOMContentLoaded", () => {
     "logs-tab": {
       title: "Audit & Query History Logs",
       desc: "Review previous shoe recognition queries, confidence scores, and latency metrics."
+    },
+    "locations-tab": {
+      title: "Location Hierarchy & Warehouse Management",
+      desc: "Manage physical warehouse structure (Shoe Match Zone → Shelf → Drawer → Slot) and assign catalog designs."
+    },
+    "admin-tab": {
+      title: "Admin Operations & User Management",
+      desc: "Manage system access, user roles, security policies, and catalog database statistics."
     }
   };
 
@@ -703,11 +713,11 @@ document.addEventListener("DOMContentLoaded", () => {
   function switchTab(tabId) {
     state.currentTab = tabId;
 
-    elements.navButtons.forEach(btn => {
+    document.querySelectorAll(".nav-item[data-tab]").forEach(btn => {
       btn.classList.toggle("active", btn.dataset.tab === tabId);
     });
 
-    elements.tabPanes.forEach(pane => {
+    document.querySelectorAll(".tab-pane").forEach(pane => {
       pane.classList.toggle("active", pane.id === tabId);
     });
 
@@ -719,6 +729,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Refresh Tab-specific data
     if (tabId === "catalog-tab") fetchCatalog();
     if (tabId === "logs-tab") fetchLogs();
+    if (tabId === "locations-tab") fetchLocationHierarchy();
     if (tabId === "admin-tab") fetchAdminUsers();
   }
   window.switchTab = switchTab;
@@ -728,7 +739,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // ==========================================
   function setupEventListeners() {
     // Navigation
-    elements.navButtons.forEach(btn => {
+    document.querySelectorAll(".nav-item[data-tab]").forEach(btn => {
       btn.addEventListener("click", () => switchTab(btn.dataset.tab));
     });
 
@@ -832,6 +843,38 @@ document.addEventListener("DOMContentLoaded", () => {
         state.catalogSortOrder = e.target.value;
         state.catalogCurrentPage = 1;
         fetchCatalog();
+      });
+    }
+
+    // Location Management Controls
+    const locSearch = document.getElementById("loc-search-input");
+    let locSearchTimer = null;
+    if (locSearch) {
+      locSearch.addEventListener("input", (e) => {
+        state.locationsSearchQuery = e.target.value.trim();
+        clearTimeout(locSearchTimer);
+        locSearchTimer = setTimeout(() => {
+          if (state.locationsViewMode === "table") fetchSlotsTable();
+          else renderLocationHierarchy();
+        }, 300);
+      });
+    }
+
+    const locZoneFilter = document.getElementById("loc-zone-filter");
+    if (locZoneFilter) {
+      locZoneFilter.addEventListener("change", (e) => {
+        state.locationsZoneFilter = e.target.value;
+        if (state.locationsViewMode === "table") fetchSlotsTable();
+        else renderLocationHierarchy();
+      });
+    }
+
+    const locOccFilter = document.getElementById("loc-occupancy-filter");
+    if (locOccFilter) {
+      locOccFilter.addEventListener("change", (e) => {
+        state.locationsOccupancyFilter = e.target.value;
+        if (state.locationsViewMode === "table") fetchSlotsTable();
+        else renderLocationHierarchy();
       });
     }
 
@@ -2445,6 +2488,488 @@ document.addEventListener("DOMContentLoaded", () => {
       setTimeout(() => toast.remove(), 300);
     }, 3500);
   }
+
+  // ==========================================================================
+  // Location Hierarchy & Warehouse Management
+  // ==========================================================================
+  state.locationsViewMode = localStorage.getItem("shoematch_locations_view") || "tree";
+  state.locationsSearchQuery = "";
+  state.locationsZoneFilter = "";
+  state.locationsOccupancyFilter = "";
+  state.locationHierarchy = [];
+
+  window.setLocationsViewMode = function(mode) {
+    state.locationsViewMode = mode;
+    try { localStorage.setItem("shoematch_locations_view", mode); } catch (e) {}
+    
+    const treeBtn = document.getElementById("btn-loc-view-tree");
+    const tableBtn = document.getElementById("btn-loc-view-table");
+    const treeWrap = document.getElementById("loc-tree-container");
+    const tableWrap = document.getElementById("loc-table-container");
+
+    if (mode === "table") {
+      if (treeBtn) treeBtn.classList.remove("active");
+      if (tableBtn) tableBtn.classList.add("active");
+      if (treeWrap) treeWrap.style.display = "none";
+      if (tableWrap) tableWrap.style.display = "block";
+      fetchSlotsTable();
+    } else {
+      if (treeBtn) treeBtn.classList.add("active");
+      if (tableBtn) tableBtn.classList.remove("active");
+      if (treeWrap) treeWrap.style.display = "block";
+      if (tableWrap) tableWrap.style.display = "none";
+      renderLocationHierarchy();
+    }
+  };
+
+  async function fetchLocationHierarchy() {
+    try {
+      const res = await window.authenticatedFetch(getApiUrl("/api/locations/hierarchy"));
+      if (res.ok) {
+        const data = await res.json();
+        state.locationHierarchy = data.hierarchy || [];
+        
+        // Populate Zone Filter Select
+        const zoneFilter = document.getElementById("loc-zone-filter");
+        if (zoneFilter) {
+          const currentVal = zoneFilter.value;
+          zoneFilter.innerHTML = '<option value="">All Zones / Shoe Matches</option>';
+          state.locationHierarchy.forEach(sm => {
+            const opt = document.createElement("option");
+            opt.value = sm.id;
+            opt.textContent = sm.name;
+            zoneFilter.appendChild(opt);
+          });
+          zoneFilter.value = currentVal;
+        }
+
+        if (state.locationsViewMode === "table") {
+          fetchSlotsTable();
+        } else {
+          renderLocationHierarchy();
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch location hierarchy:", err);
+    }
+  }
+
+  function renderLocationHierarchy() {
+    const treeWrap = document.getElementById("loc-tree-container");
+    if (!treeWrap) return;
+    treeWrap.innerHTML = "";
+
+    const search = (state.locationsSearchQuery || "").toLowerCase().trim();
+    const zoneId = state.locationsZoneFilter ? parseInt(state.locationsZoneFilter, 10) : null;
+    const occupancy = state.locationsOccupancyFilter;
+
+    let filteredHierarchy = state.locationHierarchy || [];
+    if (zoneId) {
+      filteredHierarchy = filteredHierarchy.filter(sm => sm.id === zoneId);
+    }
+
+    if (!filteredHierarchy || filteredHierarchy.length === 0) {
+      treeWrap.innerHTML = `
+        <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+          <h4>No Location Hierarchy Found</h4>
+          <p>Click "Add Location Node" to create zones, shelves, drawers, and slots.</p>
+        </div>
+      `;
+      return;
+    }
+
+    filteredHierarchy.forEach(sm => {
+      const smDetails = document.createElement("details");
+      smDetails.className = "loc-tree-node";
+      smDetails.open = true;
+
+      const totalSlots = (sm.shelves || []).reduce((acc, sh) => 
+        acc + (sh.drawers || []).reduce((dAcc, dr) => dAcc + (dr.slots || []).length, 0), 0);
+      const occupiedSlots = (sm.shelves || []).reduce((acc, sh) => 
+        acc + (sh.drawers || []).reduce((dAcc, dr) => dAcc + (dr.slots || []).filter(s => s.is_occupied).length, 0), 0);
+
+      smDetails.innerHTML = `
+        <summary>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 1.1rem;">🏢</span>
+            <span>Zone / Shoe Match: <strong>${sm.name}</strong></span>
+            <span style="font-size: 0.75rem; font-family: var(--font-mono); color: var(--text-muted);">(${sm.description || 'Facility Storage'})</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 0.75rem; font-family: var(--font-mono); color: var(--text-secondary);">${occupiedSlots}/${totalSlots} Slots Occupied</span>
+            <button class="btn btn-secondary btn-sm" onclick="event.preventDefault(); openAddLocationModal('shelf', ${sm.id});" style="font-size: 0.72rem; padding: 2px 8px;">+ Add Shelf</button>
+            <button class="btn btn-danger btn-sm" onclick="event.preventDefault(); deleteLocationNode('shoe_match', ${sm.id});" style="font-size: 0.72rem; padding: 2px 8px;">Delete</button>
+          </div>
+        </summary>
+        <div class="loc-tree-children" id="sm-children-${sm.id}"></div>
+      `;
+
+      const smChildren = smDetails.querySelector(`#sm-children-${sm.id}`);
+      (sm.shelves || []).forEach(sh => {
+        const shDetails = document.createElement("details");
+        shDetails.className = "loc-tree-node";
+        shDetails.open = true;
+        shDetails.style.marginLeft = "12px";
+
+        shDetails.innerHTML = `
+          <summary>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1rem;">📦</span>
+              <span>Shelf: <strong>${sh.name}</strong></span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <button class="btn btn-secondary btn-sm" onclick="event.preventDefault(); openAddLocationModal('drawer', ${sm.id}, ${sh.id});" style="font-size: 0.72rem; padding: 2px 8px;">+ Add Drawer</button>
+              <button class="btn btn-danger btn-sm" onclick="event.preventDefault(); deleteLocationNode('shelf', ${sh.id});" style="font-size: 0.72rem; padding: 2px 8px;">Delete</button>
+            </div>
+          </summary>
+          <div class="loc-tree-children" id="sh-children-${sh.id}"></div>
+        `;
+
+        const shChildren = shDetails.querySelector(`#sh-children-${sh.id}`);
+        (sh.drawers || []).forEach(dr => {
+          const drDetails = document.createElement("details");
+          drDetails.className = "loc-tree-node";
+          drDetails.open = true;
+          drDetails.style.marginLeft = "12px";
+
+          drDetails.innerHTML = `
+            <summary>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 1rem;">🗄️</span>
+                <span>Drawer: <strong>${dr.name}</strong></span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <button class="btn btn-secondary btn-sm" onclick="event.preventDefault(); openAddLocationModal('slot', ${sm.id}, ${sh.id}, ${dr.id});" style="font-size: 0.72rem; padding: 2px 8px;">+ Add Slot</button>
+                <button class="btn btn-danger btn-sm" onclick="event.preventDefault(); deleteLocationNode('drawer', ${dr.id});" style="font-size: 0.72rem; padding: 2px 8px;">Delete</button>
+              </div>
+            </summary>
+            <div class="loc-tree-children" id="dr-children-${dr.id}"></div>
+          `;
+
+          const drChildren = drDetails.querySelector(`#dr-children-${dr.id}`);
+          (dr.slots || []).forEach(s => {
+            const matchesSearch = !search || 
+              s.name.toLowerCase().includes(search) || 
+              (s.assigned_design_id && s.assigned_design_id.toLowerCase().includes(search)) ||
+              (s.design_name && s.design_name.toLowerCase().includes(search));
+            
+            const matchesOccupancy = !occupancy || 
+              (occupancy === "occupied" && s.is_occupied) || 
+              (occupancy === "vacant" && !s.is_occupied);
+
+            if (!matchesSearch || !matchesOccupancy) return;
+
+            const slotDiv = document.createElement("div");
+            slotDiv.className = "loc-slot-item";
+            
+            const isOccupied = s.is_occupied === 1 && s.assigned_design_id;
+            const statusPill = isOccupied ? 
+              `<span class="slot-occupied-pill">Occupied: ${s.design_name || s.assigned_design_id} (${s.assigned_design_id})</span>` :
+              `<span class="slot-vacant-pill">Vacant Slot</span>`;
+
+            const fullPath = `${sm.name} > ${sh.name} > ${dr.name} > ${s.name}`;
+
+            slotDiv.innerHTML = `
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-family: var(--font-mono); font-weight: 700; color: var(--text-primary);">📍 ${s.name}</span>
+                ${statusPill}
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <button class="btn btn-secondary btn-sm" onclick="openAssignLocationModal(${s.id}, '${s.assigned_design_id || ''}', '${fullPath.replace(/'/g, "\\'")}')" style="font-size: 0.72rem; padding: 2px 8px;">
+                  ${isOccupied ? 'Reassign' : 'Assign Design'}
+                </button>
+                ${isOccupied ? `<button class="btn btn-secondary btn-sm" onclick="unassignLocationSlot(${s.id})" style="font-size: 0.72rem; padding: 2px 8px; color: var(--status-warning-text);">Vacate</button>` : ''}
+                <button class="btn btn-danger btn-sm" onclick="deleteLocationNode('slot', ${s.id})" style="font-size: 0.72rem; padding: 2px 8px;">Delete</button>
+              </div>
+            `;
+
+            drChildren.appendChild(slotDiv);
+          });
+
+          shChildren.appendChild(drDetails);
+        });
+
+        smChildren.appendChild(shDetails);
+      });
+
+      treeWrap.appendChild(smDetails);
+    });
+  }
+
+  async function fetchSlotsTable() {
+    const tbody = document.getElementById("loc-slots-tbody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
+    try {
+      const qParams = new URLSearchParams();
+      if (state.locationsSearchQuery) qParams.set("search", state.locationsSearchQuery);
+      if (state.locationsZoneFilter) qParams.set("zone_id", state.locationsZoneFilter);
+      if (state.locationsOccupancyFilter) qParams.set("status", state.locationsOccupancyFilter);
+
+      const res = await window.authenticatedFetch(getApiUrl(`/api/locations/slots?${qParams.toString()}`));
+      if (res.ok) {
+        const data = await res.json();
+        const slots = data.slots || [];
+
+        if (slots.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">No physical slots match your criteria.</td></tr>`;
+          return;
+        }
+
+        slots.forEach(s => {
+          const tr = document.createElement("tr");
+          const isOccupied = s.is_occupied === 1 && s.assigned_design_id;
+          const statusBadge = isOccupied ? 
+            `<span class="log-status-badge success">Occupied</span>` :
+            `<span class="log-status-badge warning">Vacant</span>`;
+          
+          const designInfo = isOccupied ?
+            `<div style="font-weight: 700;">${s.design_name || s.assigned_design_id}</div><div style="font-size: 0.72rem; font-family: var(--font-mono);">${s.assigned_design_id}</div>` :
+            `<span style="color: var(--text-muted); font-style: italic;">Unassigned</span>`;
+
+          const path = `${s.shoe_match_name} &bull; ${s.shelf_name} &bull; ${s.drawer_name} &bull; <strong>${s.slot_name}</strong>`;
+
+          tr.innerHTML = `
+            <td style="font-size: 0.84rem;">${path}</td>
+            <td>${statusBadge}</td>
+            <td>${designInfo}</td>
+            <td><span style="font-size: 0.8rem; font-weight: 600;">${s.design_category || '--'}</span></td>
+            <td>
+              <button class="btn btn-secondary btn-sm" onclick="openAssignLocationModal(${s.slot_id}, '${s.assigned_design_id || ''}', '${path.replace(/'/g, "\\'")}')" style="font-size: 0.72rem; padding: 2px 8px;">
+                ${isOccupied ? 'Reassign' : 'Assign'}
+              </button>
+              ${isOccupied ? `<button class="btn btn-secondary btn-sm" onclick="unassignLocationSlot(${s.slot_id})" style="font-size: 0.72rem; padding: 2px 8px; margin-left: 4px;">Vacate</button>` : ''}
+            </td>
+          `;
+
+          tbody.appendChild(tr);
+        });
+      }
+    } catch (err) {
+      console.error("Failed to fetch flat slots table:", err);
+    }
+  }
+
+  // Location Modal Handlers
+  window.openAddLocationModal = function(level = 'shoe_match', smId = null, shelfId = null, drawerId = null) {
+    const modal = document.getElementById("add-location-modal");
+    const form = document.getElementById("add-location-form");
+    if (form) form.reset();
+
+    const typeSelect = document.getElementById("loc-node-type");
+    if (typeSelect) {
+      typeSelect.value = level;
+      handleLocNodeTypeChange(level);
+    }
+
+    if (smId) {
+      const smSelect = document.getElementById("select-parent-sm");
+      if (smSelect) {
+        smSelect.value = smId;
+        populateShelvesDropdown(smId);
+      }
+    }
+    if (shelfId) {
+      const shelfSelect = document.getElementById("select-parent-shelf");
+      if (shelfSelect) {
+        shelfSelect.value = shelfId;
+        populateDrawersDropdown(shelfId);
+      }
+    }
+    if (drawerId) {
+      const drawerSelect = document.getElementById("select-parent-drawer");
+      if (drawerSelect) drawerSelect.value = drawerId;
+    }
+
+    if (modal) modal.style.display = "flex";
+  };
+
+  window.closeAddLocationModal = function() {
+    const modal = document.getElementById("add-location-modal");
+    if (modal) modal.style.display = "none";
+  };
+
+  window.handleLocNodeTypeChange = function(type) {
+    const grpSm = document.getElementById("group-parent-sm");
+    const grpShelf = document.getElementById("group-parent-shelf");
+    const grpDrawer = document.getElementById("group-parent-drawer");
+
+    if (grpSm) grpSm.style.display = (type === "shelf" || type === "drawer" || type === "slot") ? "block" : "none";
+    if (grpShelf) grpShelf.style.display = (type === "drawer" || type === "slot") ? "block" : "none";
+    if (grpDrawer) grpDrawer.style.display = (type === "slot") ? "block" : "none";
+
+    // Populate Parent Dropdowns
+    const smSelect = document.getElementById("select-parent-sm");
+    if (smSelect && state.locationHierarchy) {
+      smSelect.innerHTML = state.locationHierarchy.map(sm => `<option value="${sm.id}">${sm.name}</option>`).join("");
+      if (smSelect.value) populateShelvesDropdown(smSelect.value);
+    }
+  };
+
+  window.populateShelvesDropdown = function(smId) {
+    const shelfSelect = document.getElementById("select-parent-shelf");
+    if (!shelfSelect) return;
+    const sm = (state.locationHierarchy || []).find(x => x.id === parseInt(smId, 10));
+    const shelves = sm ? (sm.shelves || []) : [];
+    shelfSelect.innerHTML = shelves.map(sh => `<option value="${sh.id}">${sh.name}</option>`).join("");
+    if (shelfSelect.value) populateDrawersDropdown(shelfSelect.value);
+  };
+
+  window.populateDrawersDropdown = function(shelfId) {
+    const drawerSelect = document.getElementById("select-parent-drawer");
+    if (!drawerSelect) return;
+    let foundDrawers = [];
+    (state.locationHierarchy || []).forEach(sm => {
+      (sm.shelves || []).forEach(sh => {
+        if (sh.id === parseInt(shelfId, 10)) {
+          foundDrawers = sh.drawers || [];
+        }
+      });
+    });
+    drawerSelect.innerHTML = foundDrawers.map(dr => `<option value="${dr.id}">${dr.name}</option>`).join("");
+  };
+
+  window.handleCreateLocationNode = async function(e) {
+    e.preventDefault();
+    const type = document.getElementById("loc-node-type").value;
+    const name = document.getElementById("loc-node-name").value.trim();
+    const desc = document.getElementById("loc-node-desc").value.trim();
+
+    try {
+      let endpoint = "";
+      let payload = { name };
+
+      if (type === "shoe_match") {
+        endpoint = "/api/locations/shoe-matches";
+        payload.description = desc;
+      } else if (type === "shelf") {
+        endpoint = "/api/locations/shelves";
+        payload.shoe_match_id = document.getElementById("select-parent-sm").value;
+      } else if (type === "drawer") {
+        endpoint = "/api/locations/drawers";
+        payload.shelf_id = document.getElementById("select-parent-shelf").value;
+      } else if (type === "slot") {
+        endpoint = "/api/locations/slots";
+        payload.drawer_id = document.getElementById("select-parent-drawer").value;
+      }
+
+      const res = await window.authenticatedFetch(getApiUrl(endpoint), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Failed to create location node");
+      }
+
+      showToast(`Location node '${name}' created successfully!`, "success");
+      closeAddLocationModal();
+      fetchLocationHierarchy();
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  };
+
+  window.deleteLocationNode = async function(level, id) {
+    if (!confirm(`Are you sure you want to delete this ${level.replace('_', ' ')} node and all its children?`)) return;
+    
+    let endpoint = "";
+    if (level === "shoe_match") endpoint = `/api/locations/shoe-matches/${id}`;
+    if (level === "shelf") endpoint = `/api/locations/shelves/${id}`;
+    if (level === "drawer") endpoint = `/api/locations/drawers/${id}`;
+    if (level === "slot") endpoint = `/api/locations/slots/${id}`;
+
+    try {
+      const res = await window.authenticatedFetch(getApiUrl(endpoint), { method: "DELETE" });
+      if (!res.ok) throw new Error("Delete failed");
+      showToast(`${level} node deleted`, "info");
+      fetchLocationHierarchy();
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  };
+
+  // Slot Assignment Modal Handlers
+  window.openAssignLocationModal = async function(slotId, currentDesignId, pathDisplay) {
+    const modal = document.getElementById("assign-location-modal");
+    const targetInput = document.getElementById("assign-target-slot-id");
+    const pathBox = document.getElementById("assign-slot-path-display");
+    const designSelect = document.getElementById("assign-design-select");
+    const warningBanner = document.getElementById("assign-warning-banner");
+
+    if (targetInput) targetInput.value = slotId;
+    if (pathBox) pathBox.innerHTML = pathDisplay;
+    if (warningBanner) warningBanner.style.display = currentDesignId ? "block" : "none";
+
+    // Populate catalog designs dropdown
+    if (designSelect) {
+      designSelect.innerHTML = '<option value="">-- Select Design to Assign --</option>';
+      (state.catalog || []).forEach(d => {
+        const opt = document.createElement("option");
+        opt.value = d.design_id;
+        opt.textContent = `${d.design_id} — ${d.name} (${d.category})`;
+        if (d.design_id === currentDesignId) opt.selected = true;
+        designSelect.appendChild(opt);
+      });
+    }
+
+    if (modal) modal.style.display = "flex";
+  };
+
+  window.closeAssignLocationModal = function() {
+    const modal = document.getElementById("assign-location-modal");
+    if (modal) modal.style.display = "none";
+  };
+
+  window.handleAssignDesignToSlot = async function(e) {
+    e.preventDefault();
+    const slotId = document.getElementById("assign-target-slot-id").value;
+    const designId = document.getElementById("assign-design-select").value;
+
+    if (!slotId || !designId) {
+      showToast("Please select a valid design", "error");
+      return;
+    }
+
+    try {
+      const res = await window.authenticatedFetch(getApiUrl(`/api/locations/slots/${slotId}/assign`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ design_id: designId })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Failed to assign design");
+      }
+
+      const data = await res.json();
+      showToast(`Design ${designId} assigned to slot! Path: ${data.path}`, "success");
+      closeAssignLocationModal();
+      fetchLocationHierarchy();
+      fetchCatalog();
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  };
+
+  window.unassignLocationSlot = async function(slotId) {
+    if (!confirm("Vacate this slot? The assigned design will be set to unassigned.")) return;
+    try {
+      const res = await window.authenticatedFetch(getApiUrl(`/api/locations/slots/${slotId}/unassign`), {
+        method: "POST"
+      });
+      if (!res.ok) throw new Error("Failed to unassign slot");
+      showToast("Slot vacated successfully", "info");
+      fetchLocationHierarchy();
+      fetchCatalog();
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  };
 
   // Start Application
   init();

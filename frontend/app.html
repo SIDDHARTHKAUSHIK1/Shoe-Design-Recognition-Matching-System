@@ -66,7 +66,12 @@
           <span>Search History</span>
         </button>
 
-        <!-- Admin Only Tab (gated by JS role check) -->
+        <!-- Admin Only Tabs (gated by JS role check) -->
+        <button class="nav-item admin-only-tab" data-tab="locations-tab" id="nav-locations" title="Location & Warehouse Hierarchy Management" style="display: none;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span>Locations</span>
+        </button>
+
         <button class="nav-item admin-only-tab" data-tab="admin-tab" id="nav-admin" title="Admin Operations & User Management" style="display: none;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           <span>Admin Console</span>
@@ -561,7 +566,6 @@
                     <th>Last Login</th>
                     <th>Actions</th>
                   </tr>
-                </thead>
                 <tbody id="admin-users-tbody">
                   <!-- Injected by app.js -->
                 </tbody>
@@ -570,7 +574,172 @@
           </div>
         </div>
       </section>
+
+      <!-- TAB 5: Location & Shelf Hierarchy Management (Phase 3) -->
+      <section class="tab-pane" id="locations-tab">
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          <!-- Header info -->
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <h2 style="font-size: 1.2rem; font-weight: 700; color: var(--text-primary);">Location Hierarchy & Warehouse Management</h2>
+              <p style="font-size: 0.8rem; color: var(--text-muted);">Manage multi-level physical inventory structure (Shoe Match Zone → Shelf → Drawer → Slot) and assign designs.</p>
+            </div>
+          </div>
+
+          <!-- Controls Bar -->
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; background: var(--bg-surface); padding: 14px 18px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <div class="search-box" style="flex: 1; min-width: 240px; max-width: 360px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="loc-search-input" placeholder="Search zone, shelf, drawer, slot, or design...">
+            </div>
+
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+              <!-- Zone Filter -->
+              <select id="loc-zone-filter" style="padding: 6px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-strong); background: var(--bg-surface); color: var(--text-primary); font-size: 0.82rem;">
+                <option value="">All Zones / Shoe Matches</option>
+              </select>
+
+              <!-- Occupancy Status Filter -->
+              <select id="loc-occupancy-filter" style="padding: 6px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-strong); background: var(--bg-surface); color: var(--text-primary); font-size: 0.82rem;">
+                <option value="">All Occupancy</option>
+                <option value="occupied">Occupied Slots Only</option>
+                <option value="vacant">Vacant Slots Only</option>
+              </select>
+
+              <!-- View Switcher -->
+              <div class="view-toggle-group" style="display: flex; background: var(--bg-surface-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 2px;">
+                <button class="btn-icon active" id="btn-loc-view-tree" onclick="setLocationsViewMode('tree')" title="Nested Hierarchy Tree" style="padding: 6px 10px; border-radius: var(--radius-sm); border: none; background: transparent; color: var(--text-secondary); cursor: pointer; font-size: 0.78rem; display: flex; align-items: center; gap: 4px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                  <span>Tree View</span>
+                </button>
+                <button class="btn-icon" id="btn-loc-view-table" onclick="setLocationsViewMode('table')" title="Flat Slots Table" style="padding: 6px 10px; border-radius: var(--radius-sm); border: none; background: transparent; color: var(--text-secondary); cursor: pointer; font-size: 0.78rem; display: flex; align-items: center; gap: 4px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg>
+                  <span>Slots Table</span>
+                </button>
+              </div>
+
+              <!-- Add Location Button -->
+              <button class="btn btn-primary btn-sm" id="btn-open-add-location" onclick="openAddLocationModal()" style="display: flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                <span>Add Location Node</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Tree View Container -->
+          <div id="loc-tree-container" class="card" style="padding: 20px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+            <!-- Injected by JS -->
+          </div>
+
+          <!-- Slots Table Container -->
+          <div id="loc-table-container" class="table-responsive" style="display: none;">
+            <table class="logs-table">
+              <thead>
+                <tr>
+                  <th>Physical Slot Path</th>
+                  <th>Status</th>
+                  <th>Assigned Design</th>
+                  <th>Category</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="loc-slots-tbody">
+                <!-- Rows injected by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
     </main>
+  </div>
+
+  <!-- MODAL: Add New Location Node -->
+  <div class="modal-backdrop" id="add-location-modal" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Add Location Node</h3>
+        <button class="btn-close" onclick="closeAddLocationModal()">&times;</button>
+      </div>
+      <form id="add-location-form" onsubmit="handleCreateLocationNode(event)">
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px;">
+          <div class="form-group">
+            <label for="loc-node-type">Node Level *</label>
+            <select id="loc-node-type" onchange="handleLocNodeTypeChange(this.value)" required>
+              <option value="shoe_match">1. Zone / Shoe Match (Top Level)</option>
+              <option value="shelf">2. Shelf (Child of Zone)</option>
+              <option value="drawer">3. Drawer (Child of Shelf)</option>
+              <option value="slot">4. Slot (Child of Drawer)</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="group-parent-sm" style="display: none;">
+            <label for="select-parent-sm">Parent Zone / Shoe Match *</label>
+            <select id="select-parent-sm" onchange="populateShelvesDropdown(this.value)"></select>
+          </div>
+
+          <div class="form-group" id="group-parent-shelf" style="display: none;">
+            <label for="select-parent-shelf" onchange="populateDrawersDropdown(this.value)">Parent Shelf *</label>
+            <select id="select-parent-shelf"></select>
+          </div>
+
+          <div class="form-group" id="group-parent-drawer" style="display: none;">
+            <label for="select-parent-drawer">Parent Drawer *</label>
+            <select id="select-parent-drawer"></select>
+          </div>
+
+          <div class="form-group">
+            <label for="loc-node-name">Node Name *</label>
+            <input type="text" id="loc-node-name" placeholder="e.g. Zone Bravo, Shelf 4, Drawer 02, Slot B" required>
+          </div>
+
+          <div class="form-group" id="group-node-desc">
+            <label for="loc-node-desc">Description (Optional)</label>
+            <input type="text" id="loc-node-desc" placeholder="e.g. Main High-Capacity Storage Vault">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeAddLocationModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Location Node</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Assign Design to Slot -->
+  <div class="modal-backdrop" id="assign-location-modal" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Assign Design to Physical Slot</h3>
+        <button class="btn-close" onclick="closeAssignLocationModal()">&times;</button>
+      </div>
+      <form id="assign-location-form" onsubmit="handleAssignDesignToSlot(event)">
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px;">
+          <input type="hidden" id="assign-target-slot-id">
+
+          <div class="form-group">
+            <label>Target Slot Location:</label>
+            <div id="assign-slot-path-display" style="padding: 10px; background: var(--bg-surface-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 0.82rem; font-weight: 700; color: var(--text-primary);">
+              Loading path...
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="assign-design-select">Select Catalog Design *</label>
+            <select id="assign-design-select" required style="padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-strong); background: var(--bg-surface); color: var(--text-primary); font-size: 0.85rem;">
+              <!-- Options populated by JS -->
+            </select>
+          </div>
+
+          <div id="assign-warning-banner" style="display: none; padding: 10px; background: var(--status-warning-bg); color: var(--status-warning-text); border: 1px solid var(--status-warning-border); border-radius: var(--radius-sm); font-size: 0.78rem;">
+            ⚠️ <strong>Occupancy Warning:</strong> This slot is currently occupied. Assigning a new design will vacate the previous design and reassign this slot.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeAssignLocationModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-submit-assign">Confirm Assignment</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- MODAL: Add New Design -->

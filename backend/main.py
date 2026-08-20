@@ -9,7 +9,7 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 from typing import List, Optional
 
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Request
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Request, Query, Depends
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -606,6 +606,176 @@ async def get_admin_system_stats(request: Request):
             "low": low_count
         }
     })
+
+
+# ==============================================================================
+# LOCATION HIERARCHY & SLOT MANAGEMENT ENDPOINTS
+# ==============================================================================
+
+@app.get("/api/locations/hierarchy")
+async def get_locations_hierarchy_endpoint(request: Request):
+    """Fetch complete location hierarchy tree (Shoe Matches -> Shelves -> Drawers -> Slots)."""
+    hierarchy = db.get_location_hierarchy()
+    return JSONResponse(content={"hierarchy": hierarchy})
+
+
+@app.get("/api/locations/slots")
+async def get_flat_slots_endpoint(
+    request: Request,
+    search: str = Query("", description="Search term for slot, drawer, shelf, or design"),
+    zone_id: Optional[int] = Query(None, description="Filter by Shoe Match / Zone ID"),
+    status: str = Query("", description="Filter by occupancy status: occupied or vacant")
+):
+    """Fetch flat list of physical slots with full location path and design assignment."""
+    slots = db.get_all_slots_flat(search=search, zone_id=zone_id, status_filter=status)
+    return JSONResponse(content={"slots": slots, "total": len(slots)})
+
+
+@app.post("/api/locations/shoe-matches")
+async def create_shoe_match_endpoint(payload: dict, current_user: dict = Depends(require_admin_user)):
+    """Create a new top-level Shoe Match / Zone."""
+    name = payload.get("name", "").strip()
+    desc = payload.get("description", "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Shoe Match / Zone name is required")
+    try:
+        res = db.create_shoe_match(name, desc)
+        return JSONResponse(content={"message": "Shoe Match created", "data": res}, status_code=201)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.put("/api/locations/shoe-matches/{sm_id}")
+async def update_shoe_match_endpoint(sm_id: int, payload: dict, current_user: dict = Depends(require_admin_user)):
+    """Update Shoe Match name/description."""
+    name = payload.get("name", "").strip()
+    desc = payload.get("description", "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Name required")
+    ok = db.update_shoe_match(sm_id, name, desc)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Shoe Match not found")
+    return JSONResponse(content={"message": "Shoe Match updated"})
+
+
+@app.delete("/api/locations/shoe-matches/{sm_id}")
+async def delete_shoe_match_endpoint(sm_id: int, current_user: dict = Depends(require_admin_user)):
+    """Delete a Shoe Match zone."""
+    ok = db.delete_shoe_match(sm_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Shoe Match not found")
+    return JSONResponse(content={"message": "Shoe Match deleted"})
+
+
+@app.post("/api/locations/shelves")
+async def create_shelf_endpoint(payload: dict, current_user: dict = Depends(require_admin_user)):
+    shoe_match_id = payload.get("shoe_match_id")
+    name = payload.get("name", "").strip()
+    if not shoe_match_id or not name:
+        raise HTTPException(status_code=400, detail="shoe_match_id and shelf name are required")
+    res = db.create_shelf(int(shoe_match_id), name)
+    return JSONResponse(content={"message": "Shelf created", "data": res}, status_code=201)
+
+
+@app.put("/api/locations/shelves/{shelf_id}")
+async def update_shelf_endpoint(shelf_id: int, payload: dict, current_user: dict = Depends(require_admin_user)):
+    name = payload.get("name", "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Name required")
+    ok = db.update_shelf(shelf_id, name)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Shelf not found")
+    return JSONResponse(content={"message": "Shelf updated"})
+
+
+@app.delete("/api/locations/shelves/{shelf_id}")
+async def delete_shelf_endpoint(shelf_id: int, current_user: dict = Depends(require_admin_user)):
+    ok = db.delete_shelf(shelf_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Shelf not found")
+    return JSONResponse(content={"message": "Shelf deleted"})
+
+
+@app.post("/api/locations/drawers")
+async def create_drawer_endpoint(payload: dict, current_user: dict = Depends(require_admin_user)):
+    shelf_id = payload.get("shelf_id")
+    name = payload.get("name", "").strip()
+    if not shelf_id or not name:
+        raise HTTPException(status_code=400, detail="shelf_id and drawer name are required")
+    res = db.create_drawer(int(shelf_id), name)
+    return JSONResponse(content={"message": "Drawer created", "data": res}, status_code=201)
+
+
+@app.put("/api/locations/drawers/{drawer_id}")
+async def update_drawer_endpoint(drawer_id: int, payload: dict, current_user: dict = Depends(require_admin_user)):
+    name = payload.get("name", "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Name required")
+    ok = db.update_drawer(drawer_id, name)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Drawer not found")
+    return JSONResponse(content={"message": "Drawer updated"})
+
+
+@app.delete("/api/locations/drawers/{drawer_id}")
+async def delete_drawer_endpoint(drawer_id: int, current_user: dict = Depends(require_admin_user)):
+    ok = db.delete_drawer(drawer_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Drawer not found")
+    return JSONResponse(content={"message": "Drawer deleted"})
+
+
+@app.post("/api/locations/slots")
+async def create_slot_endpoint(payload: dict, current_user: dict = Depends(require_admin_user)):
+    drawer_id = payload.get("drawer_id")
+    name = payload.get("name", "").strip()
+    if not drawer_id or not name:
+        raise HTTPException(status_code=400, detail="drawer_id and slot name are required")
+    res = db.create_slot(int(drawer_id), name)
+    return JSONResponse(content={"message": "Slot created", "data": res}, status_code=201)
+
+
+@app.put("/api/locations/slots/{slot_id}")
+async def update_slot_endpoint(slot_id: int, payload: dict, current_user: dict = Depends(require_admin_user)):
+    name = payload.get("name", "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Name required")
+    ok = db.update_slot(slot_id, name)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Slot not found")
+    return JSONResponse(content={"message": "Slot updated"})
+
+
+@app.delete("/api/locations/slots/{slot_id}")
+async def delete_slot_endpoint(slot_id: int, current_user: dict = Depends(require_admin_user)):
+    ok = db.delete_slot(slot_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Slot not found")
+    return JSONResponse(content={"message": "Slot deleted"})
+
+
+@app.post("/api/locations/slots/{slot_id}/assign")
+async def assign_slot_endpoint(slot_id: int, payload: dict, current_user: dict = Depends(require_admin_user)):
+    """Assign design_id to slot_id, enforcing parent path resolution and flat string synchronization."""
+    design_id = payload.get("design_id", "").strip()
+    if not design_id:
+        raise HTTPException(status_code=400, detail="design_id is required")
+    try:
+        res = db.assign_design_to_slot(slot_id, design_id)
+        return JSONResponse(content=res)
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/locations/slots/{slot_id}/unassign")
+async def unassign_slot_endpoint(slot_id: int, current_user: dict = Depends(require_admin_user)):
+    """Vacate slot_id."""
+    ok = db.unassign_slot(slot_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Slot not found")
+    return JSONResponse(content={"message": "Slot unassigned"})
 
 
 # Serve Frontend Web App
