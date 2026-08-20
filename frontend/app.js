@@ -2,7 +2,36 @@
  * ShoeMatch AI — Frontend Application Logic (Vanilla JavaScript)
  */
 
+// Theme Toggle Functions
+window.toggleTheme = function() {
+  const html = document.documentElement;
+  const current = html.getAttribute("data-theme") === "dark" ? "dark" : "light";
+  const target = current === "dark" ? "light" : "dark";
+  html.setAttribute("data-theme", target);
+  try {
+    localStorage.setItem("shoematch_theme", target);
+  } catch(e) {}
+  window.updateThemeToggleUI(target);
+};
+
+window.updateThemeToggleUI = function(theme) {
+  const btns = document.querySelectorAll(".btn-theme-toggle");
+  const isDark = theme === "dark";
+  btns.forEach(btn => {
+    btn.setAttribute("aria-pressed", isDark ? "true" : "false");
+    btn.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
+    btn.setAttribute("title", isDark ? "Switch to light mode" : "Switch to dark mode");
+    const moon = btn.querySelector(".icon-moon");
+    const sun = btn.querySelector(".icon-sun");
+    if (moon) moon.style.display = isDark ? "none" : "block";
+    if (sun) sun.style.display = isDark ? "block" : "none";
+  });
+};
+
 document.addEventListener("DOMContentLoaded", () => {
+  // Sync Theme Toggle UI
+  const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
+  window.updateThemeToggleUI(currentTheme);
   // Application State
   const state = {
     currentTab: "match-tab",

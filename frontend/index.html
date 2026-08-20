@@ -88,6 +88,18 @@
       }
     }
   </style>
+  <script>
+    (function() {
+      try {
+        var t = localStorage.getItem("shoematch_theme");
+        if (t === "dark") {
+          document.documentElement.setAttribute("data-theme", "dark");
+        } else {
+          document.documentElement.setAttribute("data-theme", "light");
+        }
+      } catch(e) {}
+    })();
+  </script>
 </head>
 <body class="antialiased selection:bg-amber-500/20 selection:text-[#1B133C]">
 
@@ -99,9 +111,9 @@
       <video autoplay muted loop playsinline class="w-full h-[130%] object-cover object-top opacity-85 filter brightness-[1.04] contrast-[0.96]">
         <source src="https://assets.mixkit.co/videos/preview/mixkit-white-sneaker-rotating-on-a-display-42867-large.mp4" type="video/mp4">
       </video>
-      <!-- Light Overlay Layers for High-Key Legibility -->
-      <div class="absolute inset-0 bg-white/20 backdrop-blur-[1px]"></div>
-      <div class="absolute inset-0 bg-gradient-to-b from-white/70 via-white/30 to-white/80"></div>
+      <!-- Light / Dark Overlay Layer for Legibility -->
+      <div class="absolute inset-0 bg-white/20 backdrop-blur-[1px] video-overlay-layer"></div>
+      <div class="absolute inset-0 bg-gradient-to-b from-white/70 via-white/30 to-white/80 video-overlay-gradient"></div>
     </div>
 
     <!-- 1. Navigation Bar (Centered at Top) -->
@@ -121,11 +133,20 @@
           </span>
         </a>
 
-        <!-- Nav Links & Launch App CTA -->
-        <div class="hidden sm:flex items-center gap-6 md:gap-8">
-          <a href="#how-it-works" class="text-sm font-medium text-[#1B133C]/80 hover:text-[#1B133C] transition-colors duration-200">How it works</a>
-          <a href="#accuracy" class="text-sm font-medium text-[#1B133C]/80 hover:text-[#1B133C] transition-colors duration-200">Accuracy</a>
-          <a href="#warehouses" class="text-sm font-medium text-[#1B133C]/80 hover:text-[#1B133C] transition-colors duration-200">For Warehouses</a>
+        <!-- Nav Links & Launch App CTA & Dark Mode Toggle -->
+        <div class="flex items-center gap-4 sm:gap-6 md:gap-8">
+          <a href="#how-it-works" class="hidden sm:inline text-sm font-medium text-[#1B133C]/80 hover:text-[#1B133C] transition-colors duration-200 nav-item-link">How it works</a>
+          <a href="#accuracy" class="hidden sm:inline text-sm font-medium text-[#1B133C]/80 hover:text-[#1B133C] transition-colors duration-200 nav-item-link">Accuracy</a>
+          <a href="#warehouses" class="hidden sm:inline text-sm font-medium text-[#1B133C]/80 hover:text-[#1B133C] transition-colors duration-200 nav-item-link">For Warehouses</a>
+          
+          <!-- Sun/Moon Dark Mode Toggle Button -->
+          <button id="btn-theme-toggle" class="btn-theme-toggle" onclick="toggleTheme()" aria-label="Switch theme mode" aria-pressed="false" title="Switch theme mode">
+            <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+              <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+          </button>
+
           <a href="/app" class="rounded-lg bg-[#1B133C] text-white px-4 py-2 text-xs font-semibold hover:bg-amber-600 transition-colors shadow-sm flex items-center gap-1.5">
             <span>Launch App</span>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
@@ -274,6 +295,41 @@
         modal.classList.remove("flex");
       };
     }
+
+    // Theme Toggle Functionality
+    function initThemeToggle() {
+      const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
+      updateThemeToggleUI(currentTheme);
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute("data-theme") === "dark" ? "dark" : "light";
+      const target = current === "dark" ? "light" : "dark";
+      html.setAttribute("data-theme", target);
+      try {
+        localStorage.setItem("shoematch_theme", target);
+      } catch(e) {}
+      updateThemeToggleUI(target);
+    }
+
+    function updateThemeToggleUI(theme) {
+      const btns = document.querySelectorAll(".btn-theme-toggle");
+      const isDark = theme === "dark";
+      btns.forEach(btn => {
+        btn.setAttribute("aria-pressed", isDark ? "true" : "false");
+        btn.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
+        btn.setAttribute("title", isDark ? "Switch to light mode" : "Switch to dark mode");
+        const moon = btn.querySelector(".icon-moon");
+        const sun = btn.querySelector(".icon-sun");
+        if (moon) moon.style.display = isDark ? "none" : "block";
+        if (sun) sun.style.display = isDark ? "block" : "none";
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      initThemeToggle();
+    });
 
     function handleAccessSubmit(e) {
       e.preventDefault();
