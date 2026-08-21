@@ -9,10 +9,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/index.css">
-  
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="index.css">
+  <link rel="stylesheet" href="tailwind.min.css">
   <script>
     tailwind.config = {
       theme: {
@@ -146,7 +144,7 @@
             </svg>
           </button>
 
-          <a href="/app" class="rounded-lg bg-[#1B133C] text-white px-4 py-2 text-xs font-semibold hover:bg-amber-600 transition-colors shadow-sm flex items-center gap-1.5">
+          <a href="app.html" class="rounded-lg bg-[#1B133C] text-white px-4 py-2 text-xs font-semibold hover:bg-amber-600 transition-colors shadow-sm flex items-center gap-1.5">
             <span>Launch App</span>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
           </a>
@@ -182,7 +180,7 @@
 
         <!-- CTA Buttons -->
         <div class="anim-entry delay-cta mt-6 sm:mt-7 flex flex-col sm:flex-row items-center gap-4">
-          <a href="/app" id="btn-launch-app" class="rounded-xl bg-[#1B133C] px-7 sm:px-8 py-3.5 text-sm font-semibold text-white shadow-[0px_4px_16px_rgba(27,19,60,0.25)] hover:shadow-[0px_6px_20px_rgba(27,19,60,0.35)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer inline-flex items-center gap-2.5">
+          <a href="app.html" id="btn-launch-app" class="rounded-xl bg-[#1B133C] px-7 sm:px-8 py-3.5 text-sm font-semibold text-white shadow-[0px_4px_16px_rgba(27,19,60,0.25)] hover:shadow-[0px_6px_20px_rgba(27,19,60,0.35)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer inline-flex items-center gap-2.5">
             <span>Launch Match Studio</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="5" y1="12" x2="19" y2="12"/>
@@ -198,7 +196,7 @@
       <!-- Right Column: Floating Shoe Visual Element -->
       <div class="anim-entry delay-subtitle flex-shrink-0 flex items-center justify-center relative w-60 sm:w-72 md:w-80 lg:w-[380px] max-w-full mt-4 md:mt-0">
         <div class="hero-shoe-container w-full">
-          <img src="/static/hero_shoe.png" alt="ShoeMatch AI Catalog Sample SHOE-001" class="hero-floating-shoe w-full max-h-[300px] object-contain" />
+          <img src="hero_shoe.png" alt="ShoeMatch AI Catalog Sample SHOE-001" class="hero-floating-shoe w-full max-h-[300px] object-contain" />
           <div class="hero-shoe-shadow"></div>
         </div>
       </div>
