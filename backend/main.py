@@ -163,6 +163,7 @@ async def match_shoe_design(
 
 @app.post("/api/designs")
 async def create_design(
+    request: Request,
     design_id: str = Form(...),
     name: str = Form(...),
     category: str = Form("Sneaker"),
@@ -176,9 +177,10 @@ async def create_design(
     angles: Optional[str] = Form(None)  # Comma-separated or inferred
 ):
     """
-    Incrementally add a new shoe design to the catalog with multiple angle photos.
+    Incrementally add a new shoe design to the catalog with multiple angle photos (Admin only).
     Uses FAISS incremental add() without rebuilding the entire index.
     """
+    _ = await require_admin_user(request)
     if not design_id or not name:
         raise HTTPException(status_code=400, detail="design_id and name are required.")
 
@@ -298,8 +300,8 @@ async def list_designs(
 
 @app.put("/api/designs/{design_id}")
 async def update_design(design_id: str, payload: dict, request: Request):
-    """Update design attributes (name, category, materials, shelf_location, etc.)."""
-    _ = await require_authenticated_user(request)
+    """Update design attributes (name, category, materials, shelf_location, etc.) (Admin only)."""
+    _ = await require_admin_user(request)
     design = db.get_design(design_id)
     if not design:
         raise HTTPException(status_code=404, detail=f"Design '{design_id}' not found.")
@@ -336,8 +338,9 @@ async def get_design_details(design_id: str):
 
 
 @app.delete("/api/designs/{design_id}")
-async def delete_catalog_design(design_id: str):
-    """Delete a design and refresh the vector store."""
+async def delete_catalog_design(design_id: str, request: Request):
+    """Delete a design and refresh the vector store (Admin only)."""
+    _ = await require_admin_user(request)
     design = db.get_design(design_id)
     if not design:
         raise HTTPException(status_code=404, detail=f"Design '{design_id}' not found.")
