@@ -111,6 +111,31 @@ async def health_check():
     })
 
 
+MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
+
+def validate_and_sanitize_image(filename: Optional[str], contents: bytes) -> str:
+    """Validate image bytes using PIL magic bytes inspection and return safe sanitized filename."""
+    if not contents or len(contents) == 0:
+        raise HTTPException(status_code=400, detail="Empty image file received.")
+        
+    if len(contents) > MAX_UPLOAD_SIZE_BYTES:
+        raise HTTPException(status_code=413, detail="File size exceeds maximum allowed limit (10 MB).")
+        
+    try:
+        img = Image.open(io.BytesIO(contents))
+        img.verify()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Uploaded file is not a valid or readable image.")
+        
+    raw_name = Path(filename or "upload.jpg").name
+    safe_stem = "".join(c for c in Path(raw_name).stem if c.isalnum() or c in ("-", "_")).strip() or "image"
+    safe_ext = Path(raw_name).suffix.lower()
+    if safe_ext not in (".jpg", ".jpeg", ".png", ".webp", ".bmp"):
+        safe_ext = ".jpg"
+        
+    return f"{safe_stem}{safe_ext}"
+
+
 @app.post("/api/match")
 async def match_shoe_design(
     request: Request,
@@ -122,20 +147,12 @@ async def match_shoe_design(
     Returns the top 3 ranked designs with accuracy percentages, confidence levels,
     and side-by-side reference angle images.
     """
-    if file.content_type and not file.content_type.startswith("image/"):
-        # Check filename extension if content_type is generic/binary
-        ext = os.path.splitext(file.filename or "")[1].lower()
-        if ext not in (".jpg", ".jpeg", ".png", ".webp", ".bmp"):
-            raise HTTPException(status_code=400, detail="Uploaded file must be a valid image (JPEG, PNG, WEBP).")
-
-    # Read image contents
     contents = await file.read()
-    if len(contents) == 0:
-        raise HTTPException(status_code=400, detail="Empty image file received.")
+    clean_name = validate_and_sanitize_image(file.filename, contents)
 
     # Save query image to persistent uploads directory
     timestamp = int(time.time() * 1000)
-    safe_filename = f"query_{timestamp}_{file.filename}"
+    safe_filename = f"query_{timestamp}_{clean_name}"
     save_path = UPLOADS_DIR / safe_filename
     
     with open(save_path, "wb") as f:
@@ -199,9 +216,10 @@ async def create_design(
     for idx, uploaded_file in enumerate(files):
         content = await uploaded_file.read()
         if len(content) > 0:
+            clean_name = validate_and_sanitize_image(uploaded_file.filename, content)
             assigned_angle = angle_list[idx] if idx < len(angle_list) else None
             image_payloads.append({
-                "filename": uploaded_file.filename,
+                "filename": clean_name,
                 "content": content,
                 "angle": assigned_angle
             })

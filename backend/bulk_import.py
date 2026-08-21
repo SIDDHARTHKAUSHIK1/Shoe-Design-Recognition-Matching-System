@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Tuple, Optional, Set
 
 import openpyxl
+from PIL import Image
 
 from backend.database import get_db_connection
 from backend.ingestion import ingest_single_design
@@ -148,7 +149,14 @@ def extract_zip_images(zip_bytes: bytes) -> Dict[str, List[Dict[str, Any]]]:
                 continue
             
             content = z.read(zip_info.filename)
-            if not content:
+            if not content or len(content) > 10 * 1024 * 1024:
+                continue
+
+            # Verify image magic bytes using PIL
+            try:
+                img = Image.open(io.BytesIO(content))
+                img.verify()
+            except Exception:
                 continue
             
             # Match design_id from directory name or filename prefix
