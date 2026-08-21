@@ -270,18 +270,19 @@ window.fetchDashboardStats = async function() {
           const matchName = log.top_match_name || log.top_match_id || "Unmatched";
           const conf = log.confidence_pct ? `${log.confidence_pct}%` : "--%";
           const cat = log.detected_category || "shoe";
-          const imgUrl = window.getImageUrl(log.query_image_path);
+          const imgUrl = window.getLogThumbnailUrl ? window.getLogThumbnailUrl(log.query_image_path) : window.getImageUrl(log.query_image_path);
+          const fallbackSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='1.5'><path d='M20.24 12.24a6 6 0 0 0-8.49-8.49L3.5 12.00a6 6 0 0 0 8.49 8.49l8.25-8.25z'/><path d='M16 8l-4 4'/></svg>";
           return `
             <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--bg-surface-subtle); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
               <div style="display: flex; align-items: center; gap: 12px;">
-                <img src="${imgUrl}" style="width: 40px; height: 40px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);" onerror="this.src='/static/placeholder.png'">
+                <img src="${imgUrl}" style="width: 40px; height: 40px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);" onerror="this.onerror=null; this.src='${fallbackSvg}';">
                 <div>
                   <div style="font-size: 0.84rem; font-weight: 700; color: var(--text-primary);">${matchName}</div>
                   <div style="font-size: 0.72rem; color: var(--text-muted);">${log.created_at || 'Just now'} • <span style="text-transform: uppercase;">${cat}</span></div>
                 </div>
               </div>
               <div style="display: flex; align-items: center; gap: 10px;">
-                <span class="preview-match-pill ${conf >= 85 ? 'high' : conf >= 70 ? 'moderate' : 'low'}">${conf} Match</span>
+                <span class="preview-match-pill ${log.confidence_pct >= 85 ? 'high' : log.confidence_pct >= 70 ? 'moderate' : 'low'}">${conf} Match</span>
               </div>
             </div>
           `;

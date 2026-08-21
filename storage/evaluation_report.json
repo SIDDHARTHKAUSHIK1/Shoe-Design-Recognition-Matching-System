@@ -1,15 +1,15 @@
 {
-  "timestamp": "2026-08-20 01:25:27",
-  "total_images_evaluated": 37,
-  "total_distinct_designs": 34,
+  "timestamp": "2026-08-21 11:46:55",
+  "total_images_evaluated": 38,
+  "total_distinct_designs": 35,
   "metrics": {
-    "top_1_accuracy_pct": 5.41,
-    "top_3_accuracy_pct": 5.41,
-    "mean_reciprocal_rank": 0.0851,
-    "average_query_latency_ms": 0.02,
-    "avg_same_design_similarity": -0.8096,
-    "avg_diff_design_similarity": 0.9153,
-    "similarity_margin": -1.7248
+    "top_1_accuracy_pct": 2.63,
+    "top_3_accuracy_pct": 5.26,
+    "mean_reciprocal_rank": 0.0697,
+    "average_query_latency_ms": 0.29,
+    "avg_same_design_similarity": -0.8146,
+    "avg_diff_design_similarity": 0.9094,
+    "similarity_margin": -1.724
   },
   "recommendations": {
     "high_confidence_threshold_pct": 85.0,
