@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ShoeMatch AI</string>
+    <string name="title_activity_main">ShoeMatch AI</string>
+    <string name="package_name">com.shoematch.ai</string>
+    <string name="custom_url_scheme">com.shoematch.ai</string>
+</resources>

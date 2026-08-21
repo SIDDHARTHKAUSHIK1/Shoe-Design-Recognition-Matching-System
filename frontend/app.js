@@ -44,20 +44,61 @@ window.getImageUrl = function(path) {
   return base ? base + cleanPath : cleanPath;
 };
 
+window._cachedAuthToken = null;
+
 window.getAuthToken = function() {
+  if (window._cachedAuthToken !== null) {
+    return window._cachedAuthToken;
+  }
   try {
-    return localStorage.getItem("shoematch_auth_token") || "";
+    const local = localStorage.getItem("shoematch_auth_token") || "";
+    window._cachedAuthToken = local;
+    return local;
   } catch (e) {
     return "";
   }
 };
 
 window.setAuthToken = function(token) {
+  window._cachedAuthToken = token || "";
   try {
-    if (token) localStorage.setItem("shoematch_auth_token", token);
-    else localStorage.removeItem("shoematch_auth_token");
+    if (token) {
+      localStorage.setItem("shoematch_auth_token", token);
+    } else {
+      localStorage.removeItem("shoematch_auth_token");
+    }
   } catch (e) {}
+
+  // Capacitor Native Preferences Storage
+  try {
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences) {
+      const prefs = window.Capacitor.Plugins.Preferences;
+      if (token) {
+        prefs.set({ key: "shoematch_auth_token", value: token });
+      } else {
+        prefs.remove({ key: "shoematch_auth_token" });
+      }
+    }
+  } catch (e) {
+    console.warn("Capacitor preferences write warning:", e);
+  }
 };
+
+// Async init token from Capacitor Preferences on native boot
+(async function initNativeTokenStorage() {
+  try {
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences) {
+      const prefs = window.Capacitor.Plugins.Preferences;
+      const res = await prefs.get({ key: "shoematch_auth_token" });
+      if (res && res.value) {
+        window._cachedAuthToken = res.value;
+        try { localStorage.setItem("shoematch_auth_token", res.value); } catch(e){}
+      }
+    }
+  } catch (e) {
+    console.warn("Capacitor preferences read warning:", e);
+  }
+})();
 
 window.authenticatedFetch = async function(url, options = {}) {
   const token = window.getAuthToken();
