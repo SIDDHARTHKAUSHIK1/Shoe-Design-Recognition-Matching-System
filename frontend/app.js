@@ -2556,12 +2556,90 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  window.escapeHtml = function(str) {
+    if (str === null || str === undefined) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  };
+
+  window.highlightKeyword = function(text, keyword) {
+    if (text === null || text === undefined) return "";
+    const str = String(text);
+    if (!keyword || !keyword.trim()) return window.escapeHtml(str);
+
+    const q = keyword.trim().toLowerCase();
+    const lower = str.toLowerCase();
+    let result = "";
+    let curr = 0;
+    let idx = lower.indexOf(q, curr);
+
+    if (idx === -1) return window.escapeHtml(str);
+
+    while (idx !== -1) {
+      result += window.escapeHtml(str.substring(curr, idx));
+      const matchText = str.substring(idx, idx + q.length);
+      result += `<mark class="search-highlight">${window.escapeHtml(matchText)}</mark>`;
+      curr = idx + q.length;
+      idx = lower.indexOf(q, curr);
+    }
+    result += window.escapeHtml(str.substring(curr));
+    return result;
+  };
+
+  window.calculateLocationRelevanceScore = function(slot, query) {
+    if (!query || !query.trim()) return 1;
+    const q = query.trim().toLowerCase();
+
+    const slotName = (slot.slot_name || slot.name || "").toLowerCase();
+    const designId = (slot.assigned_design_id || "").toLowerCase();
+    const designName = (slot.design_name || "").toLowerCase();
+    
+    const zoneName = (slot.shoe_match_name || slot.zone_name || slot.sm_name || "").toLowerCase();
+    const shelfName = (slot.shelf_name || "").toLowerCase();
+    const drawerName = (slot.drawer_name || "").toLowerCase();
+    const category = (slot.design_category || "").toLowerCase();
+
+    let maxScore = 0;
+
+    // Exact Match on primary identifier (100 pts)
+    if (slotName === q || designId === q || designName === q) {
+      maxScore = Math.max(maxScore, 100);
+    }
+    // Prefix Match on primary identifier (80 pts)
+    else if (slotName.startsWith(q) || designId.startsWith(q) || designName.startsWith(q)) {
+      maxScore = Math.max(maxScore, 80);
+    }
+    // Substring Match on primary identifier (60 pts)
+    else if (slotName.includes(q) || designId.includes(q) || designName.includes(q)) {
+      maxScore = Math.max(maxScore, 60);
+    }
+
+    // Exact Match on secondary hierarchy fields (50 pts)
+    if (zoneName === q || shelfName === q || drawerName === q || category === q) {
+      maxScore = Math.max(maxScore, 50);
+    }
+    // Prefix Match on secondary hierarchy fields (40 pts)
+    else if (zoneName.startsWith(q) || shelfName.startsWith(q) || drawerName.startsWith(q) || category.startsWith(q)) {
+      maxScore = Math.max(maxScore, 40);
+    }
+    // Substring Match on secondary hierarchy fields (30 pts)
+    else if (zoneName.includes(q) || shelfName.includes(q) || drawerName.includes(q) || category.includes(q)) {
+      maxScore = Math.max(maxScore, 30);
+    }
+
+    return maxScore;
+  };
+
   function renderLocationHierarchy() {
     const treeWrap = document.getElementById("loc-tree-container");
     if (!treeWrap) return;
     treeWrap.innerHTML = "";
 
-    const search = (state.locationsSearchQuery || "").toLowerCase().trim();
+    const searchQuery = (state.locationsSearchQuery || "").trim();
     const zoneId = state.locationsZoneFilter ? parseInt(state.locationsZoneFilter, 10) : null;
     const occupancy = state.locationsOccupancyFilter;
 
@@ -2580,7 +2658,61 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    let renderedAnyNode = false;
+
     filteredHierarchy.forEach(sm => {
+      const smNameMatch = searchQuery && sm.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const shelvesToRender = [];
+
+      (sm.shelves || []).forEach(sh => {
+        const shNameMatch = searchQuery && sh.name.toLowerCase().includes(searchQuery.toLowerCase());
+        const drawersToRender = [];
+
+        (sh.drawers || []).forEach(dr => {
+          const drNameMatch = searchQuery && dr.name.toLowerCase().includes(searchQuery.toLowerCase());
+
+          // Gather and score slots in this drawer
+          let slotsInDrawer = (dr.slots || []).map(s => {
+            const slotObj = {
+              ...s,
+              shoe_match_name: sm.name,
+              shelf_name: sh.name,
+              drawer_name: dr.name
+            };
+            const score = window.calculateLocationRelevanceScore(slotObj, searchQuery);
+            const effectiveScore = (smNameMatch || shNameMatch || drNameMatch) ? Math.max(score, 30) : score;
+            return { ...slotObj, score: effectiveScore };
+          });
+
+          // Occupancy filter & Search score filter
+          slotsInDrawer = slotsInDrawer.filter(s => {
+            const matchesOccupancy = !occupancy || 
+              (occupancy === "occupied" && s.is_occupied) || 
+              (occupancy === "vacant" && !s.is_occupied);
+            return matchesOccupancy && (searchQuery ? s.score > 0 : true);
+          });
+
+          // Relevance Sort slots within drawer
+          if (searchQuery) {
+            slotsInDrawer.sort((a, b) => b.score - a.score);
+          }
+
+          if (slotsInDrawer.length > 0 || (searchQuery && drNameMatch)) {
+            drawersToRender.push({ drawer: dr, slots: slotsInDrawer });
+          }
+        });
+
+        if (drawersToRender.length > 0 || (searchQuery && shNameMatch)) {
+          shelvesToRender.push({ shelf: sh, drawers: drawersToRender });
+        }
+      });
+
+      if (shelvesToRender.length === 0 && !smNameMatch && searchQuery) {
+        return;
+      }
+
+      renderedAnyNode = true;
+
       const smDetails = document.createElement("details");
       smDetails.className = "loc-tree-node";
       smDetails.open = true;
@@ -2590,12 +2722,14 @@ document.addEventListener("DOMContentLoaded", () => {
       const occupiedSlots = (sm.shelves || []).reduce((acc, sh) => 
         acc + (sh.drawers || []).reduce((dAcc, dr) => dAcc + (dr.slots || []).filter(s => s.is_occupied).length, 0), 0);
 
+      const hlZoneName = window.highlightKeyword(sm.name, searchQuery);
+
       smDetails.innerHTML = `
         <summary>
           <div style="display: flex; align-items: center; gap: 8px;">
             <span style="font-size: 1.1rem;">🏢</span>
-            <span>Zone / Shoe Match: <strong>${sm.name}</strong></span>
-            <span style="font-size: 0.75rem; font-family: var(--font-mono); color: var(--text-muted);">(${sm.description || 'Facility Storage'})</span>
+            <span>Zone / Shoe Match: <strong>${hlZoneName}</strong></span>
+            <span style="font-size: 0.75rem; font-family: var(--font-mono); color: var(--text-muted);">(${window.escapeHtml(sm.description || 'Facility Storage')})</span>
           </div>
           <div style="display: flex; align-items: center; gap: 12px;">
             <span style="font-size: 0.75rem; font-family: var(--font-mono); color: var(--text-secondary);">${occupiedSlots}/${totalSlots} Slots Occupied</span>
@@ -2607,17 +2741,19 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
 
       const smChildren = smDetails.querySelector(`#sm-children-${sm.id}`);
-      (sm.shelves || []).forEach(sh => {
+      shelvesToRender.forEach(({ shelf: sh, drawers }) => {
         const shDetails = document.createElement("details");
         shDetails.className = "loc-tree-node";
         shDetails.open = true;
         shDetails.style.marginLeft = "12px";
 
+        const hlShelfName = window.highlightKeyword(sh.name, searchQuery);
+
         shDetails.innerHTML = `
           <summary>
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 1rem;">📦</span>
-              <span>Shelf: <strong>${sh.name}</strong></span>
+              <span>Shelf: <strong>${hlShelfName}</strong></span>
             </div>
             <div style="display: flex; align-items: center; gap: 10px;">
               <button class="btn btn-secondary btn-sm" onclick="event.preventDefault(); openAddLocationModal('drawer', ${sm.id}, ${sh.id});" style="font-size: 0.72rem; padding: 2px 8px;">+ Add Drawer</button>
@@ -2628,17 +2764,19 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
 
         const shChildren = shDetails.querySelector(`#sh-children-${sh.id}`);
-        (sh.drawers || []).forEach(dr => {
+        drawers.forEach(({ drawer: dr, slots }) => {
           const drDetails = document.createElement("details");
           drDetails.className = "loc-tree-node";
           drDetails.open = true;
           drDetails.style.marginLeft = "12px";
 
+          const hlDrawerName = window.highlightKeyword(dr.name, searchQuery);
+
           drDetails.innerHTML = `
             <summary>
               <div style="display: flex; align-items: center; gap: 8px;">
                 <span style="font-size: 1rem;">🗄️</span>
-                <span>Drawer: <strong>${dr.name}</strong></span>
+                <span>Drawer: <strong>${hlDrawerName}</strong></span>
               </div>
               <div style="display: flex; align-items: center; gap: 10px;">
                 <button class="btn btn-secondary btn-sm" onclick="event.preventDefault(); openAddLocationModal('slot', ${sm.id}, ${sh.id}, ${dr.id});" style="font-size: 0.72rem; padding: 2px 8px;">+ Add Slot</button>
@@ -2649,35 +2787,28 @@ document.addEventListener("DOMContentLoaded", () => {
           `;
 
           const drChildren = drDetails.querySelector(`#dr-children-${dr.id}`);
-          (dr.slots || []).forEach(s => {
-            const matchesSearch = !search || 
-              s.name.toLowerCase().includes(search) || 
-              (s.assigned_design_id && s.assigned_design_id.toLowerCase().includes(search)) ||
-              (s.design_name && s.design_name.toLowerCase().includes(search));
-            
-            const matchesOccupancy = !occupancy || 
-              (occupancy === "occupied" && s.is_occupied) || 
-              (occupancy === "vacant" && !s.is_occupied);
-
-            if (!matchesSearch || !matchesOccupancy) return;
-
+          slots.forEach(s => {
             const slotDiv = document.createElement("div");
             slotDiv.className = "loc-slot-item";
             
             const isOccupied = s.is_occupied === 1 && s.assigned_design_id;
+            const hlDesignName = window.highlightKeyword(s.design_name || s.assigned_design_id, searchQuery);
+            const hlDesignId = window.highlightKeyword(s.assigned_design_id, searchQuery);
+            const hlSlotName = window.highlightKeyword(s.name, searchQuery);
+
             const statusPill = isOccupied ? 
-              `<span class="slot-occupied-pill">Occupied: ${s.design_name || s.assigned_design_id} (${s.assigned_design_id})</span>` :
+              `<span class="slot-occupied-pill">Occupied: ${hlDesignName} (${hlDesignId})</span>` :
               `<span class="slot-vacant-pill">Vacant Slot</span>`;
 
             const fullPath = `${sm.name} > ${sh.name} > ${dr.name} > ${s.name}`;
 
             slotDiv.innerHTML = `
               <div style="display: flex; align-items: center; gap: 10px;">
-                <span style="font-family: var(--font-mono); font-weight: 700; color: var(--text-primary);">📍 ${s.name}</span>
+                <span style="font-family: var(--font-mono); font-weight: 700; color: var(--text-primary);">📍 ${hlSlotName}</span>
                 ${statusPill}
               </div>
               <div style="display: flex; align-items: center; gap: 8px;">
-                <button class="btn btn-secondary btn-sm" onclick="openAssignLocationModal(${s.id}, '${s.assigned_design_id || ''}', '${fullPath.replace(/'/g, "\\'")}')" style="font-size: 0.72rem; padding: 2px 8px;">
+                <button class="btn btn-secondary btn-sm" onclick="openAssignLocationModal(${s.id}, '${(s.assigned_design_id || '').replace(/'/g, "\\'")}', '${fullPath.replace(/'/g, "\\'")}')" style="font-size: 0.72rem; padding: 2px 8px;">
                   ${isOccupied ? 'Reassign' : 'Assign Design'}
                 </button>
                 ${isOccupied ? `<button class="btn btn-secondary btn-sm" onclick="unassignLocationSlot(${s.id})" style="font-size: 0.72rem; padding: 2px 8px; color: var(--status-warning-text);">Vacate</button>` : ''}
@@ -2696,6 +2827,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
       treeWrap.appendChild(smDetails);
     });
+
+    if (!renderedAnyNode) {
+      treeWrap.innerHTML = `
+        <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+          <h4>No Location Slots Match "${window.escapeHtml(searchQuery)}"</h4>
+          <p>Try refining your search keyword or clearing filters.</p>
+        </div>
+      `;
+    }
   }
 
   async function fetchSlotsTable() {
@@ -2712,7 +2852,19 @@ document.addEventListener("DOMContentLoaded", () => {
       const res = await window.authenticatedFetch(getApiUrl(`/api/locations/slots?${qParams.toString()}`));
       if (res.ok) {
         const data = await res.json();
-        const slots = data.slots || [];
+        let slots = data.slots || [];
+        const searchQuery = (state.locationsSearchQuery || "").trim();
+
+        // Relevance rank slots
+        if (searchQuery) {
+          slots = slots
+            .map(s => ({
+              ...s,
+              relevanceScore: window.calculateLocationRelevanceScore(s, searchQuery)
+            }))
+            .filter(s => s.relevanceScore > 0)
+            .sort((a, b) => b.relevanceScore - a.relevanceScore);
+        }
 
         if (slots.length === 0) {
           tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">No physical slots match your criteria.</td></tr>`;
@@ -2726,19 +2878,29 @@ document.addEventListener("DOMContentLoaded", () => {
             `<span class="log-status-badge success">Occupied</span>` :
             `<span class="log-status-badge warning">Vacant</span>`;
           
+          const hlDesignName = window.highlightKeyword(s.design_name || s.assigned_design_id, searchQuery);
+          const hlDesignId = window.highlightKeyword(s.assigned_design_id, searchQuery);
+          const hlCategory = window.highlightKeyword(s.design_category || '--', searchQuery);
+
           const designInfo = isOccupied ?
-            `<div style="font-weight: 700;">${s.design_name || s.assigned_design_id}</div><div style="font-size: 0.72rem; font-family: var(--font-mono);">${s.assigned_design_id}</div>` :
+            `<div style="font-weight: 700;">${hlDesignName}</div><div style="font-size: 0.72rem; font-family: var(--font-mono);">${hlDesignId}</div>` :
             `<span style="color: var(--text-muted); font-style: italic;">Unassigned</span>`;
 
-          const path = `${s.shoe_match_name} &bull; ${s.shelf_name} &bull; ${s.drawer_name} &bull; <strong>${s.slot_name}</strong>`;
+          const hlSM = window.highlightKeyword(s.shoe_match_name, searchQuery);
+          const hlSH = window.highlightKeyword(s.shelf_name, searchQuery);
+          const hlDR = window.highlightKeyword(s.drawer_name, searchQuery);
+          const hlSL = window.highlightKeyword(s.slot_name, searchQuery);
+
+          const path = `${hlSM} &bull; ${hlSH} &bull; ${hlDR} &bull; <strong>${hlSL}</strong>`;
+          const rawPath = `${s.shoe_match_name} > ${s.shelf_name} > ${s.drawer_name} > ${s.slot_name}`;
 
           tr.innerHTML = `
             <td style="font-size: 0.84rem;">${path}</td>
             <td>${statusBadge}</td>
             <td>${designInfo}</td>
-            <td><span style="font-size: 0.8rem; font-weight: 600;">${s.design_category || '--'}</span></td>
+            <td><span style="font-size: 0.8rem; font-weight: 600;">${hlCategory}</span></td>
             <td>
-              <button class="btn btn-secondary btn-sm" onclick="openAssignLocationModal(${s.slot_id}, '${s.assigned_design_id || ''}', '${path.replace(/'/g, "\\'")}')" style="font-size: 0.72rem; padding: 2px 8px;">
+              <button class="btn btn-secondary btn-sm" onclick="openAssignLocationModal(${s.slot_id}, '${(s.assigned_design_id || '').replace(/'/g, "\\'")}', '${rawPath.replace(/'/g, "\\'")}')" style="font-size: 0.72rem; padding: 2px 8px;">
                 ${isOccupied ? 'Reassign' : 'Assign'}
               </button>
               ${isOccupied ? `<button class="btn btn-secondary btn-sm" onclick="unassignLocationSlot(${s.slot_id})" style="font-size: 0.72rem; padding: 2px 8px; margin-left: 4px;">Vacate</button>` : ''}

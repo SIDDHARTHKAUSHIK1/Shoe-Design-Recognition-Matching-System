@@ -1966,4 +1966,12 @@ img.log-thumb {
   transform: translateY(-1px);
 }
 
-
+/* Location Search Relevance & Matched Keyword Highlighting */
+mark.search-highlight, span.search-highlight {
+  background: rgba(217, 119, 6, 0.28);
+  color: inherit;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  border-bottom: 2px solid var(--brand-accent, #D97706);
+}
