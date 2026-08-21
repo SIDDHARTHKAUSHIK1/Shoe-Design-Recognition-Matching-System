@@ -90,6 +90,13 @@ def init_db():
         except sqlite3.OperationalError:
             pass
 
+        # Seed initial accounts securely if missing or enforce password change if default
+        try:
+            from backend.auth import seed_initial_users
+            seed_initial_users()
+        except Exception as e:
+            logger.warning(f"Initial user seeding notice: {e}")
+
         # 2. Designs Table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS designs (
