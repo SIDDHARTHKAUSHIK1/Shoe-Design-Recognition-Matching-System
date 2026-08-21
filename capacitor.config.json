@@ -1,7 +1,7 @@
 {
   "appId": "com.shoematch.ai",
   "appName": "ShoeMatch AI",
-  "webDir": "frontend",
+  "webDir": "frontend/mobile",
   "bundledWebRuntime": false,
   "server": {
     "androidScheme": "http"
