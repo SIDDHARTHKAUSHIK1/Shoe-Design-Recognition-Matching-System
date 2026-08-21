@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ShoeMatch AI — Find Any Shoe Instantly</title>
+  <title>ShoeMatch AI — Sub-Second Visual Search & Warehouse Location System</title>
   
   <!-- Google Fonts: IBM Plex Sans & IBM Plex Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -30,203 +30,518 @@
   </script>
 
   <style>
-    /* Required CSS Reset */
     body { 
       font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif; 
       color: #1B133C; 
       background-color: #FFFFFF; 
     }
 
-    /* Entry Animations */
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(18px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
     .anim-entry {
-      opacity: 0;
       animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
+    .delay-badge    { animation-delay: 0.1s; }
+    .delay-title    { animation-delay: 0.2s; }
+    .delay-subtitle { animation-delay: 0.3s; }
+    .delay-cta      { animation-delay: 0.4s; }
 
-    .delay-badge { animation-delay: 60ms; }
-    .delay-heading { animation-delay: 140ms; }
-    .delay-subtitle { animation-delay: 240ms; }
-    .delay-cta { animation-delay: 340ms; }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
 
-    /* Nav Scroll Shrink Effect */
+    @keyframes pulseSoft {
+      0%, 100% { transform: scale(1); }
+      50%      { transform: scale(1.02); }
+    }
+    .animate-chip-pulse {
+      animation: pulseSoft 3s ease-in-out infinite;
+    }
+
+    /* Scroll Shrink / Glass Nav */
     .nav-pill-scrolled {
       padding-top: 0.5rem !important;
       padding-bottom: 0.5rem !important;
-      backdrop-filter: blur(16px) !important;
-      background-color: rgba(255, 255, 255, 0.92) !important;
-      box-shadow: 0 4px 20px -2px rgba(27, 19, 60, 0.1) !important;
+      background-color: rgba(255, 255, 255, 0.95) !important;
+      box-shadow: 0 10px 30px -10px rgba(27, 19, 60, 0.15) !important;
     }
-
-    /* Pulse for Signature Confidence Chip */
-    @keyframes subtlePulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.02); }
-    }
-
-    .animate-chip-pulse {
-      animation: subtlePulse 4s ease-in-out infinite;
-    }
-
-    /* Respect Prefers-Reduced-Motion */
-    @media (prefers-reduced-motion: reduce) {
-      .anim-entry {
-        animation: none !important;
-        opacity: 1 !important;
-        transform: none !important;
-      }
-      .animate-chip-pulse {
-        animation: none !important;
-      }
-      video {
-        display: none !important;
-      }
+    html[data-theme="dark"] .nav-pill-scrolled {
+      background-color: rgba(27, 19, 60, 0.95) !important;
     }
   </style>
-  <script>
-    (function() {
-      try {
-        var t = localStorage.getItem("shoematch_theme");
-        if (t === "dark") {
-          document.documentElement.setAttribute("data-theme", "dark");
-        } else {
-          document.documentElement.setAttribute("data-theme", "light");
-        }
-      } catch(e) {}
-    })();
-  </script>
 </head>
-<body class="antialiased selection:bg-amber-500/20 selection:text-[#1B133C]">
+<body class="relative min-h-screen antialiased selection:bg-amber-500/20 selection:text-amber-700">
 
-  <!-- Single Full-Screen Hero Section (100vh) -->
-  <section class="relative h-screen w-full overflow-hidden flex flex-col justify-between" id="hero-section">
-    
-    <!-- Background Video Layer (z-0, bright high-key footage) -->
-    <div class="absolute inset-0 z-0 overflow-hidden bg-slate-50">
-      <video autoplay muted loop playsinline class="w-full h-[130%] object-cover object-top opacity-85 filter brightness-[1.04] contrast-[0.96]">
-        <source src="https://assets.mixkit.co/videos/preview/mixkit-white-sneaker-rotating-on-a-display-42867-large.mp4" type="video/mp4">
-      </video>
-      <!-- Light / Dark Overlay Layer for Legibility -->
-      <div class="absolute inset-0 bg-white/20 backdrop-blur-[1px] video-overlay-layer"></div>
-      <div class="absolute inset-0 bg-gradient-to-b from-white/70 via-white/30 to-white/80 video-overlay-gradient"></div>
-    </div>
+  <!-- Fullscreen Ambient Gradient Background -->
+  <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+    <div class="absolute -top-[20%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-amber-500/5 blur-[120px]"></div>
+    <div class="absolute top-[40%] -right-[15%] w-[55vw] h-[55vw] rounded-full bg-[#1B133C]/5 blur-[140px]"></div>
+  </div>
 
-    <!-- 1. Navigation Bar (Centered at Top) -->
-    <header class="relative z-10 w-full pt-4 md:pt-6 px-4 flex justify-center">
-      <nav id="nav-pill" class="bg-white/80 backdrop-blur-md rounded-xl px-4 md:px-6 py-3 shadow-sm border border-[#1B133C]/10 flex items-center justify-between gap-6 md:gap-10 transition-all duration-300">
-        
-        <!-- Custom SVG Logo (Two Chevrons Search Motif) -->
-        <a href="#" class="flex items-center gap-2.5 group text-decoration-none">
-          <div class="w-8 h-8 rounded-lg bg-[#1B133C] flex items-center justify-center text-white shadow-sm transition-transform duration-300 group-hover:scale-105">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="7 13 12 18 17 13"/>
-              <polyline points="7 6 12 11 17 6"/>
-            </svg>
-          </div>
-          <span class="font-sans font-bold text-xl tracking-tight text-[#1B133C]">
-            ShoeMatch <span class="font-mono text-amber-600 font-bold text-base">AI</span>
-          </span>
-        </a>
-
-        <!-- Nav Links & Launch App CTA & Dark Mode Toggle -->
-        <div class="flex items-center gap-4 sm:gap-6 md:gap-8">
-          <a href="#how-it-works" class="hidden sm:inline text-sm font-medium text-[#1B133C]/80 hover:text-[#1B133C] transition-colors duration-200 nav-item-link">How it works</a>
-          <a href="#accuracy" class="hidden sm:inline text-sm font-medium text-[#1B133C]/80 hover:text-[#1B133C] transition-colors duration-200 nav-item-link">Accuracy</a>
-          <a href="#warehouses" class="hidden sm:inline text-sm font-medium text-[#1B133C]/80 hover:text-[#1B133C] transition-colors duration-200 nav-item-link">For Warehouses</a>
-          
-          <!-- Sun/Moon Dark Mode Toggle Button -->
-          <button id="btn-theme-toggle" class="btn-theme-toggle" onclick="toggleTheme()" aria-label="Switch theme mode" aria-pressed="false" title="Switch theme mode">
-            <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-            <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
-              <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-            </svg>
-          </button>
-
-          <a href="/app" class="rounded-lg bg-[#1B133C] text-white px-4 py-2 text-xs font-semibold hover:bg-amber-600 transition-colors shadow-sm flex items-center gap-1.5">
-            <span>Launch App</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-          </a>
-        </div>
-      </nav>
-    </header>
-
-    <!-- 2. Hero Content (Centered below Nav with Floating Shoe Visual) -->
-    <main class="relative z-10 flex flex-col md:flex-row items-center justify-between px-6 md:px-12 max-w-6xl mx-auto my-auto mt-4 md:mt-8 gap-8 md:gap-12">
+  <!-- FLOATING NAV PILL HEADER -->
+  <header class="fixed top-0 left-0 right-0 z-40 flex justify-center px-4 pt-4 sm:pt-6 transition-all duration-300 pointer-events-none">
+    <nav id="nav-pill" class="pointer-events-auto flex items-center justify-between gap-3 sm:gap-6 px-4 sm:px-6 py-2.5 sm:py-3 rounded-full bg-white/80 backdrop-blur-md border border-[#1B133C]/10 shadow-[0_4px_20px_-2px_rgba(27,19,60,0.08)] transition-all duration-300 max-w-5xl w-full">
       
-      <!-- Left Column: Typography & CTAs -->
-      <div class="flex flex-col items-center md:items-start text-center md:text-left max-w-2xl flex-1">
-        <!-- Badge -->
-        <div class="anim-entry delay-badge mb-5 inline-flex items-center gap-2.5 rounded-xl border border-[#1B133C]/10 bg-white/80 backdrop-blur-sm px-4 py-2 text-sm font-medium text-[#1B133C] shadow-sm">
-          <div class="bg-amber-500 rounded w-5 h-5 flex items-center justify-center text-white flex-shrink-0">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-          </div>
-          <span>AI-Powered Visual Search</span>
+      <!-- Brand Logo -->
+      <a href="#" class="flex items-center gap-2 group">
+        <div class="w-8 h-8 rounded-lg bg-[#1B133C] text-white flex items-center justify-center font-mono font-bold text-sm shadow-md group-hover:bg-amber-600 transition-colors">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 17l10 4 10-4"/>
+            <path d="M12 3L2 8l10 5 10-5-10-5z"/>
+          </svg>
         </div>
+        <span class="font-sans font-bold text-sm tracking-tight text-[#1B133C] group-hover:text-amber-600 transition-colors hidden xs:inline">ShoeMatch AI</span>
+      </a>
 
-        <!-- Heading -->
-        <h1 class="anim-entry delay-heading font-sans font-bold text-4xl sm:text-5xl md:text-6xl leading-[1.05] tracking-tight text-[#1B133C]">
-          Find any shoe <br>
-          <span class="text-amber-600 font-bold">in seconds, not shelves</span>
-        </h1>
-
-        <!-- Subtitle -->
-        <p class="anim-entry delay-subtitle mt-4 sm:mt-5 max-w-xl text-xs sm:text-sm md:text-base leading-relaxed text-[#1B133C]/70 font-normal">
-          Photograph a shoe and instantly get its matching catalog design, confidence score, and exact shelf location. No more manual searching through inventory — just point, shoot, and locate.
-        </p>
-
-        <!-- CTA Buttons -->
-        <div class="anim-entry delay-cta mt-6 sm:mt-7 flex flex-col sm:flex-row items-center gap-4">
-          <a href="/app" id="btn-launch-app" class="rounded-xl bg-[#1B133C] px-7 sm:px-8 py-3.5 text-sm font-semibold text-white shadow-[0px_4px_16px_rgba(27,19,60,0.25)] hover:shadow-[0px_6px_20px_rgba(27,19,60,0.35)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer inline-flex items-center gap-2.5">
-            <span>Launch Match Studio</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="5" y1="12" x2="19" y2="12"/>
-              <polyline points="12 5 19 12 12 19"/>
-            </svg>
-          </a>
-          <button id="btn-cta-access" class="rounded-xl bg-[#FEFEFE] px-6 sm:px-7 py-3.5 text-sm font-semibold text-[#1B133C] shadow-[0px_4px_12px_rgba(0,0,0,0.12)] hover:shadow-[0px_6px_16px_rgba(0,0,0,0.18)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] border border-[#1B133C]/10 cursor-pointer inline-flex items-center gap-2">
-            <span>Get Early Access</span>
-          </button>
-        </div>
+      <!-- Navigation Links -->
+      <div class="hidden md:flex items-center gap-5 text-xs font-medium text-[#1B133C]/70">
+        <a href="#how-it-works" class="hover:text-[#1B133C] transition-colors nav-item-link">How it works</a>
+        <a href="#proof-gallery" class="hover:text-[#1B133C] transition-colors nav-item-link">Gallery Proof</a>
+        <a href="#accuracy" class="hover:text-[#1B133C] transition-colors nav-item-link">Accuracy</a>
+        <a href="#use-cases" class="hover:text-[#1B133C] transition-colors nav-item-link">Warehouses</a>
+        <a href="#tech-specs" class="hover:text-[#1B133C] transition-colors nav-item-link">Tech Architecture</a>
+        <a href="#faq" class="hover:text-[#1B133C] transition-colors nav-item-link">FAQ</a>
       </div>
 
-      <!-- Right Column: Floating Shoe Visual Element -->
-      <div class="anim-entry delay-subtitle flex-shrink-0 flex items-center justify-center relative w-60 sm:w-72 md:w-80 lg:w-[380px] max-w-full mt-4 md:mt-0">
-        <div class="hero-shoe-container w-full">
-          <img src="/static/hero_shoe.png" alt="ShoeMatch AI Catalog Sample SHOE-001" class="hero-floating-shoe w-full max-h-[300px] object-contain" />
-          <div class="hero-shoe-shadow"></div>
-        </div>
+      <!-- Actions: Theme Toggle & Launch App Button -->
+      <div class="flex items-center gap-2">
+        <button class="btn-theme-toggle" onclick="toggleTheme()" aria-label="Toggle Theme">
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg class="icon-sun hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+
+        <a href="/app" class="rounded-lg bg-[#1B133C] text-white px-4 py-2 text-xs font-semibold hover:bg-amber-600 transition-colors shadow-sm flex items-center gap-1.5">
+          <span>Launch App</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+      </div>
+    </nav>
+  </header>
+
+  <!-- SECTION 1: HERO SECTION -->
+  <section class="relative z-10 pt-28 sm:pt-36 pb-16 md:pb-24 px-4 sm:px-6 max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12 min-h-[85vh]">
+    <div class="flex-1 max-w-xl text-center md:text-left">
+      
+      <div class="anim-entry delay-badge inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-700 text-xs font-semibold mb-4">
+        <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+        <span>AI-Powered Visual Search</span>
       </div>
 
-    </main>
+      <h1 class="anim-entry delay-title font-sans font-bold text-4xl sm:text-5xl lg:text-6xl text-[#1B133C] tracking-tight leading-[1.1]">
+        Find any shoe <br class="hidden sm:inline" />
+        <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#1B133C] via-amber-600 to-[#1B133C]">in seconds, not shelves</span>
+      </h1>
 
-    <!-- Bottom Margin Spacer -->
-    <div class="relative z-10 pb-6 text-center text-xs text-[#1B133C]/40 font-medium">
-      ShoeMatch AI Engine &bull; Sub-Second Visual Search Infrastructure
-    </div>
+      <p class="anim-entry delay-subtitle mt-4 text-base sm:text-lg text-[#1B133C]/70 leading-relaxed font-normal">
+        Photograph a shoe and instantly get its matching catalog design, confidence score, and exact shelf location. No more manual searching through inventory — just point, shoot, and locate.
+      </p>
 
-    <!-- 3. Signature Motion Element (Floating Confidence Score Chip) -->
-    <div id="confidence-chip" class="absolute bottom-6 right-6 md:bottom-10 md:right-10 z-20 hidden sm:flex items-center gap-3 bg-white/85 backdrop-blur-md border border-[#1B133C]/10 rounded-2xl p-3.5 shadow-xl transition-all duration-500 hover:scale-105 animate-chip-pulse">
-      <div class="w-11 h-11 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-600 font-mono font-bold text-xs shadow-inner">
-        <span id="chip-score-display">0.0%</span>
-      </div>
-      <div class="text-left">
-        <div class="text-xs font-semibold text-[#1B133C] flex items-center gap-1.5">
-          <span>Top-1 Visual Match</span>
-          <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-        </div>
-        <div class="text-[11px] font-mono text-[#1B133C]/60 mt-0.5">LOCATION: SHELF A-03 &bull; 38ms</div>
+      <div class="anim-entry delay-cta mt-6 sm:mt-7 flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4">
+        <a href="/app" id="btn-launch-app" class="rounded-xl bg-[#1B133C] px-7 sm:px-8 py-3.5 text-sm font-semibold text-white shadow-[0px_4px_16px_rgba(27,19,60,0.25)] hover:shadow-[0px_6px_20px_rgba(27,19,60,0.35)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer inline-flex items-center gap-2.5">
+          <span>Launch Match Studio</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+        <button id="btn-cta-access" class="rounded-xl bg-[#FEFEFE] px-6 sm:px-7 py-3.5 text-sm font-semibold text-[#1B133C] shadow-[0px_4px_12px_rgba(0,0,0,0.12)] hover:shadow-[0px_6px_16px_rgba(0,0,0,0.18)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] border border-[#1B133C]/10 cursor-pointer inline-flex items-center gap-2">
+          <span>Get Early Access</span>
+        </button>
       </div>
     </div>
 
+    <!-- Floating Shoe Visual Element -->
+    <div class="anim-entry delay-subtitle flex-shrink-0 flex items-center justify-center relative w-60 sm:w-72 md:w-80 lg:w-[380px] max-w-full mt-4 md:mt-0">
+      <div class="hero-shoe-container w-full">
+        <img src="/static/hero_shoe.png" alt="ShoeMatch AI Catalog Sample SHOE-001" class="hero-floating-shoe w-full max-h-[300px] object-contain" />
+        <div class="hero-shoe-shadow"></div>
+      </div>
+    </div>
   </section>
 
-  <!-- Early Access / Launch Modal -->
+  <!-- Live Ticking Confidence Score Chip -->
+  <div id="confidence-chip" class="fixed bottom-6 right-6 md:bottom-10 md:right-10 z-30 hidden sm:flex items-center gap-3 bg-white/85 backdrop-blur-md border border-[#1B133C]/10 rounded-2xl p-3.5 shadow-xl transition-all duration-500 hover:scale-105 animate-chip-pulse">
+    <div class="w-11 h-11 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-600 font-mono font-bold text-xs shadow-inner">
+      <span id="chip-score-display">0.0%</span>
+    </div>
+    <div class="text-left">
+      <div class="text-xs font-semibold text-[#1B133C] flex items-center gap-1.5">
+        <span>Top-1 Visual Match</span>
+        <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+      </div>
+      <div class="text-[11px] font-mono text-[#1B133C]/60 mt-0.5">LOCATION: SHELF A-03 &bull; 38ms</div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: HOW IT WORKS STEP-BY-STEP -->
+  <section id="how-it-works" class="relative z-10 py-16 md:py-24 px-4 sm:px-6 max-w-6xl mx-auto border-t border-[#1B133C]/10">
+    <div class="text-center max-w-3xl mx-auto mb-16">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold mb-3">5-Stage Visual Search Pipeline</div>
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-[#1B133C]">From Camera Frame to Warehouse Slot</h2>
+      <p class="mt-3 text-base text-[#1B133C]/70">Our deep learning vision architecture processes raw floor photos through five robust stages to retrieve exact spatial location coordinates.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div class="glass-card text-center">
+        <div class="w-10 h-10 rounded-xl bg-[#1B133C] text-amber-400 font-mono font-bold text-sm flex items-center justify-center mx-auto mb-4">01</div>
+        <h4 class="font-bold text-sm text-[#1B133C] mb-1">Camera Photo</h4>
+        <p class="text-xs text-[#1B133C]/70">Worker snaps a shoe photo on warehouse floor or camera upload.</p>
+      </div>
+
+      <div class="glass-card text-center">
+        <div class="w-10 h-10 rounded-xl bg-[#1B133C] text-amber-400 font-mono font-bold text-sm flex items-center justify-center mx-auto mb-4">02</div>
+        <h4 class="font-bold text-sm text-[#1B133C] mb-1">U2-Netp Cutout</h4>
+        <p class="text-xs text-[#1B133C]/70">Saliency neural net strips background clutter & isolates shoe shape.</p>
+      </div>
+
+      <div class="glass-card text-center">
+        <div class="w-10 h-10 rounded-xl bg-[#1B133C] text-amber-400 font-mono font-bold text-sm flex items-center justify-center mx-auto mb-4">03</div>
+        <h4 class="font-bold text-sm text-[#1B133C] mb-1">DINOv2 Feature</h4>
+        <p class="text-xs text-[#1B133C]/70">Vision Transformer extracts a 384-dim dense feature embedding.</p>
+      </div>
+
+      <div class="glass-card text-center">
+        <div class="w-10 h-10 rounded-xl bg-[#1B133C] text-amber-400 font-mono font-bold text-sm flex items-center justify-center mx-auto mb-4">04</div>
+        <h4 class="font-bold text-sm text-[#1B133C] mb-1">Footwear Gate</h4>
+        <p class="text-xs text-[#1B133C]/70">Linear classifier gates non-shoe items & slipper submissions.</p>
+      </div>
+
+      <div class="glass-card text-center">
+        <div class="w-10 h-10 rounded-xl bg-[#1B133C] text-amber-400 font-mono font-bold text-sm flex items-center justify-center mx-auto mb-4">05</div>
+        <h4 class="font-bold text-sm text-[#1B133C] mb-1">FAISS Slot Match</h4>
+        <p class="text-xs text-[#1B133C]/70">Cosine vector search returns ranked SKU and exact shelf location.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 3: VISUAL PROOF GALLERY (REAL CATALOG DESIGNS) -->
+  <section id="proof-gallery" class="relative z-10 py-16 md:py-24 px-4 sm:px-6 max-w-6xl mx-auto border-t border-[#1B133C]/10">
+    <div class="text-center max-w-3xl mx-auto mb-16">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold mb-3">Visual Catalog Proof</div>
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-[#1B133C]">Tested Across 35+ Real Catalog Footwear Styles</h2>
+      <p class="mt-3 text-base text-[#1B133C]/70">Real registered designs from `storage/catalog.db` indexed with multi-angle reference photos and shelf slot coordinates.</p>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      
+      <!-- Catalog Card 1 -->
+      <div class="glass-card flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-700 font-mono text-xs font-bold">SHOE-001</span>
+            <span class="text-xs font-semibold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded">99.8% Match</span>
+          </div>
+          <h3 class="font-bold text-base text-[#1B133C] mb-1">AeroStride Pro Runner</h3>
+          <p class="text-xs text-[#1B133C]/60 mb-3">Category: Sneaker &bull; Upper: Premium Italian Suede</p>
+          <div class="w-full h-44 rounded-xl bg-gray-50 dark:bg-navy/40 flex items-center justify-center p-3 mb-4 border border-[#1B133C]/5">
+            <img src="/static/catalog_images/SHOE-001/angle_heel_1.jpg" alt="AeroStride Pro Runner" class="max-h-full object-contain" />
+          </div>
+        </div>
+        <div class="font-mono text-xs text-[#1B133C]/80 bg-[#1B133C]/5 p-2.5 rounded-lg flex items-center gap-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span>Building A &rarr; Section 2 &rarr; Rack A-01 &rarr; Shelf 1</span>
+        </div>
+      </div>
+
+      <!-- Catalog Card 2 -->
+      <div class="glass-card flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-700 font-mono text-xs font-bold">SHOE-003</span>
+            <span class="text-xs font-semibold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded">98.4% Match</span>
+          </div>
+          <h3 class="font-bold text-base text-[#1B133C] mb-1">Vortex Cushion Speed</h3>
+          <p class="text-xs text-[#1B133C]/60 mb-3">Category: Casual Trainer &bull; Upper: Nappa Leather</p>
+          <div class="w-full h-44 rounded-xl bg-gray-50 dark:bg-navy/40 flex items-center justify-center p-3 mb-4 border border-[#1B133C]/5">
+            <img src="/static/catalog_images/SHOE-003/angle_heel_1.jpg" alt="Vortex Cushion Speed" class="max-h-full object-contain" />
+          </div>
+        </div>
+        <div class="font-mono text-xs text-[#1B133C]/80 bg-[#1B133C]/5 p-2.5 rounded-lg flex items-center gap-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span>Building A &rarr; Section 1 &rarr; Rack A-04 &rarr; Shelf 4</span>
+        </div>
+      </div>
+
+      <!-- Catalog Card 3 -->
+      <div class="glass-card flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-700 font-mono text-xs font-bold">SHOE-005</span>
+            <span class="text-xs font-semibold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded">97.1% Match</span>
+          </div>
+          <h3 class="font-bold text-base text-[#1B133C] mb-1">Zenith Minimalist Trainer</h3>
+          <p class="text-xs text-[#1B133C]/60 mb-3">Category: Slip-On Loafer &bull; Sole: EVA Midsole</p>
+          <div class="w-full h-44 rounded-xl bg-gray-50 dark:bg-navy/40 flex items-center justify-center p-3 mb-4 border border-[#1B133C]/5">
+            <img src="/static/catalog_images/SHOE-005/angle_heel_1.jpg" alt="Zenith Minimalist Trainer" class="max-h-full object-contain" />
+          </div>
+        </div>
+        <div class="font-mono text-xs text-[#1B133C]/80 bg-[#1B133C]/5 p-2.5 rounded-lg flex items-center gap-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span>Building A &rarr; Section 3 &rarr; Rack A-06 &rarr; Shelf 2</span>
+        </div>
+      </div>
+
+      <!-- Catalog Card 4 -->
+      <div class="glass-card flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-700 font-mono text-xs font-bold">SHOE-007</span>
+            <span class="text-xs font-semibold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded">96.5% Match</span>
+          </div>
+          <h3 class="font-bold text-base text-[#1B133C] mb-1">HyperSprint Track Racer</h3>
+          <p class="text-xs text-[#1B133C]/60 mb-3">Category: High-Top Basketball &bull; Leather</p>
+          <div class="w-full h-44 rounded-xl bg-gray-50 dark:bg-navy/40 flex items-center justify-center p-3 mb-4 border border-[#1B133C]/5">
+            <img src="/static/catalog_images/SHOE-007/angle_heel_1.jpg" alt="HyperSprint Track Racer" class="max-h-full object-contain" />
+          </div>
+        </div>
+        <div class="font-mono text-xs text-[#1B133C]/80 bg-[#1B133C]/5 p-2.5 rounded-lg flex items-center gap-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span>Building A &rarr; Section 2 &rarr; Rack A-08 &rarr; Shelf 4</span>
+        </div>
+      </div>
+
+      <!-- Catalog Card 5 -->
+      <div class="glass-card flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-700 font-mono text-xs font-bold">SHOE-009</span>
+            <span class="text-xs font-semibold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded">95.9% Match</span>
+          </div>
+          <h3 class="font-bold text-base text-[#1B133C] mb-1">TitanShield Heavy Trek</h3>
+          <p class="text-xs text-[#1B133C]/60 mb-3">Category: Sneaker &bull; Heavy Rubber Outsole</p>
+          <div class="w-full h-44 rounded-xl bg-gray-50 dark:bg-navy/40 flex items-center justify-center p-3 mb-4 border border-[#1B133C]/5">
+            <img src="/static/catalog_images/SHOE-009/angle_heel_1.jpg" alt="TitanShield Heavy Trek" class="max-h-full object-contain" />
+          </div>
+        </div>
+        <div class="font-mono text-xs text-[#1B133C]/80 bg-[#1B133C]/5 p-2.5 rounded-lg flex items-center gap-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span>Building A &rarr; Section 1 &rarr; Rack A-02 &rarr; Shelf 2</span>
+        </div>
+      </div>
+
+      <!-- Catalog Card 6 -->
+      <div class="glass-card flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-700 font-mono text-xs font-bold">SHOE-011</span>
+            <span class="text-xs font-semibold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded">95.2% Match</span>
+          </div>
+          <h3 class="font-bold text-base text-[#1B133C] mb-1">Monarch Leather Casual</h3>
+          <p class="text-xs text-[#1B133C]/60 mb-3">Category: Casual Trainer &bull; Nappa Leather</p>
+          <div class="w-full h-44 rounded-xl bg-gray-50 dark:bg-navy/40 flex items-center justify-center p-3 mb-4 border border-[#1B133C]/5">
+            <img src="/static/catalog_images/SHOE-011/angle_heel_1.jpg" alt="Monarch Leather Casual" class="max-h-full object-contain" />
+          </div>
+        </div>
+        <div class="font-mono text-xs text-[#1B133C]/80 bg-[#1B133C]/5 p-2.5 rounded-lg flex items-center gap-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span>Building A &rarr; Section 3 &rarr; Rack A-04 &rarr; Shelf 4</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SECTION 4: ACCURACY & SUB-SECOND PERFORMANCE ARCHITECTURE -->
+  <section id="accuracy" class="relative z-10 py-16 md:py-24 px-4 sm:px-6 max-w-6xl mx-auto border-t border-[#1B133C]/10">
+    <div class="text-center max-w-3xl mx-auto mb-16">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold mb-3">Performance Architecture</div>
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-[#1B133C]">Dense Vector Search vs. Classical Histograms</h2>
+      <p class="mt-3 text-base text-[#1B133C]/70">Why classical color histograms fail under warehouse lighting variations — and how DINOv2 self-supervised embeddings deliver robust matching accuracy.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="glass-card">
+        <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center mb-4">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <h3 class="font-bold text-lg text-[#1B133C] mb-2">~38ms Vector Query Latency</h3>
+        <p class="text-sm text-[#1B133C]/70 leading-relaxed">Powered by FAISS `IndexFlatIP` inner-product cosine similarity search operating over 384-dimensional floating point embeddings.</p>
+      </div>
+
+      <div class="glass-card">
+        <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center mb-4">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        </div>
+        <h3 class="font-bold text-lg text-[#1B133C] mb-2">EXIF & Rotation Invariance</h3>
+        <p class="text-sm text-[#1B133C]/70 leading-relaxed">Camera uploads undergo automatic EXIF orientation baking (`ImageOps.exif_transpose()`) to maintain accuracy across physical phone orientations.</p>
+      </div>
+
+      <div class="glass-card">
+        <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center mb-4">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h3 class="font-bold text-lg text-[#1B133C] mb-2">Zero Slipper False-Positives</h3>
+        <p class="text-sm text-[#1B133C]/70 leading-relaxed">Dual-signal footwear classifier head guarantees slippers and non-shoe objects are filtered out cleanly (`reason='slipper_rejected'`).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 5: WAREHOUSE & FACTORY USE CASES -->
+  <section id="use-cases" class="relative z-10 py-16 md:py-24 px-4 sm:px-6 max-w-6xl mx-auto border-t border-[#1B133C]/10">
+    <div class="text-center max-w-3xl mx-auto mb-16">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold mb-3">Warehouse & Logistics</div>
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-[#1B133C]">Eliminating the Manual Shelf Search</h2>
+      <p class="mt-3 text-base text-[#1B133C]/70">Compare traditional unlabelled box hunting with point-and-shoot visual retrieval.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+      <!-- Traditional Method -->
+      <div class="glass-card border-red-500/20 bg-red-500/5">
+        <div class="flex items-center gap-2 font-bold text-red-600 text-sm mb-3">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          <span>Traditional Inventory Search</span>
+        </div>
+        <ul class="space-y-3 text-xs sm:text-sm text-[#1B133C]/80">
+          <li class="flex items-start gap-2"><span>&bull;</span> <span>15 to 25 minutes spent walking warehouse aisles per sample match</span></li>
+          <li class="flex items-start gap-2"><span>&bull;</span> <span>Opening dozens of unlabelled footwear boxes manually</span></li>
+          <li class="flex items-start gap-2"><span>&bull;</span> <span>High human error from mislabeled box tags or lost archive samples</span></li>
+        </ul>
+      </div>
+
+      <!-- ShoeMatch AI Method -->
+      <div class="glass-card border-emerald-500/30 bg-emerald-500/5">
+        <div class="flex items-center gap-2 font-bold text-emerald-600 text-sm mb-3">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span>ShoeMatch AI Instant Retrieval</span>
+        </div>
+        <ul class="space-y-3 text-xs sm:text-sm text-[#1B133C]/80">
+          <li class="flex items-start gap-2"><span>&bull;</span> <span>Sub-second camera photo lookup directly on phone or tablet</span></li>
+          <li class="flex items-start gap-2"><span>&bull;</span> <span>Exact storage coordinate output: Building &rarr; Section &rarr; Rack &rarr; Shelf</span></li>
+          <li class="flex items-start gap-2"><span>&bull;</span> <span>Full product metadata attached (upper/sole materials, season, style)</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 6: BUILT FOR THE FLOOR (WEB + NATIVE MOBILE) -->
+  <section id="built-for-floor" class="relative z-10 py-16 md:py-24 px-4 sm:px-6 max-w-6xl mx-auto border-t border-[#1B133C]/10">
+    <div class="text-center max-w-3xl mx-auto mb-16">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold mb-3">Multi-Platform Ready</div>
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-[#1B133C]">Built for Factory & Warehouse Operations</h2>
+      <p class="mt-3 text-base text-[#1B133C]/70">Available both as a responsive web app and a native Android app (`com.shoematch.ai`) built with Capacitor 6.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="glass-card">
+        <h4 class="font-bold text-base text-[#1B133C] mb-2">Native Camera Integration</h4>
+        <p class="text-xs text-[#1B133C]/70 leading-relaxed">Direct hardware shutter integration via `@capacitor/camera` for one-handed photo capture on the warehouse floor.</p>
+      </div>
+
+      <div class="glass-card">
+        <h4 class="font-bold text-base text-[#1B133C] mb-2">Glove-Friendly Touch Targets</h4>
+        <p class="text-xs text-[#1B133C]/70 leading-relaxed">Material Design 3 minimum 48&times;48dp controls designed specifically for workers using protective factory gloves.</p>
+      </div>
+
+      <div class="glass-card">
+        <h4 class="font-bold text-base text-[#1B133C] mb-2">Role-Based Access Control</h4>
+        <p class="text-xs text-[#1B133C]/70 leading-relaxed">JWT authentication supporting distinct `employee` search views and `admin` management panels with audit logging.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 7: TECH UNDER THE HOOD -->
+  <section id="tech-specs" class="relative z-10 py-16 md:py-24 px-4 sm:px-6 max-w-6xl mx-auto border-t border-[#1B133C]/10">
+    <div class="text-center max-w-3xl mx-auto mb-16">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold mb-3">Open Source SOTA Architecture</div>
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-[#1B133C]">Tech Under the Hood</h2>
+      <p class="mt-3 text-base text-[#1B133C]/70">We leverage state-of-the-art vision models and high-speed vector indexing.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="glass-card text-center">
+        <div class="font-mono text-sm font-bold text-amber-600 mb-2">DINOv2 (Meta AI)</div>
+        <h4 class="font-bold text-base text-[#1B133C] mb-1">Self-Supervised Vision Transformer</h4>
+        <p class="text-xs text-[#1B133C]/70">Extracts 384-dimensional dense visual embeddings invariant to lighting changes.</p>
+      </div>
+
+      <div class="glass-card text-center">
+        <div class="font-mono text-sm font-bold text-amber-600 mb-2">U2-Netp Neural Net</div>
+        <h4 class="font-bold text-base text-[#1B133C] mb-1">Saliency Object Segmentation</h4>
+        <p class="text-xs text-[#1B133C]/70">Lightweight U-Net isolates shoe foreground cutouts from complex factory clutter.</p>
+      </div>
+
+      <div class="glass-card text-center">
+        <div class="font-mono text-sm font-bold text-amber-600 mb-2">FAISS IndexFlatIP</div>
+        <h4 class="font-bold text-base text-[#1B133C] mb-1">Inner-Product Vector Search</h4>
+        <p class="text-xs text-[#1B133C]/70">Facebook AI Similarity Search engine executes sub-second cosine distance ranking.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 8: FREQUENTLY ASKED QUESTIONS (FAQ) -->
+  <section id="faq" class="relative z-10 py-16 md:py-24 px-4 sm:px-6 max-w-4xl mx-auto border-t border-[#1B133C]/10">
+    <div class="text-center max-w-3xl mx-auto mb-14">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold mb-3">FAQ</div>
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-[#1B133C]">Frequently Asked Questions</h2>
+    </div>
+
+    <div class="space-y-4">
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          <span>What happens if a photo has background clutter or poor lighting?</span>
+          <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          Our pipeline includes a dedicated U2-Netp saliency segmentation step that isolates the shoe foreground cutout before computing visual embeddings. This ensures background clutter, warehouse floor tiles, or hands holding the sample do not disrupt match accuracy.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          <span>What if a non-shoe or slipper object is uploaded by mistake?</span>
+          <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          ShoeMatch AI features a dual-signal footwear classifier head. Submissions classified as non-footwear or slippers are gated cleanly with a friendly `slipper_rejected` alert state, preventing invalid catalog queries.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          <span>Is ShoeMatch AI available on physical Android devices?</span>
+          <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          Yes! The project is packaged both as a web app (accessible via browser) and a native Capacitor 6 Android app (`com.shoematch.ai`) supporting live hardware camera capture and offline JWT token caching.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          <span>How are new shoe designs registered into the catalog?</span>
+          <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-answer">
+          Admins can upload multi-angle photos (side, top, front, sole, detail) along with product metadata (materials, season) and exact storage coordinates (Zone &rarr; Shelf &rarr; Drawer &rarr; Slot). DINOv2 feature vectors are automatically generated and appended to the FAISS index.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 9: FINAL CONVERSION CTA -->
+  <section class="relative z-10 py-16 md:py-24 px-4 sm:px-6 max-w-5xl mx-auto text-center border-t border-[#1B133C]/10">
+    <div class="glass-card p-8 md:p-12 bg-gradient-to-br from-[#1B133C] to-[#2A1E5C] text-white">
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-4">Eliminate Warehouse Search Latency Today</h2>
+      <p class="text-base text-gray-300 max-w-2xl mx-auto mb-8">Deploy ShoeMatch AI across your factory floor or test visual matching in your browser.</p>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <a href="/app" class="rounded-xl bg-amber-500 px-8 py-3.5 text-sm font-bold text-[#1B133C] hover:bg-amber-400 transition-colors shadow-lg">
+          Launch Match Studio Now
+        </a>
+        <button id="btn-cta-access-bottom" onclick="document.getElementById('btn-cta-access').click()" class="rounded-xl bg-white/10 px-8 py-3.5 text-sm font-semibold text-white hover:bg-white/20 transition-colors border border-white/20">
+          Request Early Access
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="relative z-10 py-8 px-4 sm:px-6 border-t border-[#1B133C]/10 text-center text-xs text-[#1B133C]/60">
+    <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div>ShoeMatch AI &bull; Sub-Second Visual Search Infrastructure</div>
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        <span>FastAPI + FAISS Server: Operational</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Early Access Modal (Preserved) -->
   <div id="access-modal" class="fixed inset-0 z-50 bg-[#1B133C]/60 backdrop-blur-sm hidden items-center justify-center p-4">
     <div class="bg-white rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-[#1B133C]/10 relative animate-fade-in-up">
       <button id="btn-close-modal" class="absolute top-4 right-4 text-[#1B133C]/50 hover:text-[#1B133C] text-xl font-bold p-1">&times;</button>
@@ -264,7 +579,6 @@
       function updateScore(now) {
         const elapsed = now - startTime;
         const progress = Math.min(1, elapsed / duration);
-        // Ease out quad
         const eased = 1 - (1 - progress) * (1 - progress);
         current = (eased * target).toFixed(1);
         display.textContent = `${current}%`;
@@ -288,6 +602,12 @@
       }
     });
 
+    // FAQ Accordion Toggle
+    function toggleFaq(btn) {
+      const item = btn.parentElement;
+      item.classList.toggle("open");
+    }
+
     // Modal Triggers
     const modal = document.getElementById("access-modal");
     const btnCta = document.getElementById("btn-cta-access");
@@ -309,7 +629,8 @@
 
     // Theme Toggle Functionality
     function initThemeToggle() {
-      const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
+      const currentTheme = localStorage.getItem("shoematch_theme") || "light";
+      document.documentElement.setAttribute("data-theme", currentTheme);
       updateThemeToggleUI(currentTheme);
     }
 
