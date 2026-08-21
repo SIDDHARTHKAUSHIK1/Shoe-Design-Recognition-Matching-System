@@ -1180,6 +1180,7 @@ document.addEventListener("DOMContentLoaded", () => {
               <img src="${getImageUrl(a.image_path)}" 
                    class="angle-thumb ${a.image_path === m.best_matching_image_url ? 'active' : ''}" 
                    title="Angle: ${a.angle}" 
+                   onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'1.5\'><path d=\'M20.24 12.24a6 6 0 0 0-8.49-8.49L3.5 12.00a6 6 0 0 0 8.49 8.49l8.25-8.25z\'/><path d=\'M16 8l-4 4\'/></svg>';"
                    onclick="event.stopPropagation(); swapMatchImage(this, '${m.design_id}')">
             `).join("")}
           </div>
@@ -1193,7 +1194,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       card.innerHTML = `
         <div class="match-img-box" id="img-box-${m.design_id}">
-          <img src="${getImageUrl(m.best_matching_image_url)}" alt="${m.design_name}">
+          <img src="${getImageUrl(m.best_matching_image_url)}" alt="${m.design_name}" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'1.5\'><path d=\'M20.24 12.24a6 6 0 0 0-8.49-8.49L3.5 12.00a6 6 0 0 0 8.49 8.49l8.25-8.25z\'/><path d=\'M16 8l-4 4\'/></svg>';">
           <span class="match-angle-tag">${m.best_matching_angle}</span>
         </div>
 
@@ -1640,7 +1641,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <!-- Left Column: Gallery & High-Res Viewer -->
           <div class="preview-gallery-col">
             <div class="preview-main-viewer" id="preview-stage-box">
-              <img id="preview-active-image" src="${firstImage}" alt="${design.name}">
+              <img id="preview-active-image" src="${firstImage}" alt="${design.name}" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'1.5\'><path d=\'M20.24 12.24a6 6 0 0 0-8.49-8.49L3.5 12.00a6 6 0 0 0 8.49 8.49l8.25-8.25z\'/><path d=\'M16 8l-4 4\'/></svg>';">
               <span class="viewer-angle-pill" id="preview-angle-pill">Angle: ${firstAngle}</span>
               ${hasQueryPhoto ? `
                 <button class="viewer-toggle-btn" id="btn-toggle-split" onclick="toggleComparisonSplit('${firstImage}', '${queryPreviewSrc}')">
@@ -1658,7 +1659,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <button class="preview-thumb-btn ${idx === 0 ? 'active' : ''}" 
                             onclick="selectPreviewAngle('${getImageUrl(img.image_path)}', '${img.angle}', this)"
                             title="View ${img.angle} angle">
-                      <img src="${getImageUrl(img.image_path)}" alt="${img.angle}">
+                      <img src="${getImageUrl(img.image_path)}" alt="${img.angle}" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'1.5\'><path d=\'M20.24 12.24a6 6 0 0 0-8.49-8.49L3.5 12.00a6 6 0 0 0 8.49 8.49l8.25-8.25z\'/><path d=\'M16 8l-4 4\'/></svg>';">
                       <span class="preview-thumb-tag">${img.angle}</span>
                     </button>
                   `).join("")}
@@ -1801,7 +1802,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const hasQuery = Boolean(state.selectedQueryFile && queryPreviewSrc);
     if (stage) {
       stage.innerHTML = `
-        <img id="preview-active-image" src="${imgPath}" alt="${angle}">
+        <img id="preview-active-image" src="${imgPath}" alt="${angle}" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'1.5\'><path d=\'M20.24 12.24a6 6 0 0 0-8.49-8.49L3.5 12.00a6 6 0 0 0 8.49 8.49l8.25-8.25z\'/><path d=\'M16 8l-4 4\'/></svg>';">
         <span class="viewer-angle-pill" id="preview-angle-pill">Angle: ${angle}</span>
         ${hasQuery ? `
           <button class="viewer-toggle-btn" id="btn-toggle-split" onclick="toggleComparisonSplit('${imgPath}', '${queryPreviewSrc}')">
@@ -1825,7 +1826,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (stage.querySelector(".split-view-container")) {
       // Revert to single view
       stage.innerHTML = `
-        <img id="preview-active-image" src="${catalogImgSrc}" alt="Catalog Reference">
+        <img id="preview-active-image" src="${catalogImgSrc}" alt="Catalog Reference" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'1.5\'><path d=\'M20.24 12.24a6 6 0 0 0-8.49-8.49L3.5 12.00a6 6 0 0 0 8.49 8.49l8.25-8.25z\'/><path d=\'M16 8l-4 4\'/></svg>';">
         <span class="viewer-angle-pill">Single View</span>
         <button class="viewer-toggle-btn" onclick="toggleComparisonSplit('${catalogImgSrc}', '${queryImgSrc}')">
           ⚡ Side-by-Side Compare
@@ -1836,11 +1837,11 @@ document.addEventListener("DOMContentLoaded", () => {
       stage.innerHTML = `
         <div class="split-view-container">
           <div class="split-box">
-            <img src="${queryImgSrc}" alt="Query Target">
+            <img src="${queryImgSrc}" alt="Query Target" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'1.5\'><path d=\'M20.24 12.24a6 6 0 0 0-8.49-8.49L3.5 12.00a6 6 0 0 0 8.49 8.49l8.25-8.25z\'/><path d=\'M16 8l-4 4\'/></svg>';">
             <span class="split-label">Target Query Photo</span>
           </div>
           <div class="split-box">
-            <img src="${catalogImgSrc}" alt="Catalog Match">
+            <img src="${catalogImgSrc}" alt="Catalog Match" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'1.5\'><path d=\'M20.24 12.24a6 6 0 0 0-8.49-8.49L3.5 12.00a6 6 0 0 0 8.49 8.49l8.25-8.25z\'/><path d=\'M16 8l-4 4\'/></svg>';">
             <span class="split-label">Catalog Reference</span>
           </div>
         </div>
