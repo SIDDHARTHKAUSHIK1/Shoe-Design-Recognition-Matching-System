@@ -36,24 +36,24 @@ html[data-theme="dark"] {
   --color-navy: #F8FAF9;
   --bg-canvas: #130D2E;
   --bg-surface: #1B133C;
-  --bg-glass: rgba(27, 19, 60, 0.85);
+  --bg-glass: rgba(27, 19, 60, 0.88);
   --bg-glass-overlay-top: rgba(19, 13, 46, 0.85);
   --bg-glass-overlay-mid: rgba(19, 13, 46, 0.5);
   --bg-glass-overlay-bot: rgba(19, 13, 46, 0.9);
 
-  --border-subtle: rgba(255, 255, 255, 0.12);
-  --border-strong: rgba(255, 255, 255, 0.22);
+  --border-subtle: rgba(255, 255, 255, 0.14);
+  --border-strong: rgba(255, 255, 255, 0.25);
 
   --text-primary: #F8FAF9;
-  --text-secondary: rgba(248, 250, 249, 0.78);
-  --text-muted: rgba(248, 250, 249, 0.48);
+  --text-secondary: rgba(248, 250, 249, 0.82);
+  --text-muted: rgba(248, 250, 249, 0.52);
 
   --brand-accent: #F59E0B;
   --brand-accent-light: rgba(245, 158, 11, 0.15);
 
   --btn-cta-bg: #281D54;
   --btn-cta-text: #F8FAF9;
-  --btn-cta-border: rgba(255, 255, 255, 0.15);
+  --btn-cta-border: rgba(255, 255, 255, 0.18);
   --btn-cta-shadow: 0px 4px 16px rgba(0, 0, 0, 0.4);
 
   --shadow-pill: 0 4px 20px -2px rgba(0, 0, 0, 0.3);
@@ -68,44 +68,80 @@ body {
   scroll-behavior: smooth;
 }
 
-/* Dark Theme Overrides for Landing Page Components */
-html[data-theme="dark"] #nav-pill,
-html[data-theme="dark"] #confidence-chip,
-html[data-theme="dark"] .anim-entry.delay-badge,
-html[data-theme="dark"] .glass-card {
-  background-color: var(--bg-glass) !important;
-  border-color: var(--border-subtle) !important;
-  color: var(--text-primary) !important;
+/* ==========================================================================
+   Complete 100% Dark Mode Comprehensive Coverage
+   ========================================================================== */
+html[data-theme="dark"] body {
+  background-color: #130D2E !important;
+  color: #F8FAF9 !important;
 }
 
-html[data-theme="dark"] .video-overlay-gradient {
-  background: linear-gradient(to bottom, var(--bg-glass-overlay-top), var(--bg-glass-overlay-mid), var(--bg-glass-overlay-bot)) !important;
+html[data-theme="dark"] #nav-pill,
+html[data-theme="dark"] #confidence-chip,
+html[data-theme="dark"] .glass-card {
+  background-color: rgba(27, 19, 60, 0.85) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  color: #F8FAF9 !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35) !important;
+}
+
+html[data-theme="dark"] .glass-card h3,
+html[data-theme="dark"] .glass-card h4,
+html[data-theme="dark"] .glass-card p,
+html[data-theme="dark"] .glass-card span,
+html[data-theme="dark"] .glass-card div {
+  color: #F8FAF9 !important;
 }
 
 html[data-theme="dark"] h1,
 html[data-theme="dark"] h2,
 html[data-theme="dark"] h3,
-html[data-theme="dark"] h4 {
-  color: var(--text-primary) !important;
+html[data-theme="dark"] h4,
+html[data-theme="dark"] h5,
+html[data-theme="dark"] h6 {
+  color: #F8FAF9 !important;
 }
 
-html[data-theme="dark"] p {
-  color: var(--text-secondary) !important;
+html[data-theme="dark"] p,
+html[data-theme="dark"] span,
+html[data-theme="dark"] li {
+  color: rgba(248, 250, 249, 0.82) !important;
 }
 
-html[data-theme="dark"] #btn-cta-access {
-  background-color: var(--btn-cta-bg) !important;
-  color: var(--btn-cta-text) !important;
-  border-color: var(--btn-cta-border) !important;
-  box-shadow: var(--btn-cta-shadow) !important;
+html[data-theme="dark"] section {
+  border-color: rgba(255, 255, 255, 0.12) !important;
 }
 
-html[data-theme="dark"] .nav-item-link {
-  color: var(--text-secondary) !important;
+html[data-theme="dark"] .faq-item {
+  border-color: rgba(255, 255, 255, 0.14) !important;
 }
 
-html[data-theme="dark"] .nav-item-link:hover {
-  color: var(--text-primary) !important;
+html[data-theme="dark"] .faq-question {
+  color: #F8FAF9 !important;
+}
+
+html[data-theme="dark"] .faq-answer {
+  color: rgba(248, 250, 249, 0.8) !important;
+}
+
+html[data-theme="dark"] footer {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: rgba(248, 250, 249, 0.6) !important;
+}
+
+html[data-theme="dark"] .bg-[#1B133C]\/5,
+html[data-theme="dark"] .bg-gray-50 {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+html[data-theme="dark"] .text-[#1B133C]\/70,
+html[data-theme="dark"] .text-[#1B133C]\/60,
+html[data-theme="dark"] .text-[#1B133C]\/80 {
+  color: rgba(248, 250, 249, 0.78) !important;
+}
+
+html[data-theme="dark"] .text-[#1B133C] {
+  color: #F8FAF9 !important;
 }
 
 /* Theme Toggle Button Styling */
@@ -134,7 +170,7 @@ html[data-theme="dark"] .nav-item-link:hover {
 }
 
 /* ==========================================================================
-   Floating Hero Shoe Visual Motion Element
+   Floating Hero & Section Shoe Visual Motion Elements
    ========================================================================== */
 @keyframes heroShoeFloat {
   0%, 100% {
@@ -142,6 +178,15 @@ html[data-theme="dark"] .nav-item-link:hover {
   }
   50% {
     transform: translateY(-9px) rotate(-2deg);
+  }
+}
+
+@keyframes secondaryShoeFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(3deg);
+  }
+  50% {
+    transform: translateY(-7px) rotate(1deg);
   }
 }
 
@@ -172,6 +217,13 @@ html[data-theme="dark"] .nav-item-link:hover {
   will-change: transform;
 }
 
+.secondary-floating-shoe {
+  animation: secondaryShoeFloat 4.2s ease-in-out infinite;
+  filter: drop-shadow(0 12px 24px rgba(27, 19, 60, 0.18));
+  transition: filter 300ms ease, transform 300ms ease;
+  will-change: transform;
+}
+
 .hero-shoe-shadow {
   position: absolute;
   bottom: -10px;
@@ -182,8 +234,9 @@ html[data-theme="dark"] .nav-item-link:hover {
   animation: heroShoeShadowPulse 3.8s ease-in-out infinite;
 }
 
-/* Dark Theme Overrides for Floating Hero Shoe */
-html[data-theme="dark"] .hero-floating-shoe {
+/* Dark Theme Overrides for Floating Shoes */
+html[data-theme="dark"] .hero-floating-shoe,
+html[data-theme="dark"] .secondary-floating-shoe {
   filter: drop-shadow(0 16px 36px rgba(0, 0, 0, 0.75)) drop-shadow(0 0 24px rgba(245, 158, 11, 0.12));
 }
 
@@ -191,9 +244,7 @@ html[data-theme="dark"] .hero-shoe-shadow {
   background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.65) 0%, rgba(0, 0, 0, 0) 75%);
 }
 
-/* ==========================================================================
-   Expanded Section Styles & Glass Cards
-   ========================================================================== */
+/* Glass Card Component */
 .glass-card {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
@@ -255,7 +306,7 @@ html[data-theme="dark"] .hero-shoe-shadow {
   body, .btn-theme-toggle, #nav-pill, #confidence-chip, .glass-card, .faq-answer {
     transition: none !important;
   }
-  .hero-floating-shoe, .hero-shoe-shadow {
+  .hero-floating-shoe, .secondary-floating-shoe, .hero-shoe-shadow {
     animation: none !important;
     transform: rotate(-4deg) !important;
   }
