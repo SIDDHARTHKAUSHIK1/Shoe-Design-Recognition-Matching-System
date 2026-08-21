@@ -1,16 +1,43 @@
 version: '3.8'
 
 services:
-  shoe-match-app:
-    build: .
-    container_name: shoe_design_matcher
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shoematch_backend
+    restart: always
     ports:
       - "8000:8000"
-    volumes:
-      - ./storage:/app/storage
-      - ./dataset:/app/dataset
     environment:
-      - HOST=0.0.0.0
       - PORT=8000
-      - EMBEDDING_MODEL=facebook/dinov2-small
-    restart: unless-stopped
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - EMPLOYEE_PASSWORD=${EMPLOYEE_PASSWORD:-emp123}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
+    volumes:
+      # Persistent Volume Mount: database, vector index, catalog images & model weights
+      - ./storage:/app/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  nginx:
+    image: nginx:alpine
+    container_name: shoematch_nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - certbot_etc:/etc/letsencrypt
+      - certbot_var:/var/www/certbot
+    depends_on:
+      - backend
+
+volumes:
+  certbot_etc:
+  certbot_var:

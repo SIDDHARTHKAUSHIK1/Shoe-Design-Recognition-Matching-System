@@ -1,27 +1,36 @@
-FROM python:3.11-slim
+# Use slim Python 3.13 image
+FROM python:3.13-slim
 
-ENV PYTHONUNBUFFERED=1 \
-    DEBIAN_FRONTEND=noninteractive \
-    PORT=8000
+# Prevent Python from writing .pyc files and enable unbuffered output
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PORT=8000
 
 WORKDIR /app
 
+# Install system dependencies required for OpenCV, PyTorch, FAISS & SQLite
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libgl1 \
     libglib2.0-0 \
+    libgomp1 \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Copy dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu && \
-    pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt
 
+# Install Python packages (using CPU wheels for PyTorch)
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+
+# Copy application source code
 COPY . .
 
-# Ensure storage directories exist with appropriate permissions
-RUN mkdir -p storage/uploads storage/catalog_images
+# Ensure storage directories exist
+RUN mkdir -p storage/catalog_images storage/models storage/uploads
 
 EXPOSE 8000
 
-CMD ["python", "run_server.py"]
+# Start server using Uvicorn
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]

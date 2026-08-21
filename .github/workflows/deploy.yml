@@ -1,0 +1,27 @@
+name: Deploy ShoeMatch AI to Hostinger VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Hostinger VPS via Official Hostinger Action
+        uses: hostinger/deploy-on-vps@v2
+        with:
+          api-key: ${{ secrets.HOSTINGER_API_KEY }}
+          vm-id: ${{ secrets.HOSTINGER_VM_ID }}
+          command: |
+            cd /var/www/Shoe_Design_Detection || git clone https://github.com/${{ github.repository }}.git /var/www/Shoe_Design_Detection
+            cd /var/www/Shoe_Design_Detection
+            git fetch origin main
+            git reset --hard origin/main
+            docker compose down
+            docker compose up -d --build

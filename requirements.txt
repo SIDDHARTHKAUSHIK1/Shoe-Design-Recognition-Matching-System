@@ -1,10 +1,15 @@
-# Core Deep Learning & Vector Search (CPU-Only, Ultra-Low RAM)
+# Core Deep Learning & Vector Search (CPU-Only, Low RAM)
 torch>=2.0.0
 torchvision>=0.15.0
 transformers>=4.35.0
 faiss-cpu>=1.7.4
 numpy>=1.24.0
 pillow>=9.5.0
+opencv-python-headless>=4.8.0
+onnxruntime>=1.15.0
+
+# Spreadsheet & Ingestion
+openpyxl>=3.1.0
 
 # Backend & Web API
 fastapi>=0.100.0
