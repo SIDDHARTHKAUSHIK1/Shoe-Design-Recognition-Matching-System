@@ -9,7 +9,8 @@ import shutil
 import logging
 from pathlib import Path
 from contextlib import asynccontextmanager
-from typing import List, Optional
+from typing import List, Optional, Tuple
+from PIL import Image
 
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Request, Query, Depends
 from fastapi.responses import JSONResponse, FileResponse, Response
@@ -131,9 +132,16 @@ def validate_and_sanitize_image(filename: Optional[str], contents: bytes) -> str
         raise HTTPException(status_code=413, detail="File size exceeds maximum allowed limit (10 MB).")
         
     try:
-        img = Image.open(io.BytesIO(contents))
+        buf = io.BytesIO(contents)
+        img = Image.open(buf)
         img.verify()
-    except Exception:
+        
+        # Reset stream buffer after verify()
+        buf.seek(0)
+        img = Image.open(buf)
+        img.load()
+    except Exception as e:
+        logger.warning(f"Image validation rejected upload ({filename}): {e}")
         raise HTTPException(status_code=400, detail="Uploaded file is not a valid or readable image.")
         
     raw_name = Path(filename or "upload.jpg").name
