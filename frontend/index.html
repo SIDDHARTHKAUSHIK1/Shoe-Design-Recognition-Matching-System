@@ -96,10 +96,10 @@
       <!-- Navigation Links -->
       <div class="hidden md:flex items-center gap-5 text-xs font-medium text-[#1B133C]/70">
         <a href="#how-it-works" class="hover:text-[#1B133C] transition-colors nav-item-link">How it works</a>
-        <a href="#proof-gallery" class="hover:text-[#1B133C] transition-colors nav-item-link">Gallery Proof</a>
+        <a href="#proof-gallery" class="hover:text-[#1B133C] transition-colors nav-item-link">Catalog Variety</a>
         <a href="#accuracy" class="hover:text-[#1B133C] transition-colors nav-item-link">Accuracy</a>
         <a href="#use-cases" class="hover:text-[#1B133C] transition-colors nav-item-link">Warehouses</a>
-        <a href="#tech-specs" class="hover:text-[#1B133C] transition-colors nav-item-link">Tech Architecture</a>
+        <a href="#tech-specs" class="hover:text-[#1B133C] transition-colors nav-item-link">AI System</a>
         <a href="#faq" class="hover:text-[#1B133C] transition-colors nav-item-link">FAQ</a>
       </div>
 
@@ -133,7 +133,7 @@
       </h1>
 
       <p class="anim-entry delay-subtitle mt-4 text-base sm:text-lg text-[#1B133C]/70 leading-relaxed font-normal">
-        Photograph a shoe and instantly get its matching catalog design, confidence score, and exact shelf location. No more manual searching through inventory — just point, shoot, and locate.
+        Take a picture of any shoe and instantly find its matching catalog design, material details, and exact shelf location. No more manual searching through unlabelled inventory boxes.
       </p>
 
       <div class="anim-entry delay-cta mt-6 sm:mt-7 flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4">
@@ -147,10 +147,10 @@
       </div>
     </div>
 
-    <!-- Floating Hero Shoe Visual Element #1 -->
-    <div class="anim-entry delay-subtitle flex-shrink-0 flex items-center justify-center relative w-60 sm:w-72 md:w-80 lg:w-[380px] max-w-full mt-4 md:mt-0">
-      <div class="hero-shoe-container w-full">
-        <img src="/static/hero_shoe.png" alt="ShoeMatch AI Catalog Sample SHOE-001" class="hero-floating-shoe w-full max-h-[300px] object-contain" />
+    <!-- Floating Hero Shoe Visual Element #1 (Clickable Preview) -->
+    <div class="anim-entry delay-subtitle flex-shrink-0 flex items-center justify-center relative w-60 sm:w-72 md:w-80 lg:w-[380px] max-w-full mt-4 md:mt-0 cursor-pointer" onclick="openImagePreview('/static/hero_shoe.png', 'Hero Sample Shoe (AeroStride Pro)', 'Click-to-preview visual matching sample')">
+      <div class="hero-shoe-container w-full group">
+        <img src="/static/hero_shoe.png" alt="ShoeMatch AI Catalog Sample SHOE-001" class="hero-floating-shoe w-full max-h-[300px] object-contain group-hover:scale-105 transition-transform" />
         <div class="hero-shoe-shadow"></div>
       </div>
     </div>
@@ -170,18 +170,18 @@
     </div>
   </div>
 
-  <!-- SECTION 2: HOW IT WORKS STEP-BY-STEP -->
+  <!-- SECTION 2: HOW IT WORKS STEP-BY-STEP (PLAIN LANGUAGE) -->
   <section id="how-it-works" class="relative z-10 py-16 md:py-24 px-4 sm:px-6 max-w-6xl mx-auto border-t border-[#1B133C]/10">
     <div class="text-center max-w-3xl mx-auto mb-14">
-      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold mb-3">5-Stage Visual Search Pipeline</div>
-      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-[#1B133C]">From Camera Frame to Warehouse Slot</h2>
-      <p class="mt-3 text-base text-[#1B133C]/70">Our deep learning vision architecture processes raw floor photos through five robust stages to retrieve exact spatial location coordinates.</p>
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold mb-3">Simple 5-Step Process</div>
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-[#1B133C]">How Workers Find Any Shoe Instantly</h2>
+      <p class="mt-3 text-base text-[#1B133C]/70">No technical training required. Your warehouse team simply snaps a photo and gets the exact location in seconds.</p>
     </div>
 
-    <!-- Additional Animated Shoe Visual #2 (Pipeline Interactive Visual) -->
+    <!-- Additional Animated Shoe Visual #2 (Clickable Preview) -->
     <div class="flex items-center justify-center mb-12">
-      <div class="hero-shoe-container w-48 sm:w-56">
-        <img src="/catalog_images/DESIGN_001/photo_1.jpg" alt="Pipeline Input Visual" class="secondary-floating-shoe max-h-40 object-contain rounded-xl shadow-lg border border-amber-500/20 p-2 bg-white/80 dark:bg-navy/80" />
+      <div class="hero-shoe-container w-48 sm:w-56 cursor-pointer" onclick="openImagePreview('/catalog_images/DESIGN_007/photo_7.jpg', 'HyperSprint Basketball High-Top', 'High-Top Basketball Category Sample')">
+        <img src="/catalog_images/DESIGN_007/photo_7.jpg" alt="High-Top Basketball Sample" class="secondary-floating-shoe max-h-40 object-contain rounded-xl shadow-lg border border-amber-500/20 p-2 bg-white/80 dark:bg-navy/80 hover:scale-105 transition-transform" />
         <div class="hero-shoe-shadow"></div>
       </div>
     </div>
@@ -189,42 +189,42 @@
     <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
       <div class="glass-card text-center">
         <div class="w-10 h-10 rounded-xl bg-[#1B133C] text-amber-400 font-mono font-bold text-sm flex items-center justify-center mx-auto mb-4">01</div>
-        <h4 class="font-bold text-sm text-[#1B133C] mb-1">Camera Photo</h4>
-        <p class="text-xs text-[#1B133C]/70">Worker snaps a shoe photo on warehouse floor or camera upload.</p>
+        <h4 class="font-bold text-sm text-[#1B133C] mb-1">1. Snap Photo</h4>
+        <p class="text-xs text-[#1B133C]/70">Take a photo of any shoe on the warehouse floor using a phone or tablet.</p>
       </div>
 
       <div class="glass-card text-center">
         <div class="w-10 h-10 rounded-xl bg-[#1B133C] text-amber-400 font-mono font-bold text-sm flex items-center justify-center mx-auto mb-4">02</div>
-        <h4 class="font-bold text-sm text-[#1B133C] mb-1">U2-Netp Cutout</h4>
-        <p class="text-xs text-[#1B133C]/70">Saliency neural net strips background clutter & isolates shoe shape.</p>
+        <h4 class="font-bold text-sm text-[#1B133C] mb-1">2. Cleans Background</h4>
+        <p class="text-xs text-[#1B133C]/70">The app automatically removes background floor clutter to focus only on the shoe.</p>
       </div>
 
       <div class="glass-card text-center">
         <div class="w-10 h-10 rounded-xl bg-[#1B133C] text-amber-400 font-mono font-bold text-sm flex items-center justify-center mx-auto mb-4">03</div>
-        <h4 class="font-bold text-sm text-[#1B133C] mb-1">DINOv2 Feature</h4>
-        <p class="text-xs text-[#1B133C]/70">Vision Transformer extracts a 384-dim dense feature embedding.</p>
+        <h4 class="font-bold text-sm text-[#1B133C] mb-1">3. Reads Shape & Texture</h4>
+        <p class="text-xs text-[#1B133C]/70">Analyzes unique stitching, sole patterns, and materials in less than a second.</p>
       </div>
 
       <div class="glass-card text-center">
         <div class="w-10 h-10 rounded-xl bg-[#1B133C] text-amber-400 font-mono font-bold text-sm flex items-center justify-center mx-auto mb-4">04</div>
-        <h4 class="font-bold text-sm text-[#1B133C] mb-1">Footwear Gate</h4>
-        <p class="text-xs text-[#1B133C]/70">Linear classifier gates non-shoe items & slipper submissions.</p>
+        <h4 class="font-bold text-sm text-[#1B133C] mb-1">4. Smart Quality Check</h4>
+        <p class="text-xs text-[#1B133C]/70">Gently lets workers know if an accidental non-shoe photo was taken.</p>
       </div>
 
       <div class="glass-card text-center">
         <div class="w-10 h-10 rounded-xl bg-[#1B133C] text-amber-400 font-mono font-bold text-sm flex items-center justify-center mx-auto mb-4">05</div>
-        <h4 class="font-bold text-sm text-[#1B133C] mb-1">FAISS Slot Match</h4>
-        <p class="text-xs text-[#1B133C]/70">Cosine vector search returns ranked SKU and exact shelf location.</p>
+        <h4 class="font-bold text-sm text-[#1B133C] mb-1">5. Shows Shelf Rack</h4>
+        <p class="text-xs text-[#1B133C]/70">Displays the exact matching shoe along with its building, rack, and shelf location.</p>
       </div>
     </div>
   </section>
 
-  <!-- SECTION 3: VISUAL PROOF GALLERY (REAL CATALOG DESIGNS) -->
+  <!-- SECTION 3: VISUAL PROOF GALLERY (REAL DISTINCT CATALOG DESIGNS) -->
   <section id="proof-gallery" class="relative z-10 py-16 md:py-24 px-4 sm:px-6 max-w-6xl mx-auto border-t border-[#1B133C]/10">
     <div class="text-center max-w-3xl mx-auto mb-16">
-      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold mb-3">Visual Catalog Proof</div>
-      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-[#1B133C]">Tested Across 35+ Real Catalog Footwear Styles</h2>
-      <p class="mt-3 text-base text-[#1B133C]/70">Real registered designs from `storage/catalog.db` indexed with multi-angle reference photos and shelf slot coordinates.</p>
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold mb-3">Catalog Variety & Accuracy</div>
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-[#1B133C]">Works Across All Shoe Types & Categories</h2>
+      <p class="mt-3 text-base text-[#1B133C]/70">Real registered catalog shoes from `storage/catalog.db` — click any image for a larger preview.</p>
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -238,8 +238,8 @@
           </div>
           <h3 class="font-bold text-base text-[#1B133C] mb-1">AeroStride Pro Runner</h3>
           <p class="text-xs text-[#1B133C]/60 mb-3">Category: Sneaker &bull; Upper: Premium Italian Suede</p>
-          <div class="w-full h-44 rounded-xl bg-gray-50 dark:bg-navy/40 flex items-center justify-center p-3 mb-4 border border-[#1B133C]/5 overflow-hidden">
-            <img src="/catalog_images/DESIGN_001/photo_1.jpg" alt="AeroStride Pro Runner" class="max-h-full object-contain secondary-floating-shoe" />
+          <div class="w-full h-44 rounded-xl bg-gray-50 dark:bg-navy/40 flex items-center justify-center p-3 mb-4 border border-[#1B133C]/5 overflow-hidden cursor-pointer" onclick="openImagePreview('/catalog_images/DESIGN_001/photo_1.jpg', 'AeroStride Pro Runner (SHOE-001)', 'Category: Sneaker • Building A -> Section 2 -> Rack A-01 -> Shelf 1')">
+            <img src="/catalog_images/DESIGN_001/photo_1.jpg" alt="AeroStride Pro Runner" class="max-h-full object-contain secondary-floating-shoe hover:scale-105 transition-transform" />
           </div>
         </div>
         <div class="font-mono text-xs text-[#1B133C]/80 bg-[#1B133C]/5 p-2.5 rounded-lg flex items-center gap-2">
@@ -257,8 +257,8 @@
           </div>
           <h3 class="font-bold text-base text-[#1B133C] mb-1">Vortex Cushion Speed</h3>
           <p class="text-xs text-[#1B133C]/60 mb-3">Category: Casual Trainer &bull; Upper: Nappa Leather</p>
-          <div class="w-full h-44 rounded-xl bg-gray-50 dark:bg-navy/40 flex items-center justify-center p-3 mb-4 border border-[#1B133C]/5 overflow-hidden">
-            <img src="/catalog_images/DESIGN_002/photo_2.jpg" alt="Vortex Cushion Speed" class="max-h-full object-contain" />
+          <div class="w-full h-44 rounded-xl bg-gray-50 dark:bg-navy/40 flex items-center justify-center p-3 mb-4 border border-[#1B133C]/5 overflow-hidden cursor-pointer" onclick="openImagePreview('/catalog_images/DESIGN_002/photo_2.jpg', 'Vortex Cushion Speed (SHOE-003)', 'Category: Casual Trainer • Building A -> Section 1 -> Rack A-04 -> Shelf 4')">
+            <img src="/catalog_images/DESIGN_002/photo_2.jpg" alt="Vortex Cushion Speed" class="max-h-full object-contain hover:scale-105 transition-transform" />
           </div>
         </div>
         <div class="font-mono text-xs text-[#1B133C]/80 bg-[#1B133C]/5 p-2.5 rounded-lg flex items-center gap-2">
@@ -276,8 +276,8 @@
           </div>
           <h3 class="font-bold text-base text-[#1B133C] mb-1">Zenith Minimalist Trainer</h3>
           <p class="text-xs text-[#1B133C]/60 mb-3">Category: Slip-On Loafer &bull; Sole: EVA Midsole</p>
-          <div class="w-full h-44 rounded-xl bg-gray-50 dark:bg-navy/40 flex items-center justify-center p-3 mb-4 border border-[#1B133C]/5 overflow-hidden">
-            <img src="/catalog_images/DESIGN_003/photo_3.jpg" alt="Zenith Minimalist Trainer" class="max-h-full object-contain" />
+          <div class="w-full h-44 rounded-xl bg-gray-50 dark:bg-navy/40 flex items-center justify-center p-3 mb-4 border border-[#1B133C]/5 overflow-hidden cursor-pointer" onclick="openImagePreview('/catalog_images/DESIGN_003/photo_3.jpg', 'Zenith Minimalist Trainer (SHOE-005)', 'Category: Slip-On Loafer • Building A -> Section 3 -> Rack A-06 -> Shelf 2')">
+            <img src="/catalog_images/DESIGN_003/photo_3.jpg" alt="Zenith Minimalist Trainer" class="max-h-full object-contain hover:scale-105 transition-transform" />
           </div>
         </div>
         <div class="font-mono text-xs text-[#1B133C]/80 bg-[#1B133C]/5 p-2.5 rounded-lg flex items-center gap-2">
@@ -295,8 +295,8 @@
           </div>
           <h3 class="font-bold text-base text-[#1B133C] mb-1">HyperSprint Track Racer</h3>
           <p class="text-xs text-[#1B133C]/60 mb-3">Category: High-Top Basketball &bull; Leather</p>
-          <div class="w-full h-44 rounded-xl bg-gray-50 dark:bg-navy/40 flex items-center justify-center p-3 mb-4 border border-[#1B133C]/5 overflow-hidden">
-            <img src="/catalog_images/DESIGN_004/photo_4.jpg" alt="HyperSprint Track Racer" class="max-h-full object-contain" />
+          <div class="w-full h-44 rounded-xl bg-gray-50 dark:bg-navy/40 flex items-center justify-center p-3 mb-4 border border-[#1B133C]/5 overflow-hidden cursor-pointer" onclick="openImagePreview('/catalog_images/DESIGN_004/photo_4.jpg', 'HyperSprint Track Racer (SHOE-007)', 'Category: High-Top Basketball • Building A -> Section 2 -> Rack A-08 -> Shelf 4')">
+            <img src="/catalog_images/DESIGN_004/photo_4.jpg" alt="HyperSprint Track Racer" class="max-h-full object-contain hover:scale-105 transition-transform" />
           </div>
         </div>
         <div class="font-mono text-xs text-[#1B133C]/80 bg-[#1B133C]/5 p-2.5 rounded-lg flex items-center gap-2">
@@ -314,8 +314,8 @@
           </div>
           <h3 class="font-bold text-base text-[#1B133C] mb-1">TitanShield Heavy Trek</h3>
           <p class="text-xs text-[#1B133C]/60 mb-3">Category: Sneaker &bull; Heavy Rubber Outsole</p>
-          <div class="w-full h-44 rounded-xl bg-gray-50 dark:bg-navy/40 flex items-center justify-center p-3 mb-4 border border-[#1B133C]/5 overflow-hidden">
-            <img src="/catalog_images/DESIGN_005/photo_5.jpg" alt="TitanShield Heavy Trek" class="max-h-full object-contain" />
+          <div class="w-full h-44 rounded-xl bg-gray-50 dark:bg-navy/40 flex items-center justify-center p-3 mb-4 border border-[#1B133C]/5 overflow-hidden cursor-pointer" onclick="openImagePreview('/catalog_images/DESIGN_005/photo_5.jpg', 'TitanShield Heavy Trek (SHOE-009)', 'Category: Sneaker • Building A -> Section 1 -> Rack A-02 -> Shelf 2')">
+            <img src="/catalog_images/DESIGN_005/photo_5.jpg" alt="TitanShield Heavy Trek" class="max-h-full object-contain hover:scale-105 transition-transform" />
           </div>
         </div>
         <div class="font-mono text-xs text-[#1B133C]/80 bg-[#1B133C]/5 p-2.5 rounded-lg flex items-center gap-2">
@@ -333,8 +333,8 @@
           </div>
           <h3 class="font-bold text-base text-[#1B133C] mb-1">Monarch Leather Casual</h3>
           <p class="text-xs text-[#1B133C]/60 mb-3">Category: Casual Trainer &bull; Nappa Leather</p>
-          <div class="w-full h-44 rounded-xl bg-gray-50 dark:bg-navy/40 flex items-center justify-center p-3 mb-4 border border-[#1B133C]/5 overflow-hidden">
-            <img src="/catalog_images/DESIGN_006/photo_6.jpg" alt="Monarch Leather Casual" class="max-h-full object-contain" />
+          <div class="w-full h-44 rounded-xl bg-gray-50 dark:bg-navy/40 flex items-center justify-center p-3 mb-4 border border-[#1B133C]/5 overflow-hidden cursor-pointer" onclick="openImagePreview('/catalog_images/DESIGN_006/photo_6.jpg', 'Monarch Leather Casual (SHOE-011)', 'Category: Casual Trainer • Building A -> Section 3 -> Rack A-04 -> Shelf 4')">
+            <img src="/catalog_images/DESIGN_006/photo_6.jpg" alt="Monarch Leather Casual" class="max-h-full object-contain hover:scale-105 transition-transform" />
           </div>
         </div>
         <div class="font-mono text-xs text-[#1B133C]/80 bg-[#1B133C]/5 p-2.5 rounded-lg flex items-center gap-2">
@@ -346,12 +346,12 @@
     </div>
   </section>
 
-  <!-- SECTION 4: ACCURACY & SUB-SECOND PERFORMANCE ARCHITECTURE -->
+  <!-- SECTION 4: ACCURACY & SUB-SECOND PERFORMANCE (PLAIN LANGUAGE) -->
   <section id="accuracy" class="relative z-10 py-16 md:py-24 px-4 sm:px-6 max-w-6xl mx-auto border-t border-[#1B133C]/10">
     <div class="text-center max-w-3xl mx-auto mb-16">
-      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold mb-3">Performance Architecture</div>
-      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-[#1B133C]">Dense Vector Search vs. Classical Histograms</h2>
-      <p class="mt-3 text-base text-[#1B133C]/70">Why classical color histograms fail under warehouse lighting variations — and how DINOv2 self-supervised embeddings deliver robust matching accuracy.</p>
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold mb-3">Reliable & Fast</div>
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-[#1B133C]">High Accuracy Built for Real Warehouse Floors</h2>
+      <p class="mt-3 text-base text-[#1B133C]/70">Traditional color search fails under warehouse overhead lights. Our visual search focuses on shoe shape, textures, and stitching for dependable results.</p>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -359,40 +359,40 @@
         <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center mb-4">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         </div>
-        <h3 class="font-bold text-lg text-[#1B133C] mb-2">~38ms Vector Query Latency</h3>
-        <p class="text-sm text-[#1B133C]/70 leading-relaxed">Powered by FAISS `IndexFlatIP` inner-product cosine similarity search operating over 384-dimensional floating point embeddings.</p>
+        <h3 class="font-bold text-lg text-[#1B133C] mb-2">Sub-Second Speed (~38ms)</h3>
+        <p class="text-sm text-[#1B133C]/70 leading-relaxed">Search results display almost instantly so your staff never waits around during busy warehouse shifts.</p>
       </div>
 
       <div class="glass-card">
         <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center mb-4">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
         </div>
-        <h3 class="font-bold text-lg text-[#1B133C] mb-2">EXIF & Rotation Invariance</h3>
-        <p class="text-sm text-[#1B133C]/70 leading-relaxed">Camera uploads undergo automatic EXIF orientation baking (`ImageOps.exif_transpose()`) to maintain accuracy across physical phone orientations.</p>
+        <h3 class="font-bold text-lg text-[#1B133C] mb-2">Handles Any Camera Angle</h3>
+        <p class="text-sm text-[#1B133C]/70 leading-relaxed">Whether a phone photo is taken straight-on, sideways, or tilted, the app correctly identifies the shoe model.</p>
       </div>
 
       <div class="glass-card">
         <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center mb-4">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         </div>
-        <h3 class="font-bold text-lg text-[#1B133C] mb-2">Zero Slipper False-Positives</h3>
-        <p class="text-sm text-[#1B133C]/70 leading-relaxed">Dual-signal footwear classifier head guarantees slippers and non-shoe objects are filtered out cleanly (`reason='slipper_rejected'`).</p>
+        <h3 class="font-bold text-lg text-[#1B133C] mb-2">Filters Out Non-Shoes</h3>
+        <p class="text-sm text-[#1B133C]/70 leading-relaxed">Accidental photos of slippers or non-footwear objects are flagged immediately so your database remains clean.</p>
       </div>
     </div>
   </section>
 
-  <!-- SECTION 5: WAREHOUSE & FACTORY USE CASES -->
+  <!-- SECTION 5: WAREHOUSE & FACTORY USE CASES (PLAIN LANGUAGE) -->
   <section id="use-cases" class="relative z-10 py-16 md:py-24 px-4 sm:px-6 max-w-6xl mx-auto border-t border-[#1B133C]/10">
     <div class="text-center max-w-3xl mx-auto mb-16">
-      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold mb-3">Warehouse & Logistics</div>
-      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-[#1B133C]">Eliminating the Manual Shelf Search</h2>
-      <p class="mt-3 text-base text-[#1B133C]/70">Compare traditional unlabelled box hunting with point-and-shoot visual retrieval.</p>
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold mb-3">Warehouse Workflow</div>
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-[#1B133C]">Say Goodbye to Hunting Through Unlabelled Boxes</h2>
+      <p class="mt-3 text-base text-[#1B133C]/70">Compare the old manual searching process with point-and-shoot visual location.</p>
     </div>
 
-    <!-- Additional Animated Shoe Visual #3 (Warehouse Spatial Visual) -->
+    <!-- Additional Animated Shoe Visual #3 (Clickable Preview) -->
     <div class="flex items-center justify-center mb-12">
-      <div class="hero-shoe-container w-48 sm:w-56">
-        <img src="/catalog_images/DESIGN_003/photo_3.jpg" alt="Spatial Location Visual" class="secondary-floating-shoe max-h-40 object-contain rounded-xl shadow-lg border border-amber-500/20 p-2 bg-white/80 dark:bg-navy/80" />
+      <div class="hero-shoe-container w-48 sm:w-56 cursor-pointer" onclick="openImagePreview('/catalog_images/DESIGN_008/photo_8.jpg', 'Outdoor Heavy Trek Sample', 'Rugged Outdoor Footwear Sample')">
+        <img src="/catalog_images/DESIGN_008/photo_8.jpg" alt="Outdoor Trek Sample" class="secondary-floating-shoe max-h-40 object-contain rounded-xl shadow-lg border border-amber-500/20 p-2 bg-white/80 dark:bg-navy/80 hover:scale-105 transition-transform" />
         <div class="hero-shoe-shadow"></div>
       </div>
     </div>
@@ -402,12 +402,12 @@
       <div class="glass-card border-red-500/20 bg-red-500/5">
         <div class="flex items-center gap-2 font-bold text-red-600 text-sm mb-3">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-          <span>Traditional Inventory Search</span>
+          <span>The Old Manual Way</span>
         </div>
         <ul class="space-y-3 text-xs sm:text-sm text-[#1B133C]/80">
-          <li class="flex items-start gap-2"><span>&bull;</span> <span>15 to 25 minutes spent walking warehouse aisles per sample match</span></li>
-          <li class="flex items-start gap-2"><span>&bull;</span> <span>Opening dozens of unlabelled footwear boxes manually</span></li>
-          <li class="flex items-start gap-2"><span>&bull;</span> <span>High human error from mislabeled box tags or lost archive samples</span></li>
+          <li class="flex items-start gap-2"><span>&bull;</span> <span>Workers waste 15 to 25 minutes walking aisles searching for sample shoes.</span></li>
+          <li class="flex items-start gap-2"><span>&bull;</span> <span>Opening dozens of unlabelled boxes manually just to check the shoe style.</span></li>
+          <li class="flex items-start gap-2"><span>&bull;</span> <span>Lost sample shoes and mislabeled box tags cause costly shipping delays.</span></li>
         </ul>
       </div>
 
@@ -415,12 +415,12 @@
       <div class="glass-card border-emerald-500/30 bg-emerald-500/5">
         <div class="flex items-center gap-2 font-bold text-emerald-600 text-sm mb-3">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          <span>ShoeMatch AI Instant Retrieval</span>
+          <span>The ShoeMatch AI Way</span>
         </div>
         <ul class="space-y-3 text-xs sm:text-sm text-[#1B133C]/80">
-          <li class="flex items-start gap-2"><span>&bull;</span> <span>Sub-second camera photo lookup directly on phone or tablet</span></li>
-          <li class="flex items-start gap-2"><span>&bull;</span> <span>Exact storage coordinate output: Building &rarr; Section &rarr; Rack &rarr; Shelf</span></li>
-          <li class="flex items-start gap-2"><span>&bull;</span> <span>Full product metadata attached (upper/sole materials, season, style)</span></li>
+          <li class="flex items-start gap-2"><span>&bull;</span> <span>Snap a photo on a phone or tablet and get matching results in under 1 second.</span></li>
+          <li class="flex items-start gap-2"><span>&bull;</span> <span>Exact location details provided immediately: Building &rarr; Section &rarr; Rack &rarr; Shelf.</span></li>
+          <li class="flex items-start gap-2"><span>&bull;</span> <span>Includes complete product info like leather type, sole material, and season tag.</span></li>
         </ul>
       </div>
     </div>
@@ -430,58 +430,58 @@
   <section id="built-for-floor" class="relative z-10 py-16 md:py-24 px-4 sm:px-6 max-w-6xl mx-auto border-t border-[#1B133C]/10">
     <div class="text-center max-w-3xl mx-auto mb-16">
       <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold mb-3">Multi-Platform Ready</div>
-      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-[#1B133C]">Built for Factory & Warehouse Operations</h2>
-      <p class="mt-3 text-base text-[#1B133C]/70">Available both as a responsive web app and a native Android app (`com.shoematch.ai`) built with Capacitor 6.</p>
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-[#1B133C]">Built for Factory & Warehouse Staff</h2>
+      <p class="mt-3 text-base text-[#1B133C]/70">Designed to work seamlessly on desktop computers, tablets, and mobile phones.</p>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <div class="glass-card">
-        <h4 class="font-bold text-base text-[#1B133C] mb-2">Native Camera Integration</h4>
-        <p class="text-xs text-[#1B133C]/70 leading-relaxed">Direct hardware shutter integration via `@capacitor/camera` for one-handed photo capture on the warehouse floor.</p>
+        <h4 class="font-bold text-base text-[#1B133C] mb-2">Use Phone Camera</h4>
+        <p class="text-xs text-[#1B133C]/70 leading-relaxed">Staff can take pictures directly using their Android phone camera while walking warehouse aisles.</p>
       </div>
 
       <div class="glass-card">
-        <h4 class="font-bold text-base text-[#1B133C] mb-2">Glove-Friendly Touch Targets</h4>
-        <p class="text-xs text-[#1B133C]/70 leading-relaxed">Material Design 3 minimum 48&times;48dp controls designed specifically for workers using protective factory gloves.</p>
+        <h4 class="font-bold text-base text-[#1B133C] mb-2">Glove-Friendly Buttons</h4>
+        <p class="text-xs text-[#1B133C]/70 leading-relaxed">Large, easy-to-tap buttons designed specifically for factory workers wearing protective gloves.</p>
       </div>
 
       <div class="glass-card">
-        <h4 class="font-bold text-base text-[#1B133C] mb-2">Role-Based Access Control</h4>
-        <p class="text-xs text-[#1B133C]/70 leading-relaxed">JWT authentication supporting distinct `employee` search views and `admin` management panels with audit logging.</p>
+        <h4 class="font-bold text-base text-[#1B133C] mb-2">Employee & Admin Roles</h4>
+        <p class="text-xs text-[#1B133C]/70 leading-relaxed">Secure sign-in with simple search access for workers and catalog management for managers.</p>
       </div>
     </div>
   </section>
 
-  <!-- SECTION 7: TECH UNDER THE HOOD -->
+  <!-- SECTION 7: TECH UNDER THE HOOD (SUPPLEMENTARY & SIMPLIFIED) -->
   <section id="tech-specs" class="relative z-10 py-16 md:py-24 px-4 sm:px-6 max-w-6xl mx-auto border-t border-[#1B133C]/10">
     <div class="text-center max-w-3xl mx-auto mb-16">
-      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold mb-3">Open Source SOTA Architecture</div>
-      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-[#1B133C]">Tech Under the Hood</h2>
-      <p class="mt-3 text-base text-[#1B133C]/70">We leverage state-of-the-art vision models and high-speed vector indexing.</p>
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold mb-3">Supplementary Overview</div>
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-[#1B133C]">AI Technology Under the Hood</h2>
+      <p class="mt-3 text-base text-[#1B133C]/70">For technically curious visitors, here is the underlying artificial intelligence stack powering our visual search.</p>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <div class="glass-card text-center">
-        <div class="font-mono text-sm font-bold text-amber-600 mb-2">DINOv2 (Meta AI)</div>
-        <h4 class="font-bold text-base text-[#1B133C] mb-1">Self-Supervised Vision Transformer</h4>
-        <p class="text-xs text-[#1B133C]/70">Extracts 384-dimensional dense visual embeddings invariant to lighting changes.</p>
+        <div class="font-mono text-sm font-bold text-amber-600 mb-2">Visual AI Engine</div>
+        <h4 class="font-bold text-base text-[#1B133C] mb-1">DINOv2 Neural Network</h4>
+        <p class="text-xs text-[#1B133C]/70">Self-supervised vision model trained to recognize fine footwear textures and shapes regardless of lighting.</p>
       </div>
 
       <div class="glass-card text-center">
-        <div class="font-mono text-sm font-bold text-amber-600 mb-2">U2-Netp Neural Net</div>
-        <h4 class="font-bold text-base text-[#1B133C] mb-1">Saliency Object Segmentation</h4>
-        <p class="text-xs text-[#1B133C]/70">Lightweight U-Net isolates shoe foreground cutouts from complex factory clutter.</p>
+        <div class="font-mono text-sm font-bold text-amber-600 mb-2">Background Isolation</div>
+        <h4 class="font-bold text-base text-[#1B133C] mb-1">U2-Netp Cutout Model</h4>
+        <p class="text-xs text-[#1B133C]/70">Lightweight image segmenter that removes background clutter before searching.</p>
       </div>
 
       <div class="glass-card text-center">
-        <div class="font-mono text-sm font-bold text-amber-600 mb-2">FAISS IndexFlatIP</div>
-        <h4 class="font-bold text-base text-[#1B133C] mb-1">Inner-Product Vector Search</h4>
-        <p class="text-xs text-[#1B133C]/70">Facebook AI Similarity Search engine executes sub-second cosine distance ranking.</p>
+        <div class="font-mono text-sm font-bold text-amber-600 mb-2">Vector Search Engine</div>
+        <h4 class="font-bold text-base text-[#1B133C] mb-1">FAISS Indexing</h4>
+        <p class="text-xs text-[#1B133C]/70">High-speed similarity search engine that scans thousands of catalog items in milliseconds.</p>
       </div>
     </div>
   </section>
 
-  <!-- SECTION 8: FREQUENTLY ASKED QUESTIONS (FAQ) -->
+  <!-- SECTION 8: FREQUENTLY ASKED QUESTIONS (FAQ - PLAIN LANGUAGE) -->
   <section id="faq" class="relative z-10 py-16 md:py-24 px-4 sm:px-6 max-w-4xl mx-auto border-t border-[#1B133C]/10">
     <div class="text-center max-w-3xl mx-auto mb-14">
       <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold mb-3">FAQ</div>
@@ -491,41 +491,41 @@
     <div class="space-y-4">
       <div class="faq-item">
         <button class="faq-question" onclick="toggleFaq(this)">
-          <span>What happens if a photo has background clutter or poor lighting?</span>
+          <span>What if the photo has a messy background or bad lighting?</span>
           <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="faq-answer">
-          Our pipeline includes a dedicated U2-Netp saliency segmentation step that isolates the shoe foreground cutout before computing visual embeddings. This ensures background clutter, warehouse floor tiles, or hands holding the sample do not disrupt match accuracy.
+          The app automatically cleans up background clutter (like warehouse floor tiles, shelf racks, or hands) so it only focuses on matching the shoe itself.
         </div>
       </div>
 
       <div class="faq-item">
         <button class="faq-question" onclick="toggleFaq(this)">
-          <span>What if a non-shoe or slipper object is uploaded by mistake?</span>
+          <span>What if someone takes a picture of something that isn't a shoe?</span>
           <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="faq-answer">
-          ShoeMatch AI features a dual-signal footwear classifier head. Submissions classified as non-footwear or slippers are gated cleanly with a friendly `slipper_rejected` alert state, preventing invalid catalog queries.
+          ShoeMatch AI checks whether the photo contains actual footwear. If an accidental non-shoe photo or slipper is uploaded, the app politely lets the worker know to try again.
         </div>
       </div>
 
       <div class="faq-item">
         <button class="faq-question" onclick="toggleFaq(this)">
-          <span>Is ShoeMatch AI available on physical Android devices?</span>
+          <span>Can workers use this on mobile phones on the warehouse floor?</span>
           <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="faq-answer">
-          Yes! The project is packaged both as a web app (accessible via browser) and a native Capacitor 6 Android app (`com.shoematch.ai`) supporting live hardware camera capture and offline JWT token caching.
+          Yes! The app runs in any web browser and is also available as a native Android mobile application with single-tap camera controls.
         </div>
       </div>
 
       <div class="faq-item">
         <button class="faq-question" onclick="toggleFaq(this)">
-          <span>How are new shoe designs registered into the catalog?</span>
+          <span>How do managers add new shoe designs to the system?</span>
           <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="faq-answer">
-          Admins can upload multi-angle photos (side, top, front, sole, detail) along with product metadata (materials, season) and exact storage coordinates (Zone &rarr; Shelf &rarr; Drawer &rarr; Slot). DINOv2 feature vectors are automatically generated and appended to the FAISS index.
+          Warehouse managers can upload sample photos along with product details (materials, season) and exact rack locations (Building, Section, Rack, Shelf).
         </div>
       </div>
     </div>
@@ -534,8 +534,8 @@
   <!-- SECTION 9: FINAL CONVERSION CTA -->
   <section class="relative z-10 py-16 md:py-24 px-4 sm:px-6 max-w-5xl mx-auto text-center border-t border-[#1B133C]/10">
     <div class="glass-card p-8 md:p-12 bg-gradient-to-br from-[#1B133C] to-[#2A1E5C] text-white">
-      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-4">Eliminate Warehouse Search Latency Today</h2>
-      <p class="text-base text-gray-300 max-w-2xl mx-auto mb-8">Deploy ShoeMatch AI across your factory floor or test visual matching in your browser.</p>
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-4">Eliminate Warehouse Search Time Today</h2>
+      <p class="text-base text-gray-300 max-w-2xl mx-auto mb-8">Deploy ShoeMatch AI across your warehouse team or test visual search in your browser right now.</p>
       <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
         <a href="/app" class="rounded-xl bg-amber-500 px-8 py-3.5 text-sm font-bold text-[#1B133C] hover:bg-amber-400 transition-colors shadow-lg">
           Launch Match Studio Now
@@ -557,6 +557,16 @@
       </div>
     </div>
   </footer>
+
+  <!-- LIGHTBOX PREVIEW MODAL (CHANGE 2) -->
+  <div id="image-preview-modal" class="fixed inset-0 z-50 bg-[#1B133C]/80 backdrop-blur-md hidden items-center justify-center p-4 cursor-pointer" onclick="closeImagePreview(event)">
+    <div class="glass-card max-w-2xl w-full p-6 relative border border-white/20 shadow-2xl text-center cursor-default" onclick="event.stopPropagation()">
+      <button class="absolute top-4 right-4 text-[#1B133C] dark:text-white hover:text-amber-500 text-2xl font-bold p-1 transition-colors" onclick="closeImagePreviewModal()">&times;</button>
+      <img id="preview-modal-img" src="" alt="Enlarged Preview" class="max-h-[60vh] w-auto mx-auto object-contain rounded-xl mb-4 shadow-lg border border-black/5" />
+      <h3 id="preview-modal-title" class="font-bold text-lg text-[#1B133C] dark:text-white"></h3>
+      <p id="preview-modal-caption" class="text-xs text-[#1B133C]/70 dark:text-gray-300 mt-1 font-mono"></p>
+    </div>
+  </div>
 
   <!-- Early Access Modal (Preserved) -->
   <div id="access-modal" class="fixed inset-0 z-50 bg-[#1B133C]/60 backdrop-blur-sm hidden items-center justify-center p-4">
@@ -583,6 +593,41 @@
   </div>
 
   <script>
+    // Click-to-Preview Lightbox Modal Functions (CHANGE 2)
+    function openImagePreview(src, title, caption) {
+      const modal = document.getElementById('image-preview-modal');
+      const img = document.getElementById('preview-modal-img');
+      const t = document.getElementById('preview-modal-title');
+      const c = document.getElementById('preview-modal-caption');
+      
+      img.src = src;
+      t.textContent = title || 'Shoe Design Catalog Preview';
+      c.textContent = caption || 'ShoeMatch AI Visual Inspection';
+      
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeImagePreviewModal() {
+      const modal = document.getElementById('image-preview-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function closeImagePreview(e) {
+      if (e.target.id === 'image-preview-modal') {
+        closeImagePreviewModal();
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeImagePreviewModal();
+      }
+    });
+
     // Live Ticking Score Motion Effect for Signature Confidence Chip
     document.addEventListener("DOMContentLoaded", () => {
       const display = document.getElementById("chip-score-display");
