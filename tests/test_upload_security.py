@@ -15,24 +15,27 @@ class TestUploadSecurityValidation(unittest.TestCase):
         img.save(buf, format="JPEG")
         contents = buf.getvalue()
 
-        filename = validate_and_sanitize_image("shoe_photo_123.jpg", contents)
+        clean_bytes, filename = validate_and_sanitize_image("shoe_photo_123.jpg", contents)
+        self.assertTrue(len(clean_bytes) > 0)
         self.assertTrue(filename.endswith(".jpg"))
 
     def test_02_legitimate_png_and_webp_accepted(self):
-        """Confirm valid PNG and WEBP image bytes pass validation."""
+        """Confirm valid PNG and WEBP image bytes pass validation and convert to clean JPEG bytes."""
         # PNG
         png_img = Image.new("RGB", (100, 100), color=(50, 50, 50))
         png_buf = io.BytesIO()
         png_img.save(png_buf, format="PNG")
-        png_name = validate_and_sanitize_image("sample_shoe.png", png_buf.getvalue())
-        self.assertTrue(png_name.endswith(".png"))
+        png_bytes, png_name = validate_and_sanitize_image("sample_shoe.png", png_buf.getvalue())
+        self.assertTrue(len(png_bytes) > 0)
+        self.assertTrue(png_name.endswith(".jpg"))
 
         # WEBP
         webp_img = Image.new("RGB", (100, 100), color=(200, 200, 200))
         webp_buf = io.BytesIO()
         webp_img.save(webp_buf, format="WEBP")
-        webp_name = validate_and_sanitize_image("sample_shoe.webp", webp_buf.getvalue())
-        self.assertTrue(webp_name.endswith(".webp"))
+        webp_bytes, webp_name = validate_and_sanitize_image("sample_shoe.webp", webp_buf.getvalue())
+        self.assertTrue(len(webp_bytes) > 0)
+        self.assertTrue(webp_name.endswith(".jpg"))
 
     def test_03_malicious_script_disguised_as_jpg_rejected(self):
         """Confirm non-image script bytes disguised with .jpg extension trigger HTTP 400."""
@@ -57,7 +60,7 @@ class TestUploadSecurityValidation(unittest.TestCase):
         buf = io.BytesIO()
         img.save(buf, format="JPEG")
         
-        name = validate_and_sanitize_image("../../../etc/passwd_photo.jpg", buf.getvalue())
+        _, name = validate_and_sanitize_image("../../../etc/passwd_photo.jpg", buf.getvalue())
         self.assertNotIn("/", name)
         self.assertNotIn("..", name)
 

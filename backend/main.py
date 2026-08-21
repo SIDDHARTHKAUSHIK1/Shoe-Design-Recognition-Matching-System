@@ -10,7 +10,7 @@ import logging
 from pathlib import Path
 from contextlib import asynccontextmanager
 from typing import List, Optional, Tuple
-from PIL import Image
+from PIL import Image, ImageOps
 
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Request, Query, Depends
 from fastapi.responses import JSONResponse, FileResponse, Response
@@ -123,8 +123,12 @@ async def health_check():
 
 MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
 
-def validate_and_sanitize_image(filename: Optional[str], contents: bytes) -> str:
-    """Validate image bytes using PIL magic bytes inspection and return safe sanitized filename."""
+def validate_and_sanitize_image(filename: Optional[str], contents: bytes) -> Tuple[bytes, str]:
+    """
+    Rigorously validates image bytes, bakes EXIF orientation into pixel data,
+    converts to clean RGB, re-encodes at high quality (quality=95) to strip embedded payloads,
+    and returns (clean_bytes, safe_filename).
+    """
     if not contents or len(contents) == 0:
         raise HTTPException(status_code=400, detail="Empty image file received.")
         
@@ -140,17 +144,33 @@ def validate_and_sanitize_image(filename: Optional[str], contents: bytes) -> str
         buf.seek(0)
         img = Image.open(buf)
         img.load()
+
+        # Bake EXIF orientation into pixel data before stripping metadata
+        img = ImageOps.exif_transpose(img)
+
+        # Handle RGBA/LA or indexed color modes with white background for transparency
+        if img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info):
+            bg = Image.new("RGB", img.size, (255, 255, 255))
+            if img.mode != "RGBA":
+                img = img.convert("RGBA")
+            bg.paste(img, mask=img.split()[3])
+            img = bg
+        elif img.mode != "RGB":
+            img = img.convert("RGB")
+
+        # Re-encode clean image at high quality (95) to strip malicious EXIF/HTML/PHP metadata
+        out_buf = io.BytesIO()
+        img.save(out_buf, format="JPEG", quality=95, optimize=True)
+        clean_bytes = out_buf.getvalue()
     except Exception as e:
         logger.warning(f"Image validation rejected upload ({filename}): {e}")
         raise HTTPException(status_code=400, detail="Uploaded file is not a valid or readable image.")
         
     raw_name = Path(filename or "upload.jpg").name
     safe_stem = "".join(c for c in Path(raw_name).stem if c.isalnum() or c in ("-", "_")).strip() or "image"
-    safe_ext = Path(raw_name).suffix.lower()
-    if safe_ext not in (".jpg", ".jpeg", ".png", ".webp", ".bmp"):
-        safe_ext = ".jpg"
+    safe_ext = ".jpg"
         
-    return f"{safe_stem}{safe_ext}"
+    return clean_bytes, f"{safe_stem}{safe_ext}"
 
 
 @app.post("/api/match")
@@ -166,7 +186,7 @@ async def match_shoe_design(
     and side-by-side reference angle images.
     """
     contents = await file.read()
-    clean_name = validate_and_sanitize_image(file.filename, contents)
+    clean_bytes, clean_name = validate_and_sanitize_image(file.filename, contents)
 
     # Save query image to persistent uploads directory
     timestamp = int(time.time() * 1000)
@@ -174,13 +194,13 @@ async def match_shoe_design(
     save_path = UPLOADS_DIR / safe_filename
     
     with open(save_path, "wb") as f:
-        f.write(contents)
+        f.write(clean_bytes)
 
     rel_url = f"/uploads/{safe_filename}"
 
-    # Execute matching
+    # Execute matching with clean orientation-baked bytes
     result = matcher.match_image(
-        query_image_input=contents,
+        query_image_input=clean_bytes,
         query_image_save_path=rel_url,
         top_k=top_k
     )
@@ -234,11 +254,11 @@ async def create_design(
     for idx, uploaded_file in enumerate(files):
         content = await uploaded_file.read()
         if len(content) > 0:
-            clean_name = validate_and_sanitize_image(uploaded_file.filename, content)
+            clean_bytes, clean_name = validate_and_sanitize_image(uploaded_file.filename, content)
             assigned_angle = angle_list[idx] if idx < len(angle_list) else None
             image_payloads.append({
                 "filename": clean_name,
-                "content": content,
+                "content": clean_bytes,
                 "angle": assigned_angle
             })
 
