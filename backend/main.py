@@ -61,12 +61,21 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down Shoe Design Recognition System...")
 
 
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(
     title="Shoe Design Recognition & Matching API",
     description="Production visual similarity search and catalog matching for shoe manufacturing.",
     version="1.0.0",
     lifespan=lifespan
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Enable CORS for frontend and API clients (configurable via ALLOWED_ORIGINS env var)
 raw_origins = os.getenv("ALLOWED_ORIGINS", "").strip()
@@ -137,6 +146,7 @@ def validate_and_sanitize_image(filename: Optional[str], contents: bytes) -> str
 
 
 @app.post("/api/match")
+@limiter.limit("20/minute")
 async def match_shoe_design(
     request: Request,
     file: UploadFile = File(...),
@@ -510,7 +520,8 @@ async def require_admin_user(request: Request) -> dict:
 
 
 @app.post("/api/auth/login")
-async def login_user(payload: dict):
+@limiter.limit("10/minute")
+async def login_user(request: Request, payload: dict):
     """Authenticate user and return JWT token."""
     username = payload.get("username", "").strip()
     password = payload.get("password", "").strip()
