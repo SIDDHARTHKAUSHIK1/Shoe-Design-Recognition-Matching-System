@@ -5,6 +5,11 @@
 (function () {
   'use strict';
 
+  // ==========================================================================
+  // ⚠️ DEV BYPASS — SET TO false BEFORE SHARING BUILD OR DEPLOYING TO PRODUCTION
+  // ==========================================================================
+  const DEV_SKIP_LOGIN = true;
+
   // State Management
   const state = {
     user: null,
@@ -144,6 +149,40 @@
   // Auth & Session Management
   // ==========================================
   async function checkAuthStatus() {
+    // ⚠️ Temporary Dev-Only Testing Bypass
+    if (DEV_SKIP_LOGIN) {
+      hideModal("auth-modal");
+      hideModal("password-reset-modal");
+
+      // Auto-authenticate in background with default admin credentials if no token exists
+      if (!window.getAuthToken()) {
+        try {
+          const autoRes = await fetch(window.getApiUrl("/api/auth/login"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: "admin", password: "admin123" })
+          });
+          if (autoRes.ok) {
+            const autoData = await autoRes.json();
+            const t = autoData.token || autoData.access_token;
+            if (t) window.setAuthToken(t);
+          }
+        } catch (e) {
+          console.warn("Dev bypass background auto-login attempt failed:", e);
+        }
+      }
+
+      state.user = {
+        user_id: 1,
+        username: "dev_tester",
+        role: "admin",
+        full_name: "Development Test User"
+      };
+      updateUserRoleBadge(state.user);
+      return;
+    }
+
+    // Production Auth Flow
     const token = window.getAuthToken();
     if (!token) {
       showModal("auth-modal");
