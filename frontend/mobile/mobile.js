@@ -85,6 +85,28 @@
     return fetch(url, options);
   };
 
+  window.extractErrorMessage = function (err, fallback = "An unexpected error occurred") {
+    if (!err) return fallback;
+    if (typeof err === "string") return err;
+
+    if (err.detail) {
+      if (typeof err.detail === "string") return err.detail;
+      if (Array.isArray(err.detail)) {
+        return err.detail.map(item => item.msg || (typeof item === "string" ? item : JSON.stringify(item))).join("; ");
+      }
+      if (typeof err.detail === "object") return JSON.stringify(err.detail);
+    }
+
+    if (err.message && typeof err.message === "string") return err.message;
+    if (err.error && typeof err.error === "string") return err.error;
+
+    try {
+      return JSON.stringify(err);
+    } catch (e) {
+      return String(err);
+    }
+  };
+
   // ==========================================
   // UI Tab Navigation & Theme Controller
   // ==========================================
@@ -185,28 +207,40 @@
       const u = document.getElementById("login-username").value.trim();
       const p = document.getElementById("login-password").value.trim();
 
-      const body = new URLSearchParams();
-      body.append("username", u);
-      body.append("password", p);
+      if (!u || !p) {
+        loginErr.textContent = "Please enter both username and password";
+        return;
+      }
 
       try {
         const res = await fetch(window.getApiUrl("/api/auth/login"), {
           method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: body.toString()
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: u, password: p })
         });
 
         if (!res.ok) {
-          const errData = await res.json();
-          loginErr.textContent = errData.detail || "Invalid login credentials";
+          let errData;
+          try {
+            errData = await res.json();
+          } catch (e) {
+            errData = { detail: `Server error (Status ${res.status})` };
+          }
+          loginErr.textContent = window.extractErrorMessage(errData, "Invalid username or password");
           return;
         }
 
         const data = await res.json();
-        window.setAuthToken(data.access_token);
+        const token = data.token || data.access_token || "";
+        if (!token) {
+          loginErr.textContent = "Authentication succeeded but no token was returned";
+          return;
+        }
+
+        window.setAuthToken(token);
         await checkAuthStatus();
       } catch (err) {
-        loginErr.textContent = "Network error connecting to API server";
+        loginErr.textContent = window.extractErrorMessage(err, "Network error connecting to API server");
       }
     });
 
@@ -329,8 +363,9 @@
       overlay.classList.add("hidden");
 
       if (!res.ok) {
-        const errData = await res.json();
-        alert(errData.detail || "Error performing visual match.");
+        let errData;
+        try { errData = await res.json(); } catch(e) { errData = { detail: `Match request failed (Status ${res.status})` }; }
+        alert(window.extractErrorMessage(errData, "Error performing visual match."));
         return;
       }
 
