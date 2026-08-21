@@ -13,6 +13,19 @@ window.getApiBaseUrl = function() {
       return url.endsWith("/") ? url.slice(0, -1) : url;
     }
   } catch (e) {}
+
+  // Capacitor Native Platform Resolution
+  if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+    try {
+      const mode = localStorage.getItem("shoematch_mobile_target");
+      if (mode === "wifi") {
+        return "http://192.168.29.14:8000";
+      }
+    } catch(e) {}
+    // Default emulator bridge host for Android
+    return "http://10.0.2.2:8000";
+  }
+
   return "";
 };
 
