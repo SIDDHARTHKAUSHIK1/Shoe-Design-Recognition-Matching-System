@@ -32,7 +32,7 @@
           return "http://10.0.2.2:8000";
         }
       } catch (e) {}
-      return "http://192.168.29.14:8000";
+      return "http://192.168.1.15:8000";
     }
     return "";
   };
@@ -559,6 +559,21 @@
     const hostIndicator = document.getElementById("target-host-indicator");
     if (hostIndicator) {
       hostIndicator.textContent = window.getApiBaseUrl() || "Relative Host";
+      hostIndicator.style.cursor = "pointer";
+      hostIndicator.title = "Tap to change Server IP";
+      hostIndicator.addEventListener("click", () => {
+        const current = window.getApiBaseUrl() || "http://192.168.1.15:8000";
+        const custom = prompt("Enter Server Base URL (e.g. http://192.168.1.15:8000):", current);
+        if (custom !== null) {
+          if (custom.trim()) {
+            localStorage.setItem("shoematch_api_base_url", custom.trim());
+          } else {
+            localStorage.removeItem("shoematch_api_base_url");
+          }
+          hostIndicator.textContent = window.getApiBaseUrl() || "Relative Host";
+          checkAuthStatus();
+        }
+      });
     }
 
     checkAuthStatus();
