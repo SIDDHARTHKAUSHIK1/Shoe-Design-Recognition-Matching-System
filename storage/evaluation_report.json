@@ -1,12 +1,12 @@
 {
-  "timestamp": "2026-08-21 11:46:55",
+  "timestamp": "2026-08-21 12:08:05",
   "total_images_evaluated": 38,
   "total_distinct_designs": 35,
   "metrics": {
     "top_1_accuracy_pct": 2.63,
     "top_3_accuracy_pct": 5.26,
     "mean_reciprocal_rank": 0.0697,
-    "average_query_latency_ms": 0.29,
+    "average_query_latency_ms": 0.13,
     "avg_same_design_similarity": -0.8146,
     "avg_diff_design_similarity": 0.9094,
     "similarity_margin": -1.724
