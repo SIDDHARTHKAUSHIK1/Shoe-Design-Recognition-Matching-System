@@ -69,14 +69,19 @@ app = FastAPI(
 )
 
 # Enable CORS for frontend and API clients (configurable via ALLOWED_ORIGINS env var)
-raw_origins = os.getenv("ALLOWED_ORIGINS", "*")
-allowed_origins = [o.strip() for o in raw_origins.split(",") if o.strip()]
+raw_origins = os.getenv("ALLOWED_ORIGINS", "").strip()
+if raw_origins and raw_origins != "*":
+    allowed_origins = [o.strip() for o in raw_origins.split(",") if o.strip()]
+    allow_cred = True
+else:
+    allowed_origins = ["http://localhost:8000", "http://127.0.0.1:8000", "http://localhost:3000"]
+    allow_cred = True
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins if allowed_origins else ["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=allowed_origins,
+    allow_credentials=allow_cred,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
