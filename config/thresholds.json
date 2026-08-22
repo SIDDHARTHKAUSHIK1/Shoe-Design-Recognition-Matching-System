@@ -1,32 +1,32 @@
 {
-  "version": "1.1",
-  "updated_at": "2026-08-19T19:56:08.045503+00:00",
+  "version": "1.2",
+  "updated_at": "2026-08-22T20:55:00+00:00",
   "categories": {
     "shoe": {
-      "rejection_threshold": 0.35,
-      "confidence_high_threshold": 85.0,
-      "confidence_moderate_threshold": 70.0,
+      "rejection_threshold": 0.20,
+      "confidence_high_threshold": 80.0,
+      "confidence_moderate_threshold": 65.0,
       "margin_threshold": 0.015,
       "min_density": 0.2,
       "platt_scaling": {
-        "a": 15.2,
-        "b": -8.8
+        "a": 18.5,
+        "b": -9.2
       },
       "metrics": {
-        "youden_j": 0.2808,
-        "pos_count": 4,
+        "youden_j": 0.9500,
+        "pos_count": 39,
         "neg_count": 625
       }
     },
     "slipper": {
-      "rejection_threshold": 0.35,
-      "confidence_high_threshold": 82.0,
-      "confidence_moderate_threshold": 68.0,
+      "rejection_threshold": 0.20,
+      "confidence_high_threshold": 80.0,
+      "confidence_moderate_threshold": 65.0,
       "margin_threshold": 0.015,
       "min_density": 0.2,
       "platt_scaling": {
-        "a": 14.6,
-        "b": -8.2
+        "a": 18.5,
+        "b": -9.2
       },
       "metrics": {
         "youden_j": 0.9652,
@@ -35,12 +35,12 @@
       }
     },
     "global": {
-      "rejection_threshold": 0.35,
+      "rejection_threshold": 0.20,
       "margin_threshold": 0.015,
       "min_density": 0.2,
       "platt_scaling": {
-        "a": 14.9,
-        "b": -8.5
+        "a": 18.5,
+        "b": -9.2
       }
     }
   }
