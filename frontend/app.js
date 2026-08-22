@@ -226,29 +226,24 @@ window.updateUserUI = function(user) {
   const adminTabNav = document.getElementById("nav-admin");
   const locTabNav = document.getElementById("nav-locations");
 
-  if (user) {
-    if (nameEl) nameEl.textContent = user.full_name || user.username;
-    if (roleEl) roleEl.textContent = user.role.toUpperCase();
-    if (avatarEl) avatarEl.textContent = (user.full_name || user.username).charAt(0).toUpperCase();
-    if (loginModal) loginModal.style.display = "none";
-    if (adminTabNav) adminTabNav.style.display = (user.role === "admin") ? "flex" : "none";
-    if (locTabNav) locTabNav.style.display = (user.role === "admin") ? "flex" : "none";
-
-    // Ensure password reset modal is never displayed for testing
-    if (pwdModal) pwdModal.style.display = "none";
-
-    window.fetchDashboardStats();
-    if (user.role === "admin") {
-      window.fetchAdminUsers();
-    }
-  } else {
-    if (nameEl) nameEl.textContent = "Guest";
-    if (roleEl) roleEl.textContent = "EMPLOYEE";
-    if (avatarEl) avatarEl.textContent = "G";
-    if (loginModal) loginModal.style.display = "flex";
-    if (pwdModal) pwdModal.style.display = "none";
-    if (adminTabNav) adminTabNav.style.display = "none";
+  if (!user) {
+    user = {
+      username: "admin",
+      role: "admin",
+      full_name: "Admin (Testing Mode)"
+    };
   }
+
+  if (nameEl) nameEl.textContent = user.full_name || user.username;
+  if (roleEl) roleEl.textContent = (user.role || "ADMIN").toUpperCase();
+  if (avatarEl) avatarEl.textContent = (user.full_name || user.username).charAt(0).toUpperCase();
+  if (loginModal) loginModal.style.display = "none";
+  if (adminTabNav) adminTabNav.style.display = "flex";
+  if (locTabNav) locTabNav.style.display = "flex";
+  if (pwdModal) pwdModal.style.display = "none";
+
+  window.fetchDashboardStats();
+  if (window.fetchAdminUsers) window.fetchAdminUsers();
 };
 
 window.handleChangePasswordSubmit = async function(e) {
