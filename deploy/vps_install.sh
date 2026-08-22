@@ -41,7 +41,7 @@ ExecStart=/var/www/shoematch/venv/bin/python -u run_server.py
 Restart=always
 RestartSec=5s
 Environment=PYTHONUNBUFFERED=1
-Environment=PORT=8000
+Environment=PORT=80
 Environment=HOST=0.0.0.0
 
 [Install]
@@ -58,6 +58,6 @@ sudo ufw allow 443/tcp
 sudo ufw --force enable
 
 echo "================================================================="
-echo "   SUCCESS! ShoeMatch AI Backend is Live on Port 8000"
-echo "   Check Health: http://195.35.6.176:8000/health"
+echo "   SUCCESS! ShoeMatch AI Backend is Live on Port 80"
+echo "   Check Health: http://195.35.6.176/health"
 echo "================================================================="
