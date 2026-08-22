@@ -1184,7 +1184,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (elements.detectedCatText) elements.detectedCatText.textContent = "No Shoe / Slipper Detected";
       }
       elements.resultsEmpty.style.display = "block";
-      elements.resultsEmpty.querySelector("h4").textContent = "🚫 No Shoe Detected";
+      elements.resultsEmpty.querySelector("h4").textContent = "🚫 Not Found — No Shoe Detected";
       elements.resultsEmpty.querySelector("p").textContent = data.message || "The uploaded image does not appear to contain a shoe or slipper. Please upload a clear photo of footwear.";
       elements.matchesList.style.display = "none";
       elements.resultsMetaText.textContent = "Non-footwear image uploaded";
@@ -1203,7 +1203,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!data.matches || data.matches.length === 0) {
       elements.resultsEmpty.style.display = "block";
       const catName = data.detected_category ? data.detected_category.toUpperCase() : "Category";
-      elements.resultsEmpty.querySelector("h4").textContent = `No ${catName} Matches in Catalog`;
+      elements.resultsEmpty.querySelector("h4").textContent = `Not Found — No Matching ${catName} in Catalog`;
       elements.resultsEmpty.querySelector("p").textContent = data.message || "No reference designs exist for this category in the catalog.";
       return;
     }
@@ -1247,10 +1247,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const shelfLocation = m.shelf_location || "Warehouse A - Rack 03 - Shelf B-02";
 
-      const colorToLevel = { green: "high", yellow: "medium", red: "low" };
-      const confLevel = colorToLevel[m.match_color] || (m.confidence_pct >= 85 ? "high" : (m.confidence_pct >= 70 ? "medium" : "low"));
-      const levelLabel = m.match_level_label || (m.confidence_pct >= 85 ? "Strong Match" : (m.confidence_pct >= 70 ? "Variant" : "Low Certitude"));
-
       card.innerHTML = `
         <div class="match-img-box" id="img-box-${m.design_id}">
           <img src="${getImageUrl(m.best_matching_image_url)}" alt="${m.design_name}" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'1.5\'><path d=\'M20.24 12.24a6 6 0 0 0-8.49-8.49L3.5 12.00a6 6 0 0 0 8.49 8.49l8.25-8.25z\'/><path d=\'M16 8l-4 4\'/></svg>';">
@@ -1260,9 +1256,9 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="match-details">
           <div class="match-card-header">
             <span class="match-rank-tag">${rankLabel}</span>
-            <span class="precision-confidence-badge ${confLevel}">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-              <span>${m.confidence_pct}% ${levelLabel}</span>
+            <span class="precision-confidence-badge found">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+              <span>Found</span>
             </span>
           </div>
 
@@ -1682,11 +1678,8 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="preview-match-banner ${normalizedMatch.match_color}">
             <div class="preview-match-title">
               <span>${rankTitle}</span>
-              <span class="preview-match-pill ${normalizedMatch.match_color}">${normalizedMatch.confidence_pct}% (${normalizedMatch.match_level_label})</span>
+              <span class="preview-match-pill found">Found</span>
             </div>
-            ${normalizedMatch.cosine_similarity !== undefined ? `
-              <span class="preview-cosine-tag mono">Visual Cosine: ${(normalizedMatch.cosine_similarity * 100).toFixed(1)}%</span>
-            ` : ''}
           </div>
         `;
       }

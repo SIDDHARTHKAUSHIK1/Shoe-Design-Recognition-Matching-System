@@ -871,7 +871,9 @@ body {
   gap: 6px;
 }
 
-.precision-confidence-badge.high {
+.precision-confidence-badge.high,
+.precision-confidence-badge.found,
+.preview-match-pill.found {
   background: var(--status-success-bg);
   color: var(--status-success-text);
   border: 1px solid var(--status-success-border);
