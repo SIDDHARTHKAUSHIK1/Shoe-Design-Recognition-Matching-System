@@ -4,6 +4,10 @@
   "description": "ShoeMatch AI — Native Visual Search & Catalog Matching Application",
   "main": "frontend/app.js",
   "scripts": {
+    "build": "npm run build:tailwind && node scripts/build-frontend.mjs",
+    "build:frontend": "node scripts/build-frontend.mjs",
+    "build:zip": "npm run build && python scripts/package_frontend.py",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "build:tailwind": "npx @tailwindcss/cli -i frontend/index.css -o frontend/tailwind.min.css",
     "build:mobile": "npm run build:tailwind && cap sync android",
     "run:backend": "python run_server.py",

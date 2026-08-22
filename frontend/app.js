@@ -26,6 +26,13 @@ window.getApiBaseUrl = function() {
     return "http://192.168.29.14:8000";
   }
 
+  // Deployed configuration (frontend/config.js). Set when the API is hosted
+  // on a different origin than the static UI. Empty = same-origin.
+  if (window.SHOEMATCH_API_BASE) {
+    const cfg = String(window.SHOEMATCH_API_BASE).trim();
+    if (cfg) return cfg.endsWith("/") ? cfg.slice(0, -1) : cfg;
+  }
+
   return "";
 };
 
@@ -1319,7 +1326,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Submit User Feedback on Search Result
   window.submitFeedback = async function(queryId, verdict, designId, btnElem) {
     try {
-      const res = await fetch("/api/feedback", {
+      const res = await fetch(window.getApiUrl("/api/feedback"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

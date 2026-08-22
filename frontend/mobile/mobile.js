@@ -39,6 +39,13 @@
       } catch (e) {}
       return "http://192.168.1.15:8000";
     }
+
+    // Deployed configuration (frontend/config.js). Empty = same-origin.
+    if (window.SHOEMATCH_API_BASE) {
+      const cfg = String(window.SHOEMATCH_API_BASE).trim();
+      if (cfg) return cfg.endsWith("/") ? cfg.slice(0, -1) : cfg;
+    }
+
     return "";
   };
 
