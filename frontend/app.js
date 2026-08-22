@@ -168,15 +168,20 @@ window.handleLoginSubmit = async function(e) {
       body: JSON.stringify({ username, password })
     });
 
-    const data = await res.json();
     if (!res.ok) {
+      let errMsg = "Authentication failed.";
+      try {
+        const errData = await res.json();
+        errMsg = errData.detail || errData.message || errMsg;
+      } catch (_) {}
       if (alertEl) {
-        alertEl.textContent = data.detail || "Authentication failed.";
+        alertEl.textContent = errMsg;
         alertEl.style.display = "block";
       }
       return;
     }
 
+    const data = await res.json();
     window.setAuthToken(data.token);
     window.updateUserUI(data.user);
     const loginModal = document.getElementById("login-modal");
@@ -187,7 +192,7 @@ window.handleLoginSubmit = async function(e) {
   } catch (err) {
     console.error("Login error:", err);
     if (alertEl) {
-      alertEl.textContent = "Network error connecting to auth server.";
+      alertEl.textContent = "Login error. Please try again.";
       alertEl.style.display = "block";
     }
   }
