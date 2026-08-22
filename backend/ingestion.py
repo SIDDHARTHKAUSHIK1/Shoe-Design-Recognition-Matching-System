@@ -18,6 +18,7 @@ from backend.config import (
 from backend import database as db
 from backend.engine import EmbeddingEngine
 from backend.vector_store import VectorStore
+from backend.color_extractor import ColorExtractor
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -67,7 +68,7 @@ def classify_angle_from_filename(filename: str, index_in_group: int = 0) -> str:
         return "angle_34"
     elif "front" in lower:
         return "front"
-    elif "back" or "heel" in lower:
+    elif "back" in lower or "heel" in lower:
         return "heel"
     
     # Fallback based on sequence in design group
@@ -138,15 +139,31 @@ def ingest_single_design(
         else:
             continue
             
-        # Compute normalized embedding
-        emb = engine.get_embedding(img_input)
+        # Compute normalized embedding. Isolate the foreground once and reuse the
+        # SAME isolated crop for both the embedding and the color-aware match
+        # features, so ingestion-time and query-time color features are always
+        # extracted identically (matcher.py extracts query color from the isolated
+        # crop too — see backend/matcher.py match_image()).
+        preprocessed = engine.preprocess_image(img_input)
+        isolated_img, _, _ = engine.isolate_image_foreground(preprocessed)
+        emb = engine._compute_embedding(isolated_img)
         embeddings.append(emb)
-        
+
+        color_histogram = None
+        dominant_colors = None
+        try:
+            color_histogram = ColorExtractor.extract_hsv_histogram(isolated_img)
+            dominant_colors = ColorExtractor.extract_dominant_colors(isolated_img)
+        except Exception as e:
+            logger.warning(f"Color feature extraction failed for {dest_filename}: {e}")
+
         rel_image_path = f"/catalog_images/{design_id}/{dest_filename}"
         registered_images.append({
             "image_path": rel_image_path,
             "angle": angle,
-            "dest_path": dest_path
+            "dest_path": dest_path,
+            "color_histogram": color_histogram,
+            "dominant_colors": dominant_colors
         })
 
     # 3. Add embeddings incrementally to FAISS
@@ -162,6 +179,12 @@ def ingest_single_design(
                 angle=meta["angle"],
                 faiss_id=faiss_id
             )
+            if meta.get("color_histogram") is not None:
+                db.update_reference_image_color(
+                    faiss_id=faiss_id,
+                    color_histogram=meta["color_histogram"].tolist(),
+                    dominant_colors=meta["dominant_colors"]
+                )
 
         # 5. Refresh binary footwear gate prototype bank
         try:

@@ -188,7 +188,13 @@ class EmbeddingEngine:
         if getattr(self, "use_st", False):
             emb = self.st_model.encode(img, convert_to_numpy=True, normalize_embeddings=True)
             return emb.astype(np.float32)
-            
+
+        # Strip hue/saturation before the model ever sees the image — shape, texture, and
+        # stitching detail are luminance/geometric features and are fully preserved; only
+        # color is removed. Converting via 'L' then back to 'RGB' keeps 3 channels (R=G=B)
+        # so the image processor / patch embedding still gets the input shape it expects.
+        img = img.convert("L").convert("RGB")
+
         if use_tta is None:
             use_tta = ENABLE_TTA
 

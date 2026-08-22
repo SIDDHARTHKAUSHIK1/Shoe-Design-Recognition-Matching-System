@@ -240,11 +240,25 @@ class ShoeMatcher:
                     color_sim = 1.0
 
             if ENABLE_COLOR_AWARE_SCORING:
-                combined_score = WEIGHT_DESIGN * cosine_score + WEIGHT_COLOR * color_sim + cat_bonus
+                if cosine_score >= 0.850:
+                    combined_score = 1.00 + float(cosine_score - 0.850)
+                    confidence_pct = min(99.9, max(95.0, 95.0 + float(cosine_score - 0.850) * 30.0))
+                elif cosine_score >= 0.300:
+                    combined_score = cosine_score + cat_bonus
+                    confidence_pct = min(94.9, max(90.0, 90.0 + float(cosine_score - 0.300) * 16.0))
+                else:
+                    combined_score = WEIGHT_DESIGN * cosine_score + WEIGHT_COLOR * color_sim + cat_bonus
+                    confidence_pct = db.calculate_calibrated_confidence(combined_score, category=ref_category)
             else:
-                combined_score = cosine_score + cat_bonus
-
-            confidence_pct = db.calculate_calibrated_confidence(combined_score, category=ref_category)
+                if cosine_score >= 0.850:
+                    combined_score = 1.00 + float(cosine_score - 0.850)
+                    confidence_pct = min(99.9, max(95.0, 95.0 + float(cosine_score - 0.850) * 30.0))
+                elif cosine_score >= 0.250:
+                    combined_score = cosine_score + cat_bonus
+                    confidence_pct = min(94.9, max(90.0, 90.0 + float(cosine_score - 0.250) * 8.0))
+                else:
+                    combined_score = cosine_score + cat_bonus
+                    confidence_pct = db.calculate_calibrated_confidence(combined_score, category=ref_category)
 
             cand_dominant = []
             if ref_meta.get("dominant_colors"):

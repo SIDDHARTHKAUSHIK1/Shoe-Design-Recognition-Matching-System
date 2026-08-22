@@ -113,7 +113,7 @@ ENABLE_INVARIANT_HEAD = os.getenv("ENABLE_INVARIANT_HEAD", "true").lower() in ("
 INVARIANT_HEAD_PATH = Path(os.getenv("INVARIANT_HEAD_PATH", str(STORAGE_DIR / "models" / "background_invariant_head.pt")))
 
 # Color-Aware Multi-Component Scoring Configuration
-ENABLE_COLOR_AWARE_SCORING = os.getenv("ENABLE_COLOR_AWARE_SCORING", "true").lower() in ("true", "1", "t")
+ENABLE_COLOR_AWARE_SCORING = os.getenv("ENABLE_COLOR_AWARE_SCORING", "false").lower() in ("true", "1", "t")
 WEIGHT_DESIGN = float(os.getenv("WEIGHT_DESIGN", "0.85"))  # 85% DINOv2 visual texture/shape silhouette match
 WEIGHT_COLOR = float(os.getenv("WEIGHT_COLOR", "0.15"))    # 15% foreground color histogram match
 

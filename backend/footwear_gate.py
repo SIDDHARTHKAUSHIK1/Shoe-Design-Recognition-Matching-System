@@ -215,6 +215,10 @@ class BinaryFootwearGate:
         }
 
         # Verification Gate Rules (Default is REJECTION)
+        # If candidate matches a positive catalog footwear vector with similarity (>= 0.30) and is closer to footwear than non-footwear
+        if max_pos_sim >= 0.30 and max_pos_sim > max_neg_sim:
+            return True, round(prob_footwear, 4), "confirmed_footwear", diagnostics
+
         if max_neg_sim >= max_pos_sim:
             rejection_prob = min(prob_footwear, 1.0 - prob_footwear)
             return False, round(rejection_prob, 4), "closer_to_non_footwear", diagnostics

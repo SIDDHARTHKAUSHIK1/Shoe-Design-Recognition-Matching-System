@@ -224,7 +224,7 @@ def seed_initial_users() -> Dict[str, str]:
                 ("admin", pwd_hash)
             )
         else:
-            cursor.execute("UPDATE users SET must_change_password = 0 WHERE user_id = ?", (admin_row["user_id"],))
+            cursor.execute("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE username = 'admin'", (hash_password(admin_pwd),))
 
         # Seed or check Employee
         cursor.execute("SELECT user_id, password_hash, must_change_password FROM users WHERE username = 'employee'")
@@ -236,7 +236,7 @@ def seed_initial_users() -> Dict[str, str]:
                 ("employee", pwd_hash)
             )
         else:
-            cursor.execute("UPDATE users SET must_change_password = 0 WHERE user_id = ?", (emp_row["user_id"],))
+            cursor.execute("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE username = 'employee'", (hash_password(emp_pwd),))
 
         conn.commit()
     return {"admin": admin_pwd, "employee": emp_pwd}

@@ -51,9 +51,12 @@ def calculate_calibrated_confidence(similarity: float, category: str = "shoe") -
     """
     try:
         s = float(similarity)
-        # Platt scaling parameters tuned for DINOv2 INT8 visual embeddings
+        # Platt scaling and floor parameters
         a = 25.0
         b = -9.5
+        floor_breakpoint = 0.42
+        floor_target = 85.0
+        floor_slope = 40.0
         
         try:
             thresholds = load_thresholds_config()
@@ -61,6 +64,9 @@ def calculate_calibrated_confidence(similarity: float, category: str = "shoe") -
             platt = cat_config.get("platt_scaling", {"a": 25.0, "b": -9.5})
             a = platt.get("a", 25.0)
             b = platt.get("b", -9.5)
+            floor_breakpoint = cat_config.get("confidence_floor_breakpoint", 0.42)
+            floor_target = cat_config.get("confidence_floor_target_pct", 85.0)
+            floor_slope = cat_config.get("confidence_floor_slope", 40.0)
         except Exception:
             pass
 
@@ -69,9 +75,8 @@ def calculate_calibrated_confidence(similarity: float, category: str = "shoe") -
         prob = 1.0 / (1.0 + math.exp(-logit))
         conf_pct = prob * 100.0
 
-        # High Certitude calibration: matching catalog shoes (s >= 0.42) report 85%+ confidence
-        if s >= 0.42:
-            conf_pct = max(conf_pct, 85.0 + (s - 0.42) * 40.0)
+        if s >= floor_breakpoint:
+            conf_pct = max(conf_pct, floor_target + (s - floor_breakpoint) * floor_slope)
 
         return round(min(99.9, max(0.0, float(conf_pct))), 2)
     except Exception:

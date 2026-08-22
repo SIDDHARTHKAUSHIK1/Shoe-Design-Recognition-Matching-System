@@ -197,10 +197,14 @@
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                   <span>Start New Search</span>
                 </button>
-                <label for="camera-native-input" class="btn btn-secondary" style="cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                <button type="button" id="btn-dashboard-snap-photo" class="btn btn-secondary" style="cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                   <span>Snap Photo</span>
-                </label>
+                </button>
+                <button type="button" id="btn-dashboard-browse-photo" class="btn btn-secondary" style="cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  <span>Browse Photo</span>
+                </button>
               </div>
             </div>
           </div>
@@ -209,7 +213,7 @@
           <div class="card" style="padding: 20px;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
               <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary);">Recent Employee Searches</h3>
-              <button class="btn-text-sm" onclick="switchToTab('logs-tab')">View Full History &rarr;</button>
+              <button class="btn-text-sm" onclick="switchTab('logs-tab')">View Full History &rarr;</button>
             </div>
             <div id="dashboard-recent-logs-list" style="display: flex; flex-direction: column; gap: 10px;">
               <div style="padding: 14px; text-align: center; color: var(--text-muted); font-size: 0.85rem;">Loading recent search activity...</div>
@@ -228,7 +232,7 @@
                 <h3>1. Query Photo</h3>
                 <span class="card-hint">Drop an image, paste from clipboard, or browse</span>
               </div>
-              <button class="btn-text-sm" id="btn-clear-query" style="display: none;">Clear</button>
+              <button class="btn-text-sm btn-text-danger" id="btn-clear-query" style="display: none;">Clear</button>
             </div>
 
             <!-- Hidden native inputs with standard off-screen accessibility -->
@@ -241,10 +245,10 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 <span>Browse File</span>
               </label>
-              <label for="camera-native-input" class="btn btn-primary btn-sm" id="btn-open-camera" style="justify-content: center; height: 42px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #3b82f6, #2563eb); text-decoration: none; user-select: none;">
+              <button type="button" class="btn btn-primary btn-sm" id="btn-open-camera" style="justify-content: center; height: 42px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #3b82f6, #2563eb); text-decoration: none; user-select: none;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                 <span>Take Photo / Camera</span>
-              </label>
+              </button>
             </div>
 
             <!-- Upload Drop Area -->
@@ -341,14 +345,10 @@
             <!-- Pipeline Loading State -->
             <div class="results-loading" id="results-loading" style="display: none;">
               <div class="pipeline-progress-box">
-                <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 14px;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
                   <div class="stage-icon-spinner"></div>
-                  <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);" id="loading-stage-header">Running Match Pipeline...</h4>
+                  <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);" id="loading-stage-header">Searching in progress…</h4>
                 </div>
-                <div class="pipeline-stage-item active" id="stage-1"><span style="font-family: var(--font-mono); font-size: 0.75rem;">[1/4]</span> Image Preprocessing & Contrast Normalization</div>
-                <div class="pipeline-stage-item" id="stage-2"><span style="font-family: var(--font-mono); font-size: 0.75rem;">[2/4]</span> Foreground Saliency Isolation</div>
-                <div class="pipeline-stage-item" id="stage-3"><span style="font-family: var(--font-mono); font-size: 0.75rem;">[3/4]</span> Invariant Feature Projection</div>
-                <div class="pipeline-stage-item" id="stage-4"><span style="font-family: var(--font-mono); font-size: 0.75rem;">[4/4]</span> FAISS Vector Space Cosine Search</div>
               </div>
             </div>
 

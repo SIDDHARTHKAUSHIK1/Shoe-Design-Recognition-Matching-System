@@ -131,17 +131,39 @@ def fit_platt_and_thresholds(pos_scores: list, neg_scores: list, category_name: 
     # Sanity bounding on thresholds
     best_thresh = max(0.20, min(0.35, best_thresh))
 
-    # Platt Scaling parameters tailored for cosine embedding manifolds
-    if category_name == "shoe":
-        a = 15.2
-        b = -8.8
-        high_th = 85.0
-        mod_th = 70.0
+    from sklearn.linear_model import LogisticRegression
+
+    # Fit Platt scaling (a, b) from real collected score distributions
+    X = np.array(list(pos_scores) + list(neg_scores)).reshape(-1, 1)
+    y = np.array([1] * len(pos_scores) + [0] * len(neg_scores))
+
+    if len(set(y.tolist())) < 2:
+        a, b = 20.0, -8.0
     else:
-        a = 14.6
-        b = -8.2
-        high_th = 82.0
-        mod_th = 68.0
+        clf = LogisticRegression(C=1.0, class_weight="balanced")
+        clf.fit(X, y)
+        a = float(clf.coef_[0][0])
+        b = float(clf.intercept_[0])
+
+    def _sigmoid_pct(s, a_val, b_val):
+        logit = max(-50.0, min(50.0, a_val * s + b_val))
+        return 100.0 / (1.0 + np.exp(-logit))
+
+    if len(pos_scores) >= 5:
+        p10 = float(np.percentile(pos_scores, 10))
+        high_th = round(_sigmoid_pct(p10, a, b), 1)
+        mod_th = round(_sigmoid_pct(best_thresh, a, b), 1)
+        high_th = max(high_th, mod_th + 5.0)
+        high_th = min(high_th, 95.0)
+        mod_th = max(mod_th, 40.0)
+        floor_breakpoint = round(float(np.percentile(pos_scores, 25)), 4)
+    else:
+        high_th = 85.0 if category_name == "shoe" else 82.0
+        mod_th = 70.0 if category_name == "shoe" else 68.0
+        floor_breakpoint = 0.42
+
+    floor_target = high_th
+    floor_slope = 40.0
 
     logger.info(f"[{category_name.upper()}] Youden's J: {best_j:.4f} | Optimal Threshold: {best_thresh:.4f} | Platt (a={a:.2f}, b={b:.2f})")
 
@@ -149,6 +171,9 @@ def fit_platt_and_thresholds(pos_scores: list, neg_scores: list, category_name: 
         "rejection_threshold": round(best_thresh, 4),
         "confidence_high_threshold": high_th,
         "confidence_moderate_threshold": mod_th,
+        "confidence_floor_breakpoint": floor_breakpoint,
+        "confidence_floor_target_pct": floor_target,
+        "confidence_floor_slope": floor_slope,
         "margin_threshold": 0.015,
         "min_density": 0.20,
         "platt_scaling": {

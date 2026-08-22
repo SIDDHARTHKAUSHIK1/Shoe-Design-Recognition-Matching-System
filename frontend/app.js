@@ -632,6 +632,8 @@ document.addEventListener("DOMContentLoaded", () => {
     pageDescription: document.getElementById("page-description"),
     navCatalogCount: document.getElementById("nav-catalog-count"),
     btnOpenAddModal: document.getElementById("btn-open-add-modal"),
+    btnDashboardSnapPhoto: document.getElementById("btn-dashboard-snap-photo"),
+    btnDashboardBrowsePhoto: document.getElementById("btn-dashboard-browse-photo"),
 
     // Visual Match Studio
     queryDropzone: document.getElementById("query-dropzone"),
@@ -1002,6 +1004,25 @@ document.addEventListener("DOMContentLoaded", () => {
     if (elements.btnSnapPhoto) elements.btnSnapPhoto.addEventListener("click", snapPhotoFromCamera);
     if (elements.btnSwitchCamera) elements.btnSwitchCamera.addEventListener("click", switchCamera);
 
+    // Dashboard Quick Actions — Snap / Browse (auto-search on select, mirrors openImageFromLog)
+    if (elements.btnDashboardSnapPhoto) {
+      elements.btnDashboardSnapPhoto.addEventListener("click", (e) => {
+        handleCameraClick(e);
+      });
+    }
+    if (elements.btnDashboardBrowsePhoto) {
+      elements.btnDashboardBrowsePhoto.addEventListener("click", () => {
+        if (elements.queryFileInput) {
+          elements.queryFileInput.value = ""; // allow re-selecting the same filename twice in a row
+          elements.queryFileInput.click();
+        }
+      });
+    }
+
+    if (elements.btnOpenCamera) {
+      elements.btnOpenCamera.addEventListener("click", handleCameraClick);
+    }
+
     // Modal Drag and Drop
     if (elements.modalDropzone) {
       elements.modalDropzone.addEventListener("click", () => elements.modalFilesInput.click());
@@ -1038,6 +1059,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function setQueryFile(file, autoMatch = true) {
     if (!file) return;
+
+    if (state.currentTab !== "match-tab") {
+      switchTab("match-tab");
+    }
 
     state.selectedQueryFile = file;
 
@@ -1116,35 +1141,6 @@ document.addEventListener("DOMContentLoaded", () => {
     elements.resultsMetaText.textContent = "Executing search pipeline...";
     if (elements.detectedCategoryBadge) elements.detectedCategoryBadge.style.display = "none";
 
-    // Reset pipeline stage items
-    for (let i = 1; i <= 4; i++) {
-      const el = document.getElementById(`stage-${i}`);
-      if (el) el.className = "pipeline-stage-item";
-    }
-
-    const s1 = document.getElementById("stage-1");
-    if (s1) s1.className = "pipeline-stage-item active";
-
-    const stageTimer1 = setTimeout(() => {
-      if (s1) s1.className = "pipeline-stage-item completed";
-      const s2 = document.getElementById("stage-2");
-      if (s2) s2.className = "pipeline-stage-item active";
-    }, 180);
-
-    const stageTimer2 = setTimeout(() => {
-      const s2 = document.getElementById("stage-2");
-      if (s2) s2.className = "pipeline-stage-item completed";
-      const s3 = document.getElementById("stage-3");
-      if (s3) s3.className = "pipeline-stage-item active";
-    }, 420);
-
-    const stageTimer3 = setTimeout(() => {
-      const s3 = document.getElementById("stage-3");
-      if (s3) s3.className = "pipeline-stage-item completed";
-      const s4 = document.getElementById("stage-4");
-      if (s4) s4.className = "pipeline-stage-item active";
-    }, 650);
-
     const fileToUpload = state.selectedQueryFile;
     const filename = fileToUpload.name || `mobile_photo_${Date.now()}.jpg`;
 
@@ -1157,15 +1153,6 @@ document.addEventListener("DOMContentLoaded", () => {
         method: "POST",
         body: formData
       });
-
-      clearTimeout(stageTimer1);
-      clearTimeout(stageTimer2);
-      clearTimeout(stageTimer3);
-
-      for (let i = 1; i <= 4; i++) {
-        const el = document.getElementById(`stage-${i}`);
-        if (el) el.className = "pipeline-stage-item completed";
-      }
 
       if (!response.ok) {
         const err = await response.json();
@@ -1260,8 +1247,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const shelfLocation = m.shelf_location || "Warehouse A - Rack 03 - Shelf B-02";
 
-      const confLevel = m.confidence_pct >= 85 ? "high" : (m.confidence_pct >= 70 ? "medium" : "low");
-      const levelLabel = m.confidence_pct >= 85 ? "Strong Match" : (m.confidence_pct >= 70 ? "Variant" : "Low Certitude");
+      const colorToLevel = { green: "high", yellow: "medium", red: "low" };
+      const confLevel = colorToLevel[m.match_color] || (m.confidence_pct >= 85 ? "high" : (m.confidence_pct >= 70 ? "medium" : "low"));
+      const levelLabel = m.match_level_label || (m.confidence_pct >= 85 ? "Strong Match" : (m.confidence_pct >= 70 ? "Variant" : "Low Certitude"));
 
       card.innerHTML = `
         <div class="match-img-box" id="img-box-${m.design_id}">

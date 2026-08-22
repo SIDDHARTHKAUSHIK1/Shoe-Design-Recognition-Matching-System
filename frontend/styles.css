@@ -605,6 +605,34 @@ body {
   border-radius: var(--radius-sm);
 }
 
+.btn-text-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 2px;
+  background: transparent;
+  border: none;
+  color: var(--brand-accent);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.btn-text-sm:hover {
+  color: var(--brand-accent-hover);
+  text-decoration: underline;
+}
+
+.btn-text-sm.btn-text-danger {
+  color: var(--status-danger);
+}
+
+.btn-text-sm.btn-text-danger:hover {
+  color: var(--status-danger-text);
+  text-decoration: underline;
+}
+
 .btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
