@@ -10,4 +10,4 @@
  * This is the ONLY file that needs editing when the backend moves hosts.
  * A value saved in localStorage (Settings screen) still overrides this.
  */
-window.SHOEMATCH_API_BASE = "http://195.35.6.176:8000";
+window.SHOEMATCH_API_BASE = "";

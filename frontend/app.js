@@ -10,7 +10,11 @@ window.getApiBaseUrl = function() {
     const saved = localStorage.getItem("shoematch_api_base_url");
     if (saved && saved.trim()) {
       let url = saved.trim();
-      return url.endsWith("/") ? url.slice(0, -1) : url;
+      if (location.protocol === "https:" && url.startsWith("http://") && !url.startsWith("http://localhost")) {
+        // Ignore stale HTTP IP in localStorage on HTTPS sites
+      } else {
+        return url.endsWith("/") ? url.slice(0, -1) : url;
+      }
     }
   } catch (e) {}
 
@@ -22,15 +26,18 @@ window.getApiBaseUrl = function() {
         return "http://10.0.2.2:8000";
       }
     } catch(e) {}
-    // Default to local dev LAN IP for physical device over WiFi
     return "http://192.168.29.14:8000";
   }
 
-  // Deployed configuration (frontend/config.js). Set when the API is hosted
-  // on a different origin than the static UI. Empty = same-origin.
   if (window.SHOEMATCH_API_BASE) {
-    const cfg = String(window.SHOEMATCH_API_BASE).trim();
-    if (cfg) return cfg.endsWith("/") ? cfg.slice(0, -1) : cfg;
+    let cfg = String(window.SHOEMATCH_API_BASE).trim();
+    if (cfg) {
+      if (location.protocol === "https:" && cfg.startsWith("http://") && !cfg.startsWith("http://localhost")) {
+        // Ignore stale HTTP IP on HTTPS sites
+      } else {
+        return cfg.endsWith("/") ? cfg.slice(0, -1) : cfg;
+      }
+    }
   }
 
   return "";
