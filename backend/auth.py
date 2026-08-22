@@ -218,27 +218,25 @@ def seed_initial_users() -> Dict[str, str]:
         cursor.execute("SELECT user_id, password_hash, must_change_password FROM users WHERE username = 'admin'")
         admin_row = cursor.fetchone()
         if not admin_row:
-            must_change = 1 if admin_pwd == "admin123" else 0
             pwd_hash = hash_password(admin_pwd)
             cursor.execute(
-                "INSERT INTO users (username, password_hash, role, full_name, must_change_password) VALUES (?, ?, 'admin', 'System Administrator', ?)",
-                ("admin", pwd_hash, must_change)
+                "INSERT INTO users (username, password_hash, role, full_name, must_change_password) VALUES (?, ?, 'admin', 'System Administrator', 0)",
+                ("admin", pwd_hash)
             )
-        elif verify_password("admin123", admin_row["password_hash"]):
-            cursor.execute("UPDATE users SET must_change_password = 1 WHERE user_id = ?", (admin_row["user_id"],))
+        else:
+            cursor.execute("UPDATE users SET must_change_password = 0 WHERE user_id = ?", (admin_row["user_id"],))
 
         # Seed or check Employee
         cursor.execute("SELECT user_id, password_hash, must_change_password FROM users WHERE username = 'employee'")
         emp_row = cursor.fetchone()
         if not emp_row:
-            must_change = 1 if emp_pwd == "emp123" else 0
             pwd_hash = hash_password(emp_pwd)
             cursor.execute(
-                "INSERT INTO users (username, password_hash, role, full_name, must_change_password) VALUES (?, ?, 'employee', 'Inventory Specialist', ?)",
-                ("employee", pwd_hash, must_change)
+                "INSERT INTO users (username, password_hash, role, full_name, must_change_password) VALUES (?, ?, 'employee', 'Inventory Specialist', 0)",
+                ("employee", pwd_hash)
             )
-        elif verify_password("emp123", emp_row["password_hash"]):
-            cursor.execute("UPDATE users SET must_change_password = 1 WHERE user_id = ?", (emp_row["user_id"],))
+        else:
+            cursor.execute("UPDATE users SET must_change_password = 0 WHERE user_id = ?", (emp_row["user_id"],))
 
         conn.commit()
     return {"admin": admin_pwd, "employee": emp_pwd}

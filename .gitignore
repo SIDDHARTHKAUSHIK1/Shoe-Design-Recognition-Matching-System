@@ -62,3 +62,9 @@ node_modules/
 
 # VPS credentials (never commit)
 login
+# Hostinger deploy credentials
+deploy/hostinger/.ftp.env
+
+# Frontend build output
+dist/
+deploy/hostinger/*.zip

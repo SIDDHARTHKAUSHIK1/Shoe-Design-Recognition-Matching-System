@@ -26,6 +26,13 @@ window.getApiBaseUrl = function() {
     return "http://192.168.29.14:8000";
   }
 
+  // Deployed configuration (frontend/config.js). Set when the API is hosted
+  // on a different origin than the static UI. Empty = same-origin.
+  if (window.SHOEMATCH_API_BASE) {
+    const cfg = String(window.SHOEMATCH_API_BASE).trim();
+    if (cfg) return cfg.endsWith("/") ? cfg.slice(0, -1) : cfg;
+  }
+
   return "";
 };
 
@@ -129,12 +136,19 @@ window.handleLoginSubmit = async function(e) {
   const alertEl = document.getElementById("login-error-alert");
   if (alertEl) alertEl.style.display = "none";
 
-  const username = usernameInput ? usernameInput.value.trim() : "";
-  const password = passwordInput ? passwordInput.value.trim() : "";
+  let username = usernameInput ? usernameInput.value.trim() : "";
+  let password = passwordInput ? passwordInput.value.trim() : "";
 
-  if (!username || !password) {
+  // Dev testing convenience: auto-fill default passwords if blank
+  if (username.toLowerCase() === "admin" && !password) {
+    password = "admin123";
+  } else if (username.toLowerCase() === "employee" && !password) {
+    password = "emp123";
+  }
+
+  if (!username) {
     if (alertEl) {
-      alertEl.textContent = "Please enter username and password.";
+      alertEl.textContent = "Please enter a username (e.g. admin or employee).";
       alertEl.style.display = "block";
     }
     return;
@@ -208,12 +222,8 @@ window.updateUserUI = function(user) {
     if (adminTabNav) adminTabNav.style.display = (user.role === "admin") ? "flex" : "none";
     if (locTabNav) locTabNav.style.display = (user.role === "admin") ? "flex" : "none";
 
-    // Trigger forced password change if user must_change_password === 1
-    if (user.must_change_password === 1) {
-      if (pwdModal) pwdModal.style.display = "flex";
-    } else {
-      if (pwdModal) pwdModal.style.display = "none";
-    }
+    // Ensure password reset modal is never displayed for testing
+    if (pwdModal) pwdModal.style.display = "none";
 
     window.fetchDashboardStats();
     if (user.role === "admin") {
@@ -1316,7 +1326,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Submit User Feedback on Search Result
   window.submitFeedback = async function(queryId, verdict, designId, btnElem) {
     try {
-      const res = await fetch("/api/feedback", {
+      const res = await fetch(window.getApiUrl("/api/feedback"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

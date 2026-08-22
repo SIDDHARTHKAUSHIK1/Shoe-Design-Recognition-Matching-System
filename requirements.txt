@@ -19,3 +19,21 @@ uvicorn>=0.22.0
 python-multipart>=0.0.6
 pydantic>=2.0.0
 requests>=2.31.0
+
+# Rate limiting — hard import in backend/main.py, app will not boot without it
+slowapi>=0.1.9
+
+# Computer vision — hard import in classifier.py, color_extractor.py, foreground.py
+# Use the headless build on servers: no GUI/X11 system libs required
+opencv-python-headless>=4.8.0
+
+# Bulk catalog import via .xlsx — hard import in backend/bulk_import.py
+openpyxl>=3.1.0
+
+# Optional / lazily imported. Kept pinned so behaviour matches local dev.
+# foreground.py falls back gracefully if onnxruntime is absent.
+onnxruntime>=1.16.0
+# engine.py loads SentenceTransformer only when a CLIP-style model is configured
+sentence-transformers>=2.2.0
+# ingestion.py uses DBSCAN for multi-angle reference clustering
+scikit-learn>=1.3.0

@@ -1,0 +1,4 @@
+design_id,name,category,shelf_location,materials,season,production_status,image_urls
+SHOE-101,AeroPulse Speed Runner,Sneaker,Building A - Section 1 - Rack A-01 - Shelf 1,Breathable Mesh / Rubber Sole,Collection 2026,Active Production Sample,https://raw.githubusercontent.com/pokeapi/sprites/master/sprites/pokemon/1.png
+SHOE-102,Sovereign Wingtip Oxford,Classic Oxford,Building B - Section 2 - Rack B-03 - Shelf 2,Full Grain Calf Leather,Collection 2026,Sample Archive,https://raw.githubusercontent.com/pokeapi/sprites/master/sprites/pokemon/2.png
+SHOE-103,TerraGrip Trail Master,Hiking Boot,Building C - Section 1 - Rack C-02 - Shelf 4,Waterproof Nubuck Leather,Collection 2026,Active Production Sample,https://raw.githubusercontent.com/pokeapi/sprites/master/sprites/pokemon/3.png

@@ -1238,14 +1238,13 @@
           </div>
 
           <div class="form-group" style="margin-bottom: 18px;">
-            <label for="login-password" style="display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Password</label>
-            <input type="password" id="login-password" placeholder="Enter password" required style="width: 100%; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-strong); background: var(--bg-surface); color: var(--text-primary); font-size: 0.88rem;">
+            <label for="login-password" style="display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Password <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">(Optional for testing)</span></label>
+            <input type="password" id="login-password" placeholder="Enter password (optional)" style="width: 100%; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-strong); background: var(--bg-surface); color: var(--text-primary); font-size: 0.88rem;">
           </div>
 
           <div style="background: var(--bg-surface-subtle); padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); font-size: 0.75rem; color: var(--text-muted);">
-            🔐 <strong>Default Credentials:</strong><br>
-            • Admin: <code style="font-family: var(--font-mono); font-weight: 700;">admin</code> / <code style="font-family: var(--font-mono); font-weight: 700;">admin123</code><br>
-            • Employee: <code style="font-family: var(--font-mono); font-weight: 700;">employee</code> / <code style="font-family: var(--font-mono); font-weight: 700;">emp123</code>
+            ⚡ <strong>Testing Mode Active:</strong> Password is optional!<br>
+            • Type <code>admin</code> or <code>employee</code> and click Sign In.
           </div>
         </div>
 
@@ -1261,6 +1260,7 @@
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toast-container"></div>
 
+  <script src="/static/config.js?v=1.0"></script>
   <script src="/static/app.js?v=2.2"></script>
 </body>
 </html>

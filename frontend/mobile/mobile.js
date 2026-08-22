@@ -5,6 +5,11 @@
 (function () {
   'use strict';
 
+  // ==========================================================================
+  // ⚠️ DEV BYPASS — SET TO false BEFORE SHARING BUILD OR DEPLOYING TO PRODUCTION
+  // ==========================================================================
+  const DEV_SKIP_LOGIN = true;
+
   // State Management
   const state = {
     user: null,
@@ -32,8 +37,15 @@
           return "http://10.0.2.2:8000";
         }
       } catch (e) {}
-      return "http://192.168.29.14:8000";
+      return "http://192.168.1.15:8000";
     }
+
+    // Deployed configuration (frontend/config.js). Empty = same-origin.
+    if (window.SHOEMATCH_API_BASE) {
+      const cfg = String(window.SHOEMATCH_API_BASE).trim();
+      if (cfg) return cfg.endsWith("/") ? cfg.slice(0, -1) : cfg;
+    }
+
     return "";
   };
 
@@ -85,6 +97,28 @@
     return fetch(url, options);
   };
 
+  window.extractErrorMessage = function (err, fallback = "An unexpected error occurred") {
+    if (!err) return fallback;
+    if (typeof err === "string") return err;
+
+    if (err.detail) {
+      if (typeof err.detail === "string") return err.detail;
+      if (Array.isArray(err.detail)) {
+        return err.detail.map(item => item.msg || (typeof item === "string" ? item : JSON.stringify(item))).join("; ");
+      }
+      if (typeof err.detail === "object") return JSON.stringify(err.detail);
+    }
+
+    if (err.message && typeof err.message === "string") return err.message;
+    if (err.error && typeof err.error === "string") return err.error;
+
+    try {
+      return JSON.stringify(err);
+    } catch (e) {
+      return String(err);
+    }
+  };
+
   // ==========================================
   // UI Tab Navigation & Theme Controller
   // ==========================================
@@ -122,6 +156,40 @@
   // Auth & Session Management
   // ==========================================
   async function checkAuthStatus() {
+    // ⚠️ Temporary Dev-Only Testing Bypass
+    if (DEV_SKIP_LOGIN) {
+      hideModal("auth-modal");
+      hideModal("password-reset-modal");
+
+      // Auto-authenticate in background with default admin credentials if no token exists
+      if (!window.getAuthToken()) {
+        try {
+          const autoRes = await fetch(window.getApiUrl("/api/auth/login"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: "admin", password: "admin123" })
+          });
+          if (autoRes.ok) {
+            const autoData = await autoRes.json();
+            const t = autoData.token || autoData.access_token;
+            if (t) window.setAuthToken(t);
+          }
+        } catch (e) {
+          console.warn("Dev bypass background auto-login attempt failed:", e);
+        }
+      }
+
+      state.user = {
+        user_id: 1,
+        username: "dev_tester",
+        role: "admin",
+        full_name: "Development Test User"
+      };
+      updateUserRoleBadge(state.user);
+      return;
+    }
+
+    // Production Auth Flow
     const token = window.getAuthToken();
     if (!token) {
       showModal("auth-modal");
@@ -134,13 +202,6 @@
         window.setAuthToken("");
         showModal("auth-modal");
         return;
-      }
-      if (res.status === 403) {
-        const data = await res.json();
-        if (data.detail && data.detail.includes("Password change required")) {
-          showModal("password-reset-modal");
-          return;
-        }
       }
 
       if (res.ok) {
@@ -182,31 +243,46 @@
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       loginErr.textContent = "";
-      const u = document.getElementById("login-username").value.trim();
-      const p = document.getElementById("login-password").value.trim();
+      let u = document.getElementById("login-username").value.trim();
+      let p = document.getElementById("login-password").value.trim();
 
-      const body = new URLSearchParams();
-      body.append("username", u);
-      body.append("password", p);
+      if (u.toLowerCase() === "admin" && !p) p = "admin123";
+      if (u.toLowerCase() === "employee" && !p) p = "emp123";
+
+      if (!u) {
+        loginErr.textContent = "Please enter a username (e.g. admin or employee)";
+        return;
+      }
 
       try {
         const res = await fetch(window.getApiUrl("/api/auth/login"), {
           method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: body.toString()
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: u, password: p })
         });
 
         if (!res.ok) {
-          const errData = await res.json();
-          loginErr.textContent = errData.detail || "Invalid login credentials";
+          let errData;
+          try {
+            errData = await res.json();
+          } catch (e) {
+            errData = { detail: `Server error (Status ${res.status})` };
+          }
+          loginErr.textContent = window.extractErrorMessage(errData, "Invalid username or password");
           return;
         }
 
         const data = await res.json();
-        window.setAuthToken(data.access_token);
+        const token = data.token || data.access_token || "";
+        if (!token) {
+          loginErr.textContent = "Authentication succeeded but no token was returned";
+          return;
+        }
+
+        window.setAuthToken(token);
         await checkAuthStatus();
       } catch (err) {
-        loginErr.textContent = "Network error connecting to API server";
+        loginErr.textContent = window.extractErrorMessage(err, "Network error connecting to API server");
       }
     });
 
@@ -329,8 +405,9 @@
       overlay.classList.add("hidden");
 
       if (!res.ok) {
-        const errData = await res.json();
-        alert(errData.detail || "Error performing visual match.");
+        let errData;
+        try { errData = await res.json(); } catch(e) { errData = { detail: `Match request failed (Status ${res.status})` }; }
+        alert(window.extractErrorMessage(errData, "Error performing visual match."));
         return;
       }
 
@@ -349,22 +426,33 @@
     alertContainer.classList.add("hidden");
     resultsContainer.innerHTML = "";
 
-    if (data.reason === "slipper_rejected" || data.reason === "no_shoe") {
+    if (data.reason === "slipper_rejected" || data.reason === "no_shoe" || data.detected_category === "slipper") {
       alertContainer.classList.remove("hidden");
       return;
     }
 
     const matches = data.matches || [];
     if (matches.length === 0) {
-      resultsContainer.innerHTML = `<div class="md-card">No catalog matches found.</div>`;
+      resultsContainer.innerHTML = `<div class="md-card">No matching footwear designs found in catalog.</div>`;
       return;
     }
 
     matches.forEach((m, idx) => {
-      const rank = idx + 1;
-      const confidence = (m.confidence_pct || 0).toFixed(1);
-      const design = m.design || {};
-      const imgPath = window.getApiUrl(m.image_path || (design.thumbnail_path || ''));
+      const rank = m.rank || (idx + 1);
+      const confidence = (m.confidence_pct !== undefined ? m.confidence_pct : 0).toFixed(1);
+      const designId = m.design_id || `DESIGN_${String(rank).padStart(3, '0')}`;
+      const designName = m.design_name || m.name || designId;
+      const category = m.category || "Footwear";
+      const locationText = m.shelf_location || m.location || "Warehouse A → Rack 01 → Shelf 1";
+      const materialsText = m.materials || "Leather Upper / Rubber Sole";
+
+      // Resolve reference photo URL from match object or angle list
+      let rawImg = m.best_matching_image_url || m.image_path || (m.all_angles && m.all_angles[0] ? m.all_angles[0].image_path : '');
+      if (!rawImg) {
+        rawImg = `/catalog_images/${designId}/photo_1.jpg`;
+      }
+
+      const imgPath = window.getApiUrl(rawImg);
 
       const card = document.createElement("div");
       card.className = `md-card match-card rank-${rank}`;
@@ -374,18 +462,22 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
           <span>#${rank} MATCH • ${confidence}% CONFIDENCE</span>
         </div>
-        <div class="card-title">${design.name || m.design_id}</div>
-        <div style="font-size: 0.8rem; color: var(--md-sys-color-outline); margin-bottom: 12px;">SKU: ${m.design_id} • ${design.category || 'Footwear'}</div>
+        <div class="card-title" style="margin-top: 6px;">${designName}</div>
+        <div style="font-size: 0.8rem; color: var(--md-sys-color-outline); margin-bottom: 10px;">SKU: ${designId} • ${category}</div>
         
-        <img src="${imgPath}" style="width: 100%; max-height: 180px; object-fit: contain; border-radius: 12px; margin-bottom: 12px; background-color: var(--md-sys-color-background);" />
+        <div style="position: relative; text-align: center; margin-bottom: 12px; background-color: var(--md-sys-color-background); border-radius: 12px; padding: 8px; border: 1px solid var(--md-sys-color-surface-variant);">
+          <img src="${imgPath}" alt="${designName}" 
+               style="width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px; transition: transform 0.2s ease;"
+               onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23D97706\' stroke-width=\'2\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\'/><path d=\'M2 17l10 4 10-4\'/><path d=\'M12 3L2 8l10 5 10-5-10-5z\'/></svg>';" />
+        </div>
         
-        <div style="font-size: 0.82rem; color: var(--md-sys-color-on-surface-variant); margin-bottom: 8px;">
-          Upper: <strong>${design.upper_material || 'N/A'}</strong> • Sole: <strong>${design.sole_material || 'N/A'}</strong>
+        <div style="font-size: 0.82rem; color: var(--md-sys-color-on-surface-variant); margin-bottom: 10px;">
+          Materials: <strong>${materialsText}</strong>
         </div>
 
         <div class="location-chip">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          <span>${design.zone_id || 'Zone A'} → ${design.shelf_id || 'Shelf 01'} → ${design.drawer_id || 'D1'} → ${design.slot_id || 'S1'}</span>
+          <span>${locationText}</span>
         </div>
       `;
       resultsContainer.appendChild(card);
@@ -559,6 +651,21 @@
     const hostIndicator = document.getElementById("target-host-indicator");
     if (hostIndicator) {
       hostIndicator.textContent = window.getApiBaseUrl() || "Relative Host";
+      hostIndicator.style.cursor = "pointer";
+      hostIndicator.title = "Tap to change Server IP";
+      hostIndicator.addEventListener("click", () => {
+        const current = window.getApiBaseUrl() || "http://192.168.1.15:8000";
+        const custom = prompt("Enter Server Base URL (e.g. http://192.168.1.15:8000):", current);
+        if (custom !== null) {
+          if (custom.trim()) {
+            localStorage.setItem("shoematch_api_base_url", custom.trim());
+          } else {
+            localStorage.removeItem("shoematch_api_base_url");
+          }
+          hostIndicator.textContent = window.getApiBaseUrl() || "Relative Host";
+          checkAuthStatus();
+        }
+      });
     }
 
     checkAuthStatus();
