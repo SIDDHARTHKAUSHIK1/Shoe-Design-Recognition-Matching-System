@@ -225,7 +225,7 @@ def import_colab_artifacts(
     print(f"📁 Index File Location           : {dest_faiss}")
     print(f"🗄️ Database File Location        : {DB_PATH}")
     print("=" * 65)
-    print("\n🚀 Ready! Open http://localhost:8000 to test visual matching.")
+    print("\n🚀 Ready! Open https://shoe.aflix.co.in to test visual matching.")
     return True
 
 

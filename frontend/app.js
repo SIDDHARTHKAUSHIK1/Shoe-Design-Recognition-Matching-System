@@ -26,7 +26,7 @@ window.getApiBaseUrl = function() {
         return "http://10.0.2.2:8000";
       }
     } catch(e) {}
-    return "http://192.168.29.14:8000";
+    // Otherwise fall through to SHOEMATCH_API_BASE (config.js)
   }
 
   if (window.SHOEMATCH_API_BASE) {

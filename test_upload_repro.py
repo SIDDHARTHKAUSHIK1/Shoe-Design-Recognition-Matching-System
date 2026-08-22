@@ -3,7 +3,7 @@ import requests
 from PIL import Image
 from backend.main import validate_and_sanitize_image
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = "https://shoe.aflix.co.in"
 
 def test_repro():
     print("=== TESTING IMAGE UPLOAD VALIDATION REPRO ===")

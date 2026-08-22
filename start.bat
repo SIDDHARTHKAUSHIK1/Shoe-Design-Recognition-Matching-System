@@ -26,9 +26,9 @@ if not exist "storage\shoe_index.faiss" (
 )
 
 :: Launch FastAPI Server
-echo [3/3] Launching ShoeMatch Web Studio at http://localhost:8000 ...
+echo [3/3] Launching ShoeMatch Web Studio at https://shoe.aflix.co.in ...
 echo.
-echo Open your browser at: http://localhost:8000
+echo Open your browser at: https://shoe.aflix.co.in
 echo Press Ctrl+C in this terminal to stop the server.
 echo =====================================================================
 echo.

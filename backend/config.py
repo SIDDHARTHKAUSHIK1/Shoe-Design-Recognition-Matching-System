@@ -126,6 +126,6 @@ CONFIDENCE_MODERATE_THRESHOLD = 70.0 # 70% - 84.9%: Moderate Match (Yellow)
 TOP_K_MATCHES = 3
 
 # Server configuration
-HOST = os.getenv("HOST", "195.35.6.176")
+HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8000"))
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "t")

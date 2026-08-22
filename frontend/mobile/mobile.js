@@ -37,7 +37,7 @@
           return "http://10.0.2.2:8000";
         }
       } catch (e) {}
-      return "http://192.168.1.15:8000";
+      // Otherwise fall through to SHOEMATCH_API_BASE (config.js)
     }
 
     // Deployed configuration (frontend/config.js). Empty = same-origin.
@@ -654,8 +654,8 @@
       hostIndicator.style.cursor = "pointer";
       hostIndicator.title = "Tap to change Server IP";
       hostIndicator.addEventListener("click", () => {
-        const current = window.getApiBaseUrl() || "http://192.168.1.15:8000";
-        const custom = prompt("Enter Server Base URL (e.g. http://192.168.1.15:8000):", current);
+        const current = window.getApiBaseUrl() || "http://195.35.6.176:8000";
+        const custom = prompt("Enter Server Base URL (e.g. http://195.35.6.176:8000):", current);
         if (custom !== null) {
           if (custom.trim()) {
             localStorage.setItem("shoematch_api_base_url", custom.trim());

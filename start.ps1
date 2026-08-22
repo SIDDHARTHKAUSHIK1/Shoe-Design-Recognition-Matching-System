@@ -21,9 +21,9 @@ if (-not (Test-Path "storage\shoe_index.faiss")) {
     Write-Host "[1/2] Shoe catalog index verified." -ForegroundColor Green
 }
 
-Write-Host "[2/2] Launching Web Studio at http://localhost:8000 ..." -ForegroundColor Cyan
+Write-Host "[2/2] Launching Web Studio at https://shoe.aflix.co.in ..." -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Open your browser at: http://localhost:8000" -ForegroundColor Green
+Write-Host "Open your browser at: https://shoe.aflix.co.in" -ForegroundColor Green
 Write-Host "Press Ctrl+C to stop the server." -ForegroundColor Gray
 Write-Host "=====================================================================" -ForegroundColor Cyan
 Write-Host ""

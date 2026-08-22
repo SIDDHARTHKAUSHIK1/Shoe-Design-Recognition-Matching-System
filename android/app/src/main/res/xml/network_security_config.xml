@@ -2,4 +2,15 @@
 <network-security-config>
     <!-- Production Network Security Configuration: HTTPS Only -->
     <base-config cleartextTrafficPermitted="false" />
+
+    <!-- ponytail: scoped cleartext to the VPS IP only; bare IPs can't hold a
+         Let's Encrypt cert. Point a domain at 195.35.6.176, run certbot, then
+         delete this block and switch config.js to https://. Until then auth
+         tokens and uploads cross the network in plaintext. -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">195.35.6.176</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+    </domain-config>
 </network-security-config>

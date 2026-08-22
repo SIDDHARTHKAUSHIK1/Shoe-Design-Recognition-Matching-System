@@ -85,11 +85,10 @@ if raw_origins and raw_origins != "*":
     allow_cred = True
 else:
     allowed_origins = [
-        "http://localhost:8000",
+        "https://shoe.aflix.co.in",
         "http://127.0.0.1:8000",
         "http://localhost:3000",
         "capacitor://localhost",
-        "http://localhost",
         "https://localhost",
         "http://192.168.29.14:8000"
     ]

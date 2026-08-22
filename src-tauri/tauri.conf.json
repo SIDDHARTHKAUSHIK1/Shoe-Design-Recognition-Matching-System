@@ -5,7 +5,7 @@
   "identifier": "com.shoematch.ai",
   "build": {
     "frontendDist": "../frontend",
-    "devUrl": "http://localhost:8000"
+    "devUrl": "https://shoe.aflix.co.in"
   },
   "app": {
     "windows": [
