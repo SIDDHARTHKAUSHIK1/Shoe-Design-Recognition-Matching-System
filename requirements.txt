@@ -1,11 +1,13 @@
 # Core Deep Learning & Vector Search (CPU-Only, Low RAM)
-torch>=2.0.0
-torchvision>=0.15.0
-transformers>=4.35.0
+# Intel macOS: PyTorch ships no x86_64 wheels past 2.2.2, which caps Python at 3.11.
+# Use `python3.11 -m venv .venv` there. Linux/Apple Silicon can raise the torch ceiling.
+torch>=2.0.0,<2.3.0
+torchvision>=0.15.0,<0.18.0
+transformers>=4.35.0,<5          # v5 requires torch>=2.5
 faiss-cpu>=1.7.4
-numpy>=1.24.0
+numpy>=1.24.0,<2                 # torch 2.2.x is built against numpy 1.x
 pillow>=9.5.0
-opencv-python-headless>=4.8.0
+opencv-python-headless>=4.8.0,<5 # v5 requires numpy>=2
 onnxruntime>=1.15.0
 
 # Spreadsheet & Ingestion

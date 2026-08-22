@@ -12,7 +12,7 @@ import torch
 import torch.nn as nn
 from transformers import AutoImageProcessor, AutoModel
 
-from backend.config import MODEL_NAME, EMBEDDING_DIM, ENABLE_TTA, TTA_CROPS, ENABLE_INVARIANT_HEAD, INVARIANT_HEAD_PATH
+from backend.config import MODEL_NAME, EMBEDDING_DIM, ENABLE_TTA, TTA_CROPS, ENABLE_INVARIANT_HEAD, INVARIANT_HEAD_PATH, TORCH_THREADS
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +71,7 @@ class EmbeddingEngine:
             
             # Low-memory CPU optimization for Render 512MB RAM instances
             if self.device == "cpu":
-                torch.set_num_threads(1)
+                torch.set_num_threads(TORCH_THREADS)
                 try:
                     self.model = torch.quantization.quantize_dynamic(
                         self.model, {torch.nn.Linear}, dtype=torch.qint8
