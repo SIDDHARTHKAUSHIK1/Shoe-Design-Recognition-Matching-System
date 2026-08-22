@@ -1,5 +1,7 @@
-# Use slim Python 3.13 image
-FROM python:3.13-slim
+# Python 3.11: requirements.txt caps torch at <2.3.0,
+# and torch 2.2.x ships no wheels for 3.12+. 3.11 is the newest base the
+# pin allows. Raise both together or not at all.
+FROM python:3.11-slim
 
 # Prevent Python from writing .pyc files and enable unbuffered output
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -33,4 +35,4 @@ RUN mkdir -p storage/catalog_images storage/models storage/uploads
 EXPOSE 8000
 
 # Start server using Uvicorn
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "backend.main:app", "--host", "195.35.6.176", "--port", "8000"]

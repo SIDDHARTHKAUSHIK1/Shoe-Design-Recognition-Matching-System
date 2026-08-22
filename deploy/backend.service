@@ -19,7 +19,7 @@ TimeoutStopSec=15s
 # Environment Variables
 Environment=PYTHONUNBUFFERED=1
 Environment=PORT=8000
-Environment=HOST=0.0.0.0
+Environment=HOST=195.35.6.176
 
 # Process & File Descriptor Limits
 LimitNOFILE=65536

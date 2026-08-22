@@ -15,7 +15,7 @@ services:
     env_file:
       - ../../.env
     environment:
-      HOST: 0.0.0.0
+      HOST: 195.35.6.176
       PORT: 8000
       DEBUG: "false"
       WORKERS: "1"          # each worker loads its own copy of DINOv2 — raise only if RAM allows
