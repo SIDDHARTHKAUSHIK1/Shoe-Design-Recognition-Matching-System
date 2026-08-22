@@ -1,11 +1,10 @@
 {
   "appId": "com.shoematch.ai",
   "appName": "ShoeMatch AI",
-  "webDir": "frontend",
+  "webDir": "frontend/mobile",
   "bundledWebRuntime": false,
   "server": {
-    "androidScheme": "https",
-    "cleartext": true
+    "androidScheme": "http"
   },
   "plugins": {
     "Camera": {

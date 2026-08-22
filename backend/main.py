@@ -9,7 +9,8 @@ import shutil
 import logging
 from pathlib import Path
 from contextlib import asynccontextmanager
-from typing import List, Optional
+from typing import List, Optional, Tuple
+from PIL import Image, ImageOps
 
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Request, Query, Depends
 from fastapi.responses import JSONResponse, FileResponse, Response
@@ -61,6 +62,12 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down Shoe Design Recognition System...")
 
 
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(
     title="Shoe Design Recognition & Matching API",
     description="Production visual similarity search and catalog matching for shoe manufacturing.",
@@ -68,14 +75,31 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # Enable CORS for frontend and API clients (configurable via ALLOWED_ORIGINS env var)
-raw_origins = os.getenv("ALLOWED_ORIGINS", "*")
-allowed_origins = [o.strip() for o in raw_origins.split(",") if o.strip()]
+raw_origins = os.getenv("ALLOWED_ORIGINS", "").strip()
+if raw_origins and raw_origins != "*":
+    allowed_origins = [o.strip() for o in raw_origins.split(",") if o.strip()]
+    allow_cred = True
+else:
+    allowed_origins = [
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "http://localhost:3000",
+        "capacitor://localhost",
+        "http://localhost",
+        "https://localhost",
+        "http://192.168.29.14:8000"
+    ]
+    allow_cred = True
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins if allowed_origins else ["*"],
-    allow_credentials=True,
+    allow_origins=allowed_origins,
+    allow_origin_regex=r"https?://.*|capacitor://.*",
+    allow_credentials=allow_cred,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -106,7 +130,60 @@ async def health_check():
     })
 
 
+MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
+
+def validate_and_sanitize_image(filename: Optional[str], contents: bytes) -> Tuple[bytes, str]:
+    """
+    Rigorously validates image bytes, bakes EXIF orientation into pixel data,
+    converts to clean RGB, re-encodes at high quality (quality=95) to strip embedded payloads,
+    and returns (clean_bytes, safe_filename).
+    """
+    if not contents or len(contents) == 0:
+        raise HTTPException(status_code=400, detail="Empty image file received.")
+        
+    if len(contents) > MAX_UPLOAD_SIZE_BYTES:
+        raise HTTPException(status_code=413, detail="File size exceeds maximum allowed limit (10 MB).")
+        
+    try:
+        buf = io.BytesIO(contents)
+        img = Image.open(buf)
+        img.verify()
+        
+        # Reset stream buffer after verify()
+        buf.seek(0)
+        img = Image.open(buf)
+        img.load()
+
+        # Bake EXIF orientation into pixel data before stripping metadata
+        img = ImageOps.exif_transpose(img)
+
+        # Handle RGBA/LA or indexed color modes with white background for transparency
+        if img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info):
+            bg = Image.new("RGB", img.size, (255, 255, 255))
+            if img.mode != "RGBA":
+                img = img.convert("RGBA")
+            bg.paste(img, mask=img.split()[3])
+            img = bg
+        elif img.mode != "RGB":
+            img = img.convert("RGB")
+
+        # Re-encode clean image at high quality (95) to strip malicious EXIF/HTML/PHP metadata
+        out_buf = io.BytesIO()
+        img.save(out_buf, format="JPEG", quality=95, optimize=True)
+        clean_bytes = out_buf.getvalue()
+    except Exception as e:
+        logger.warning(f"Image validation rejected upload ({filename}): {e}")
+        raise HTTPException(status_code=400, detail="Uploaded file is not a valid or readable image.")
+        
+    raw_name = Path(filename or "upload.jpg").name
+    safe_stem = "".join(c for c in Path(raw_name).stem if c.isalnum() or c in ("-", "_")).strip() or "image"
+    safe_ext = ".jpg"
+        
+    return clean_bytes, f"{safe_stem}{safe_ext}"
+
+
 @app.post("/api/match")
+@limiter.limit("20/minute")
 async def match_shoe_design(
     request: Request,
     file: UploadFile = File(...),
@@ -117,30 +194,22 @@ async def match_shoe_design(
     Returns the top 3 ranked designs with accuracy percentages, confidence levels,
     and side-by-side reference angle images.
     """
-    if file.content_type and not file.content_type.startswith("image/"):
-        # Check filename extension if content_type is generic/binary
-        ext = os.path.splitext(file.filename or "")[1].lower()
-        if ext not in (".jpg", ".jpeg", ".png", ".webp", ".bmp"):
-            raise HTTPException(status_code=400, detail="Uploaded file must be a valid image (JPEG, PNG, WEBP).")
-
-    # Read image contents
     contents = await file.read()
-    if len(contents) == 0:
-        raise HTTPException(status_code=400, detail="Empty image file received.")
+    clean_bytes, clean_name = validate_and_sanitize_image(file.filename, contents)
 
     # Save query image to persistent uploads directory
     timestamp = int(time.time() * 1000)
-    safe_filename = f"query_{timestamp}_{file.filename}"
+    safe_filename = f"query_{timestamp}_{clean_name}"
     save_path = UPLOADS_DIR / safe_filename
     
     with open(save_path, "wb") as f:
-        f.write(contents)
+        f.write(clean_bytes)
 
     rel_url = f"/uploads/{safe_filename}"
 
-    # Execute matching
+    # Execute matching with clean orientation-baked bytes
     result = matcher.match_image(
-        query_image_input=contents,
+        query_image_input=clean_bytes,
         query_image_save_path=rel_url,
         top_k=top_k
     )
@@ -163,6 +232,7 @@ async def match_shoe_design(
 
 @app.post("/api/designs")
 async def create_design(
+    request: Request,
     design_id: str = Form(...),
     name: str = Form(...),
     category: str = Form("Sneaker"),
@@ -176,9 +246,10 @@ async def create_design(
     angles: Optional[str] = Form(None)  # Comma-separated or inferred
 ):
     """
-    Incrementally add a new shoe design to the catalog with multiple angle photos.
+    Incrementally add a new shoe design to the catalog with multiple angle photos (Admin only).
     Uses FAISS incremental add() without rebuilding the entire index.
     """
+    _ = await require_admin_user(request)
     if not design_id or not name:
         raise HTTPException(status_code=400, detail="design_id and name are required.")
 
@@ -192,10 +263,11 @@ async def create_design(
     for idx, uploaded_file in enumerate(files):
         content = await uploaded_file.read()
         if len(content) > 0:
+            clean_bytes, clean_name = validate_and_sanitize_image(uploaded_file.filename, content)
             assigned_angle = angle_list[idx] if idx < len(angle_list) else None
             image_payloads.append({
-                "filename": uploaded_file.filename,
-                "content": content,
+                "filename": clean_name,
+                "content": clean_bytes,
                 "angle": assigned_angle
             })
 
@@ -298,8 +370,8 @@ async def list_designs(
 
 @app.put("/api/designs/{design_id}")
 async def update_design(design_id: str, payload: dict, request: Request):
-    """Update design attributes (name, category, materials, shelf_location, etc.)."""
-    _ = await require_authenticated_user(request)
+    """Update design attributes (name, category, materials, shelf_location, etc.) (Admin only)."""
+    _ = await require_admin_user(request)
     design = db.get_design(design_id)
     if not design:
         raise HTTPException(status_code=404, detail=f"Design '{design_id}' not found.")
@@ -336,8 +408,9 @@ async def get_design_details(design_id: str):
 
 
 @app.delete("/api/designs/{design_id}")
-async def delete_catalog_design(design_id: str):
-    """Delete a design and refresh the vector store."""
+async def delete_catalog_design(design_id: str, request: Request):
+    """Delete a design and refresh the vector store (Admin only)."""
+    _ = await require_admin_user(request)
     design = db.get_design(design_id)
     if not design:
         raise HTTPException(status_code=404, detail=f"Design '{design_id}' not found.")
@@ -462,11 +535,16 @@ async def get_current_user(request: Request) -> Optional[dict]:
     return user
 
 
+ALLOWED_MUST_CHANGE_PATHS = {"/api/auth/change-password", "/api/auth/logout", "/api/auth/me"}
+
+
 async def require_authenticated_user(request: Request) -> dict:
     """Dependency ensuring caller is authenticated."""
     user = await get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
+    if user.get("must_change_password") == 1 and request.url.path not in ALLOWED_MUST_CHANGE_PATHS:
+        raise HTTPException(status_code=403, detail="Password change required before accessing system resources.")
     return user
 
 
@@ -479,7 +557,8 @@ async def require_admin_user(request: Request) -> dict:
 
 
 @app.post("/api/auth/login")
-async def login_user(payload: dict):
+@limiter.limit("10/minute")
+async def login_user(request: Request, payload: dict):
     """Authenticate user and return JWT token."""
     username = payload.get("username", "").strip()
     password = payload.get("password", "").strip()

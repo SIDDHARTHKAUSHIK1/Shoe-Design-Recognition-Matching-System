@@ -4,7 +4,11 @@
   "description": "ShoeMatch AI — Native Visual Search & Catalog Matching Application",
   "main": "frontend/app.js",
   "scripts": {
-    "cap:sync": "cap sync",
+    "build:tailwind": "npx @tailwindcss/cli -i frontend/index.css -o frontend/tailwind.min.css",
+    "build:mobile": "npm run build:tailwind && cap sync android",
+    "run:backend": "python run_server.py",
+    "run:mobile": "npm run build:mobile && cap run android",
+    "cap:sync": "cap sync android",
     "cap:open:android": "cap open android",
     "cap:run:android": "cap run android",
     "tauri": "tauri"
@@ -23,7 +27,8 @@
     "@capacitor/android": "^6.2.0",
     "@capacitor/camera": "^6.0.2",
     "@capacitor/cli": "^6.2.0",
-    "@capacitor/core": "^6.2.0"
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/preferences": "^6.0.4"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.1.0"

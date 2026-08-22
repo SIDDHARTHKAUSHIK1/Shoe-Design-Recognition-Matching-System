@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>ShoeMatch AI Mobile</title>
+  
+  <!-- Material Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Mobile Native Material 3 Stylesheet -->
+  <link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+
+  <div id="app-shell">
+    
+    <!-- Material 3 Top App Bar -->
+    <header class="top-app-bar">
+      <div class="brand-title">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 17l10 4 10-4"/>
+          <path d="M12 3L2 8l10 5 10-5-10-5z"/>
+        </svg>
+        <span>ShoeMatch AI</span>
+        <span class="brand-badge" id="role-badge">Employee</span>
+      </div>
+
+      <div class="top-bar-actions">
+        <button class="icon-btn" id="btn-theme-toggle" title="Toggle Theme">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+          </svg>
+        </button>
+        <button class="icon-btn" id="btn-logout" title="Log Out">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Scrollable Body Area -->
+    <main class="main-content">
+      
+      <!-- TAB 1: MATCH STUDIO -->
+      <section id="tab-studio" class="tab-pane active">
+        <div class="md-card">
+          <div class="card-title">
+            <span>Visual Match Studio</span>
+            <span style="font-size: 0.75rem; color: var(--md-sys-color-outline);" id="target-host-indicator">LAN: 192.168.29.14</span>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--md-sys-color-on-surface-variant); margin-bottom: 14px;">
+            Snap a shoe photo with your camera or select an image from your gallery to match catalog designs and locate its warehouse slot.
+          </p>
+          
+          <div style="display: flex; gap: 10px;">
+            <button class="md-btn" id="btn-studio-camera" style="flex: 1; background-color: var(--md-sys-color-secondary); color: var(--md-sys-color-on-secondary);">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              <span>Camera</span>
+            </button>
+
+            <button class="md-btn" id="btn-studio-gallery" style="flex: 1; background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container);">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span>Gallery</span>
+            </button>
+          </div>
+          <input type="file" id="file-gallery-picker" accept="image/*" class="hidden">
+        </div>
+
+        <!-- Selected Query File Preview -->
+        <div id="query-preview-container" class="md-card hidden" style="text-align: center;">
+          <img id="query-preview-img" style="max-height: 220px; border-radius: 12px; object-fit: contain; width: 100%; margin-bottom: 12px;" />
+          <button class="md-btn" id="btn-execute-match">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <span>Run AI Visual Search</span>
+          </button>
+        </div>
+
+        <!-- Slipper Rejection Alert Container -->
+        <div id="slipper-alert-container" class="md-card hidden" style="background-color: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error); border: 1px solid var(--md-sys-color-error);">
+          <div style="display: flex; align-items: center; gap: 10px; font-weight: 700; margin-bottom: 6px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            <span>Slipper / Non-Shoe Object Detected</span>
+          </div>
+          <p style="font-size: 0.85rem;" id="slipper-alert-text">
+            The uploaded image was classified as a slipper or non-shoe item and rejected by the footwear gate. Please upload a clear photo of a shoe design.
+          </p>
+        </div>
+
+        <!-- Match Results Container -->
+        <div id="match-results-container"></div>
+      </section>
+
+      <!-- TAB 2: CATALOG -->
+      <section id="tab-catalog" class="tab-pane">
+        <div class="md-card" style="margin-bottom: 12px;">
+          <input type="text" id="catalog-search-input" class="md-input" placeholder="Search catalog by SKU, name, or material..." style="margin-bottom: 0;">
+        </div>
+        <div id="catalog-grid"></div>
+      </section>
+
+      <!-- TAB 3: LOCATIONS -->
+      <section id="tab-locations" class="tab-pane">
+        <div class="md-card" style="margin-bottom: 12px;">
+          <div class="card-title">Location & Warehouse Hierarchy</div>
+          <p style="font-size: 0.85rem; color: var(--md-sys-color-on-surface-variant); margin-bottom: 10px;">
+            Search for Facility Zones, Shelves, Drawers, or Storage Slots:
+          </p>
+          <input type="text" id="location-search-input" class="md-input" placeholder="Type slot or rack keyword (e.g. Rack 03)..." style="margin-bottom: 0;">
+        </div>
+        <div id="location-results-container"></div>
+      </section>
+
+      <!-- TAB 4: ADMIN CONSOLE -->
+      <section id="tab-admin" class="tab-pane">
+        <div class="md-card">
+          <div class="card-title">Admin Management & Audit Logs</div>
+          <p style="font-size: 0.85rem; color: var(--md-sys-color-on-surface-variant); margin-bottom: 12px;">
+            Role-gated administrative console for auditing system access and managing shoe design records.
+          </p>
+          <button class="md-btn" id="btn-refresh-audit-logs" style="margin-bottom: 16px;">
+            <span>Refresh Audit Logs</span>
+          </button>
+          <div id="admin-audit-logs"></div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Staged AI Scanning Feedback Overlay -->
+    <div id="scanner-overlay" class="scanner-overlay hidden">
+      <div class="scanner-ring"></div>
+      <div class="scanner-status" id="scanner-status-text">Processing Image...</div>
+      <div class="scanner-steps">
+        <div class="scan-step" id="step-exif">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Checking EXIF Camera Orientation</span>
+        </div>
+        <div class="scan-step" id="step-u2net">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>U2-Netp Background Isolation</span>
+        </div>
+        <div class="scan-step" id="step-dinov2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>DINOv2 Dense Feature Vectoring (384-dim)</span>
+        </div>
+        <div class="scan-step" id="step-faiss">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>FAISS Vector Match & Footwear Gate</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Glove-Friendly Floating Action Button for Live Camera -->
+    <div class="fab-container">
+      <button class="md-fab" id="fab-camera-capture">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <span>SNAP</span>
+      </button>
+    </div>
+
+    <!-- Material 3 Bottom Navigation Bar -->
+    <nav class="bottom-nav">
+      <button class="nav-tab active" data-tab="tab-studio">
+        <div class="nav-tab-pill">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </div>
+        <span class="nav-tab-label">Studio</span>
+      </button>
+
+      <button class="nav-tab" data-tab="tab-catalog">
+        <div class="nav-tab-pill">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        </div>
+        <span class="nav-tab-label">Catalog</span>
+      </button>
+
+      <button class="nav-tab" data-tab="tab-locations">
+        <div class="nav-tab-pill">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <span class="nav-tab-label">Locations</span>
+      </button>
+
+      <button class="nav-tab hidden" id="nav-tab-admin" data-tab="tab-admin">
+        <div class="nav-tab-pill">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <span class="nav-tab-label">Admin</span>
+      </button>
+    </nav>
+
+    <!-- Login Modal / Sheet -->
+    <div id="auth-modal" class="scanner-overlay hidden" style="background-color: var(--md-sys-color-background);">
+      <div style="width: 100%; max-width: 360px; background-color: var(--md-sys-color-surface); padding: 24px; border-radius: 24px; box-shadow: var(--md-elevation-3); text-align: center;">
+        <h2 style="color: var(--md-sys-color-on-surface); font-size: 1.4rem; font-weight: 700; margin-bottom: 6px;">Sign In to ShoeMatch AI</h2>
+        <p style="color: var(--md-sys-color-on-surface-variant); font-size: 0.85rem; margin-bottom: 20px;">Use your employee or administrator credentials</p>
+        
+        <form id="login-form">
+          <input type="text" id="login-username" class="md-input" placeholder="Username (e.g. employee)" required autocomplete="username">
+          <input type="password" id="login-password" class="md-input" placeholder="Password (e.g. emp123)" required autocomplete="current-password">
+          <button type="submit" class="md-btn">Sign In</button>
+        </form>
+        <div id="login-error-text" style="color: var(--md-sys-color-error); font-size: 0.82rem; margin-top: 12px;"></div>
+      </div>
+    </div>
+
+    <!-- Forced Password Reset Modal -->
+    <div id="password-reset-modal" class="scanner-overlay hidden" style="background-color: rgba(0,0,0,0.85);">
+      <div style="width: 100%; max-width: 360px; background-color: var(--md-sys-color-surface); padding: 24px; border-radius: 24px; text-align: center;">
+        <h2 style="color: var(--md-sys-color-on-surface); font-size: 1.25rem; font-weight: 700; margin-bottom: 8px;">Password Change Required</h2>
+        <p style="color: var(--md-sys-color-on-surface-variant); font-size: 0.85rem; margin-bottom: 16px;">You must change your default password before continuing.</p>
+        
+        <form id="password-reset-form">
+          <input type="password" id="reset-current-pass" class="md-input" placeholder="Current Password" required>
+          <input type="password" id="reset-new-pass" class="md-input" placeholder="New Password (min 8 chars)" required>
+          <button type="submit" class="md-btn">Update Password & Continue</button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Mobile Logic -->
+  <script src="mobile.js"></script>
+</body>
+</html>

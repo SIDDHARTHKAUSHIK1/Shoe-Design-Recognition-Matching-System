@@ -51,3 +51,11 @@ Thumbs.db
 # HuggingFace Cache
 .cache/
 hf_cache/
+
+# Environment Variables & Local Config
+.env
+.env.local
+.env.*.local
+
+# Node Dependencies
+node_modules/

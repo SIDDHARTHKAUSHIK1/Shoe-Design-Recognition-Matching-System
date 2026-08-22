@@ -12,12 +12,14 @@ import logging
 from typing import Optional, Dict, Any
 from datetime import datetime
 
+import os
+
 from backend.database import get_db_connection
 
 logger = logging.getLogger(__name__)
 
-# Secret key for signing tokens
-SECRET_KEY = "shoematch_secret_jwt_key_enterprise_2026"
+# Secret key for signing tokens (pulled from environment, with secure fallback for dev)
+SECRET_KEY = os.getenv("SECRET_KEY", "shoematch_secret_jwt_key_enterprise_2026")
 TOKEN_EXPIRY_SECONDS = 24 * 3600  # 24 hours
 
 
