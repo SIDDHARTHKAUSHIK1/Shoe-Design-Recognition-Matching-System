@@ -1,0 +1,60 @@
+# ==============================================================================
+# ShoeMatch AI — Production stack for a Hostinger VPS
+#   Caddy terminates TLS (auto Let's Encrypt) and proxies to the FastAPI app.
+#   Run from the repo root:
+#     docker compose -f deploy/vps/docker-compose.prod.yml up -d --build
+# ==============================================================================
+
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    container_name: shoematch_api
+    restart: unless-stopped
+    env_file:
+      - ../../.env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8000
+      DEBUG: "false"
+      WORKERS: "1"          # each worker loads its own copy of DINOv2 — raise only if RAM allows
+      EMBEDDING_MODEL: facebook/dinov2-small
+      HF_HOME: /app/.cache/huggingface
+    volumes:
+      # Persist the catalog DB, reference images and FAISS index across rebuilds
+      - ../../storage:/app/storage
+      # Cache model weights so a restart doesn't re-download DINOv2
+      - hf_cache:/app/.cache/huggingface
+    expose:
+      - "8000"
+    # DINOv2 + torch + opencv resident set is ~1.2-1.8GB. Do not run below 2GB.
+    deploy:
+      resources:
+        limits:
+          memory: 3g
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s     # first boot downloads model weights
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: shoematch_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
+volumes:
+  hf_cache:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,35 @@
+# ==============================================================================
+# ShoeMatch AI — Caddy reverse proxy
+# Replace api.yourdomain.com with your real API subdomain before deploying.
+# Caddy provisions and renews the Let's Encrypt certificate automatically.
+# ==============================================================================
+
+api.yourdomain.com {
+	encode gzip zstd
+
+	# Image uploads: the match endpoint accepts full-resolution photos.
+	request_body {
+		max_size 25MB
+	}
+
+	reverse_proxy api:8000 {
+		# DINOv2 inference with TTA can take a few seconds on a cold container.
+		transport http {
+			read_timeout 120s
+			write_timeout 120s
+		}
+	}
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	log {
+		output file /data/access.log {
+			roll_size 10MB
+			roll_keep 5
+		}
+	}
+}
