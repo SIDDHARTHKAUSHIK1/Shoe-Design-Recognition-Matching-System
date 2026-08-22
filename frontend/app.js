@@ -129,12 +129,19 @@ window.handleLoginSubmit = async function(e) {
   const alertEl = document.getElementById("login-error-alert");
   if (alertEl) alertEl.style.display = "none";
 
-  const username = usernameInput ? usernameInput.value.trim() : "";
-  const password = passwordInput ? passwordInput.value.trim() : "";
+  let username = usernameInput ? usernameInput.value.trim() : "";
+  let password = passwordInput ? passwordInput.value.trim() : "";
 
-  if (!username || !password) {
+  // Dev testing convenience: auto-fill default passwords if blank
+  if (username.toLowerCase() === "admin" && !password) {
+    password = "admin123";
+  } else if (username.toLowerCase() === "employee" && !password) {
+    password = "emp123";
+  }
+
+  if (!username) {
     if (alertEl) {
-      alertEl.textContent = "Please enter username and password.";
+      alertEl.textContent = "Please enter a username (e.g. admin or employee).";
       alertEl.style.display = "block";
     }
     return;
