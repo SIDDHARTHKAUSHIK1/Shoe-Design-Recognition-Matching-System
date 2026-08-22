@@ -225,9 +225,7 @@ class ShoeMatcher:
                 continue
 
             ref_category = ref_meta.get("category", "")
-            # Filter strictly: only designs whose normalized category matches detected category
-            if db.normalize_category(ref_category) != detected_category:
-                continue
+            cat_bonus = 0.05 if db.normalize_category(ref_category) == detected_category else 0.00
                 
             design_id = ref_meta["design_id"]
             cosine_score = float(score)
@@ -242,9 +240,9 @@ class ShoeMatcher:
                     color_sim = 1.0
 
             if ENABLE_COLOR_AWARE_SCORING:
-                combined_score = WEIGHT_DESIGN * cosine_score + WEIGHT_COLOR * color_sim
+                combined_score = WEIGHT_DESIGN * cosine_score + WEIGHT_COLOR * color_sim + cat_bonus
             else:
-                combined_score = cosine_score
+                combined_score = cosine_score + cat_bonus
 
             confidence_pct = db.calculate_calibrated_confidence(combined_score, category=ref_category)
 
