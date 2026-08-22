@@ -1,0 +1,51 @@
+# ==============================================================================
+# Docker build context exclusions
+# Without this the context is ~500MB; with it, ~130MB.
+# ==============================================================================
+
+# Version control & IDE
+.git
+.gitignore
+.idea
+.vscode
+
+# Node / mobile / desktop shells — not part of the server image
+node_modules
+android
+src-tauri
+package-lock.json
+
+# Python bytecode & virtualenvs
+__pycache__
+**/__pycache__
+*.py[cod]
+venv
+.venv
+env
+
+# Training data must never enter the server image (see config.assert_catalog_image_path)
+data/training
+Large_dataset
+test_images
+dataset
+
+# Runtime artifacts — regenerated on the server, 237MB of stale query images
+storage/uploads
+storage/catalog_segmented
+storage/debug_*.jpg
+storage/*.db-shm
+storage/*.db-wal
+
+# NOTE: storage/catalog.db, storage/catalog_images/ and storage/*.faiss are
+# deliberately NOT excluded — they are the seeded production catalog.
+
+# Secrets — supplied at runtime via env, never baked into an image layer
+.env
+.env.local
+.env.*.local
+
+# Notebooks, docs, tests, local scripts
+*.ipynb
+test_*.py
+baseline_audit.py
+*.log

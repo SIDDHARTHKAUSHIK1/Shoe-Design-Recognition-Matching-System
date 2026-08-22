@@ -1,0 +1,313 @@
+/* ==========================================================================
+   ShoeMatch AI — Shared Design Tokens & Theme Variants (Light / Dark)
+   ========================================================================== */
+
+:root {
+  /* Color Palette (Light Theme Defaults) */
+  --color-navy: #1B133C;
+  --bg-canvas: #FFFFFF;
+  --bg-surface: #FFFFFF;
+  --bg-glass: rgba(255, 255, 255, 0.82);
+  --bg-glass-overlay-top: rgba(255, 255, 255, 0.7);
+  --bg-glass-overlay-mid: rgba(255, 255, 255, 0.3);
+  --bg-glass-overlay-bot: rgba(255, 255, 255, 0.8);
+
+  --border-subtle: rgba(27, 19, 60, 0.1);
+  --border-strong: rgba(27, 19, 60, 0.2);
+
+  --text-primary: #1B133C;
+  --text-secondary: rgba(27, 19, 60, 0.7);
+  --text-muted: rgba(27, 19, 60, 0.45);
+
+  --brand-accent: #D97706;
+  --brand-accent-light: rgba(217, 119, 6, 0.1);
+
+  --btn-cta-bg: #FEFEFE;
+  --btn-cta-text: #1B133C;
+  --btn-cta-border: rgba(27, 19, 60, 0.1);
+  --btn-cta-shadow: 0px 4px 12px rgba(0, 0, 0, 0.12);
+
+  --shadow-pill: 0 4px 20px -2px rgba(27, 19, 60, 0.08);
+  --transition-theme: background-color 300ms ease, color 300ms ease, border-color 300ms ease, box-shadow 300ms ease;
+}
+
+html[data-theme="dark"] {
+  /* Dark Theme Inversion (Brand Navy #130D2E canvas) */
+  --color-navy: #F8FAF9;
+  --bg-canvas: #130D2E;
+  --bg-surface: #1B133C;
+  --bg-glass: rgba(27, 19, 60, 0.88);
+  --bg-glass-overlay-top: rgba(19, 13, 46, 0.85);
+  --bg-glass-overlay-mid: rgba(19, 13, 46, 0.5);
+  --bg-glass-overlay-bot: rgba(19, 13, 46, 0.9);
+
+  --border-subtle: rgba(255, 255, 255, 0.14);
+  --border-strong: rgba(255, 255, 255, 0.25);
+
+  --text-primary: #F8FAF9;
+  --text-secondary: rgba(248, 250, 249, 0.82);
+  --text-muted: rgba(248, 250, 249, 0.52);
+
+  --brand-accent: #F59E0B;
+  --brand-accent-light: rgba(245, 158, 11, 0.15);
+
+  --btn-cta-bg: #281D54;
+  --btn-cta-text: #F8FAF9;
+  --btn-cta-border: rgba(255, 255, 255, 0.18);
+  --btn-cta-shadow: 0px 4px 16px rgba(0, 0, 0, 0.4);
+
+  --shadow-pill: 0 4px 20px -2px rgba(0, 0, 0, 0.3);
+}
+
+/* Base Body Application */
+body {
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--text-primary);
+  background-color: var(--bg-canvas);
+  transition: var(--transition-theme);
+  scroll-behavior: smooth;
+}
+
+/* ==========================================================================
+   Complete 100% Dark Mode Comprehensive Coverage
+   ========================================================================== */
+html[data-theme="dark"] body {
+  background-color: #130D2E !important;
+  color: #F8FAF9 !important;
+}
+
+html[data-theme="dark"] #nav-pill,
+html[data-theme="dark"] #confidence-chip,
+html[data-theme="dark"] .glass-card {
+  background-color: rgba(27, 19, 60, 0.85) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  color: #F8FAF9 !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35) !important;
+}
+
+html[data-theme="dark"] .glass-card h3,
+html[data-theme="dark"] .glass-card h4,
+html[data-theme="dark"] .glass-card p,
+html[data-theme="dark"] .glass-card span,
+html[data-theme="dark"] .glass-card div {
+  color: #F8FAF9 !important;
+}
+
+html[data-theme="dark"] h1,
+html[data-theme="dark"] h2,
+html[data-theme="dark"] h3,
+html[data-theme="dark"] h4,
+html[data-theme="dark"] h5,
+html[data-theme="dark"] h6 {
+  color: #F8FAF9 !important;
+}
+
+html[data-theme="dark"] p,
+html[data-theme="dark"] span,
+html[data-theme="dark"] li {
+  color: rgba(248, 250, 249, 0.82) !important;
+}
+
+html[data-theme="dark"] section {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+html[data-theme="dark"] .faq-item {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+html[data-theme="dark"] .faq-question {
+  color: #F8FAF9 !important;
+}
+
+html[data-theme="dark"] .faq-answer {
+  color: rgba(248, 250, 249, 0.8) !important;
+}
+
+html[data-theme="dark"] footer {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: rgba(248, 250, 249, 0.6) !important;
+}
+
+html[data-theme="dark"] .bg-[#1B133C]\/5,
+html[data-theme="dark"] .bg-gray-50 {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+html[data-theme="dark"] .text-[#1B133C]\/70,
+html[data-theme="dark"] .text-[#1B133C]\/60,
+html[data-theme="dark"] .text-[#1B133C]\/80 {
+  color: rgba(248, 250, 249, 0.78) !important;
+}
+
+html[data-theme="dark"] .text-[#1B133C] {
+  color: #F8FAF9 !important;
+}
+
+/* Theme Toggle Button Styling */
+.btn-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: var(--transition-theme), transform 0.15s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-theme-toggle:hover {
+  transform: scale(1.06);
+  border-color: var(--brand-accent);
+}
+
+.btn-theme-toggle:active {
+  transform: scale(0.95);
+}
+
+/* ==========================================================================
+   Floating Hero & Section Shoe Visual Motion Elements
+   ========================================================================== */
+@keyframes heroShoeFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(-4deg);
+  }
+  50% {
+    transform: translateY(-9px) rotate(-2deg);
+  }
+}
+
+@keyframes secondaryShoeFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(3deg);
+  }
+  50% {
+    transform: translateY(-7px) rotate(1deg);
+  }
+}
+
+@keyframes heroShoeShadowPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scale(0.86);
+    opacity: 0.2;
+  }
+}
+
+.hero-shoe-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  user-select: none;
+}
+
+.hero-floating-shoe {
+  animation: heroShoeFloat 3.8s ease-in-out infinite;
+  filter: drop-shadow(0 14px 28px rgba(27, 19, 60, 0.22));
+  transition: filter 300ms ease, transform 300ms ease;
+  will-change: transform;
+}
+
+.secondary-floating-shoe {
+  animation: secondaryShoeFloat 4.2s ease-in-out infinite;
+  filter: drop-shadow(0 12px 24px rgba(27, 19, 60, 0.18));
+  transition: filter 300ms ease, transform 300ms ease;
+  will-change: transform;
+}
+
+.hero-shoe-shadow {
+  position: absolute;
+  bottom: -10px;
+  width: 65%;
+  height: 16px;
+  background: radial-gradient(ellipse at center, rgba(27, 19, 60, 0.35) 0%, rgba(27, 19, 60, 0) 75%);
+  border-radius: 50%;
+  animation: heroShoeShadowPulse 3.8s ease-in-out infinite;
+}
+
+/* Dark Theme Overrides for Floating Shoes */
+html[data-theme="dark"] .hero-floating-shoe,
+html[data-theme="dark"] .secondary-floating-shoe {
+  filter: drop-shadow(0 16px 36px rgba(0, 0, 0, 0.75)) drop-shadow(0 0 24px rgba(245, 158, 11, 0.12));
+}
+
+html[data-theme="dark"] .hero-shoe-shadow {
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.65) 0%, rgba(0, 0, 0, 0) 75%);
+}
+
+/* Glass Card Component */
+.glass-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px -2px rgba(27, 19, 60, 0.06);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px -4px rgba(27, 19, 60, 0.12);
+  border-color: var(--brand-accent);
+}
+
+.faq-item {
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 18px 0;
+}
+
+.faq-question {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.faq-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, margin-top 0.3s ease;
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.faq-item.open .faq-answer {
+  max-height: 200px;
+  margin-top: 10px;
+}
+
+.faq-icon {
+  transition: transform 0.3s ease;
+}
+
+.faq-item.open .faq-icon {
+  transform: rotate(180deg);
+}
+
+/* Respect Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  body, .btn-theme-toggle, #nav-pill, #confidence-chip, .glass-card, .faq-answer {
+    transition: none !important;
+  }
+  .hero-floating-shoe, .secondary-floating-shoe, .hero-shoe-shadow {
+    animation: none !important;
+    transform: rotate(-4deg) !important;
+  }
+}
