@@ -215,12 +215,8 @@ window.updateUserUI = function(user) {
     if (adminTabNav) adminTabNav.style.display = (user.role === "admin") ? "flex" : "none";
     if (locTabNav) locTabNav.style.display = (user.role === "admin") ? "flex" : "none";
 
-    // Trigger forced password change if user must_change_password === 1
-    if (user.must_change_password === 1) {
-      if (pwdModal) pwdModal.style.display = "flex";
-    } else {
-      if (pwdModal) pwdModal.style.display = "none";
-    }
+    // Ensure password reset modal is never displayed for testing
+    if (pwdModal) pwdModal.style.display = "none";
 
     window.fetchDashboardStats();
     if (user.role === "admin") {

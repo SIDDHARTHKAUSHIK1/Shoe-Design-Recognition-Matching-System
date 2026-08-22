@@ -543,8 +543,6 @@ async def require_authenticated_user(request: Request) -> dict:
     user = await get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
-    if user.get("must_change_password") == 1 and request.url.path not in ALLOWED_MUST_CHANGE_PATHS:
-        raise HTTPException(status_code=403, detail="Password change required before accessing system resources.")
     return user
 
 

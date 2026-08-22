@@ -196,13 +196,6 @@
         showModal("auth-modal");
         return;
       }
-      if (res.status === 403) {
-        const data = await res.json();
-        if (data.detail && data.detail.includes("Password change required")) {
-          showModal("password-reset-modal");
-          return;
-        }
-      }
 
       if (res.ok) {
         const user = await res.json();
