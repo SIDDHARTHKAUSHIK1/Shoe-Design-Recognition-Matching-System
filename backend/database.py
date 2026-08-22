@@ -614,58 +614,66 @@ def log_query(
     user_id: Optional[int] = None
 ) -> int:
     """Log an inference query for auditing and threshold tuning."""
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO query_logs (
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO query_logs (
+                    query_image_path,
+                    top_match_id,
+                    top_match_name,
+                    confidence_pct,
+                    latency_ms,
+                    results_json,
+                    detected_category,
+                    user_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+            """, (
                 query_image_path,
                 top_match_id,
                 top_match_name,
-                confidence_pct,
-                latency_ms,
-                results_json,
+                round(confidence_pct, 2),
+                round(latency_ms, 2),
+                json.dumps(results),
                 detected_category,
                 user_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
-        """, (
-            query_image_path,
-            top_match_id,
-            top_match_name,
-            round(confidence_pct, 2),
-            round(latency_ms, 2),
-            json.dumps(results),
-            detected_category,
-            user_id
-        ))
-        conn.commit()
-        return cursor.lastrowid
+            ))
+            conn.commit()
+            return cursor.lastrowid or 0
+    except Exception as e:
+        logger.warning(f"Failed to log query: {e}")
+        return 0
 
 
 def get_query_logs(limit: int = 50, user_id: Optional[int] = None) -> List[Dict[str, Any]]:
     """Fetch recent query logs, optionally filtered by user_id."""
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        if user_id is not None:
-            cursor.execute("""
-                SELECT * FROM query_logs
-                WHERE user_id = ?
-                ORDER BY id DESC
-                LIMIT ?;
-            """, (user_id, limit))
-        else:
-            cursor.execute("""
-                SELECT * FROM query_logs
-                ORDER BY id DESC
-                LIMIT ?;
-            """, (limit,))
-        logs = [dict(row) for row in cursor.fetchall()]
-        for log in logs:
-            if log.get("results_json"):
-                try:
-                    log["results"] = json.loads(log["results_json"])
-                except Exception:
-                    log["results"] = []
-        return logs
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            if user_id is not None:
+                cursor.execute("""
+                    SELECT * FROM query_logs
+                    WHERE user_id = ?
+                    ORDER BY id DESC
+                    LIMIT ?;
+                """, (user_id, limit))
+            else:
+                cursor.execute("""
+                    SELECT * FROM query_logs
+                    ORDER BY id DESC
+                    LIMIT ?;
+                """, (limit,))
+            logs = [dict(row) for row in cursor.fetchall()]
+            for log in logs:
+                if log.get("results_json"):
+                    try:
+                        log["results"] = json.loads(log["results_json"])
+                    except Exception:
+                        log["results"] = []
+            return logs
+    except Exception as e:
+        logger.warning(f"Error fetching query logs: {e}")
+        return []
 
 
 def get_catalog_stats() -> Dict[str, Any]:

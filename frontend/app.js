@@ -311,6 +311,7 @@ window.handleChangePasswordSubmit = async function(e) {
 window.fetchDashboardStats = async function() {
   try {
     const res = await window.authenticatedFetch(window.getApiUrl("/api/logs?limit=100"));
+    if (!res.ok) return;
     const data = await res.json();
     const logs = data.logs || [];
 
@@ -1155,8 +1156,12 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.detail || "Matching failed");
+        let errorMsg = `Server error (${response.status})`;
+        try {
+          const errData = await response.json();
+          errorMsg = errData.detail || errData.message || errorMsg;
+        } catch (_) {}
+        throw new Error(errorMsg);
       }
 
       const data = await response.json();
