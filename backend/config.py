@@ -62,7 +62,7 @@ import json
 
 DEFAULT_THRESHOLDS = {
     "shoe": {
-        "rejection_threshold": 0.22,
+        "rejection_threshold": 0.15,
         "confidence_high_threshold": 85.0,
         "confidence_moderate_threshold": 70.0,
         "margin_threshold": 0.015,
@@ -70,7 +70,7 @@ DEFAULT_THRESHOLDS = {
         "platt_scaling": {"a": 15.2, "b": -8.8}
     },
     "slipper": {
-        "rejection_threshold": 0.20,
+        "rejection_threshold": 0.15,
         "confidence_high_threshold": 82.0,
         "confidence_moderate_threshold": 68.0,
         "margin_threshold": 0.015,
@@ -78,7 +78,7 @@ DEFAULT_THRESHOLDS = {
         "platt_scaling": {"a": 14.6, "b": -8.2}
     },
     "global": {
-        "rejection_threshold": 0.22,
+        "rejection_threshold": 0.15,
         "margin_threshold": 0.015,
         "min_density": 0.20,
         "platt_scaling": {"a": 15.0, "b": -8.5}

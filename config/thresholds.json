@@ -3,7 +3,7 @@
   "updated_at": "2026-08-22T21:10:04.845097+00:00",
   "categories": {
     "shoe": {
-      "rejection_threshold": 0.35,
+      "rejection_threshold": 0.15,
       "confidence_high_threshold": 85.0,
       "confidence_moderate_threshold": 70.0,
       "confidence_floor_breakpoint": 0.42,
@@ -22,7 +22,7 @@
       }
     },
     "slipper": {
-      "rejection_threshold": 0.35,
+      "rejection_threshold": 0.15,
       "confidence_high_threshold": 71.6,
       "confidence_moderate_threshold": 40.0,
       "confidence_floor_breakpoint": 0.82,
@@ -41,7 +41,7 @@
       }
     },
     "global": {
-      "rejection_threshold": 0.35,
+      "rejection_threshold": 0.15,
       "margin_threshold": 0.015,
       "min_density": 0.2,
       "platt_scaling": {
