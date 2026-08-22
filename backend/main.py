@@ -34,7 +34,15 @@ from backend.classifier import ZeroShotCategoryClassifier
 from backend.vector_store import VectorStore
 from backend.matcher import ShoeMatcher
 from backend.ingestion import ingest_single_design, ingest_catalog_from_dataset
-from evaluate import run_evaluation
+import sys
+BASE_DIR = Path(__file__).resolve().parent.parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
+try:
+    from evaluate import run_evaluation
+except Exception:
+    run_evaluation = None
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -45,18 +53,16 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Load model and initialize vector store on server startup."""
     logger.info("Starting Shoe Design Recognition & Matching System...")
-    db.init_db()
-    
-    # Load vision models, classifier and vector store in memory
-    _ = EmbeddingEngine.get_instance()
-    _ = ZeroShotCategoryClassifier.get_instance()
-    _ = VectorStore.get_instance()
-    
-    # Ingest catalog if not already populated
-    if db.get_catalog_stats()["total_designs"] == 0:
-        logger.info("Initializing catalog from dataset...")
-        ingest_catalog_from_dataset()
-        
+    try:
+        db.init_db()
+        _ = EmbeddingEngine.get_instance()
+        _ = ZeroShotCategoryClassifier.get_instance()
+        _ = VectorStore.get_instance()
+        if db.get_catalog_stats().get("total_designs", 0) == 0:
+            logger.info("Initializing catalog from dataset...")
+            ingest_catalog_from_dataset()
+    except Exception as e:
+        logger.error(f"Startup notice during lifespan: {e}")
     logger.info("System startup complete. Ready to serve inference queries.")
     yield
     logger.info("Shutting down Shoe Design Recognition System...")
@@ -103,8 +109,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global matcher instance
-matcher = ShoeMatcher()
+_matcher_instance = None
+
+def get_matcher():
+    global _matcher_instance
+    if _matcher_instance is None:
+        _matcher_instance = ShoeMatcher()
+    return _matcher_instance
 
 
 # Static file mounts
@@ -224,7 +235,7 @@ async def match_shoe_design(
         rel_url = f"/uploads/{safe_filename}"
 
         # Execute matching with clean orientation-baked bytes
-        result = matcher.match_image(
+        result = get_matcher().match_image(
             query_image_input=clean_bytes,
             query_image_save_path=rel_url,
             top_k=top_k
