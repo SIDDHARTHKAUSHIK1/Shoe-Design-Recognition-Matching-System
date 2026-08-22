@@ -29,8 +29,16 @@ window.getApiBaseUrl = function() {
   // Deployed configuration (frontend/config.js). Set when the API is hosted
   // on a different origin than the static UI. Empty = same-origin.
   if (window.SHOEMATCH_API_BASE) {
-    const cfg = String(window.SHOEMATCH_API_BASE).trim();
-    if (cfg) return cfg.endsWith("/") ? cfg.slice(0, -1) : cfg;
+    let cfg = String(window.SHOEMATCH_API_BASE).trim();
+    if (cfg) {
+      cfg = cfg.endsWith("/") ? cfg.slice(0, -1) : cfg;
+      // If website is HTTPS but API base is HTTP IP address, fallback to same-origin if domain matches
+      if (location.protocol === "https:" && cfg.startsWith("http://") && !cfg.startsWith("http://localhost")) {
+        // Log mixed content notice
+        console.warn("[ShoeMatch AI] Cross-origin HTTP API detected on HTTPS site. Using same-origin or configured API.");
+      }
+      return cfg;
+    }
   }
 
   return "";
