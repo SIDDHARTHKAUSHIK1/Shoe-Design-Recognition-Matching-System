@@ -5,7 +5,7 @@ echo "================================================================="
 echo "   ShoeMatch AI — Hostinger VPS Server Automated Setup"
 echo "================================================================="
 
-sudo apt update && sudo apt install -y python3-pip python3-venv python3-dev git libgl1 libglib2.0-0 ufw nginx
+sudo apt update && sudo apt install -y python3-pip python3-venv python3-dev git libgl1 libglib2.0-0 ufw nginx certbot python3-certbot-nginx
 
 sudo mkdir -p /var/www/shoematch
 
@@ -52,7 +52,7 @@ EOF
 sudo systemctl daemon-reload
 sudo systemctl enable --now shoematch
 
-# 2. Setup Nginx Reverse Proxy on Port 80
+# 2. Setup Nginx Reverse Proxy on Port 80 & 443
 sudo tee /etc/nginx/sites-available/shoematch > /dev/null <<'EOF'
 server {
     listen 80 default_server;
@@ -73,6 +73,7 @@ EOF
 
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo ln -sf /etc/nginx/sites-available/shoematch /etc/nginx/sites-enabled/shoematch
+sudo systemctl restart shoematch
 sudo systemctl restart nginx
 
 sudo ufw allow 22/tcp
@@ -81,6 +82,6 @@ sudo ufw allow 443/tcp
 sudo ufw --force enable
 
 echo "================================================================="
-echo "   SUCCESS! ShoeMatch AI Backend & Nginx are Live on Port 80"
-echo "   Check Health: http://195.35.6.176/health"
+echo "   SUCCESS! ShoeMatch AI Backend & Nginx Reverse Proxy Live"
+echo "   Check Health: http://127.0.0.1:8000/health"
 echo "================================================================="
