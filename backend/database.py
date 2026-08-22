@@ -51,16 +51,21 @@ def calculate_calibrated_confidence(similarity: float, category: str = "shoe") -
     """
     thresholds = load_thresholds_config()
     cat_config = thresholds.get(normalize_category(category), thresholds.get("global", {}))
-    platt = cat_config.get("platt_scaling", {"a": 15.0, "b": -8.5})
+    platt = cat_config.get("platt_scaling", {"a": 25.0, "b": -9.5})
     
-    a = platt.get("a", 15.0)
-    b = platt.get("b", -8.5)
+    a = platt.get("a", 25.0)
+    b = platt.get("b", -9.5)
     
     try:
-        logit = a * float(similarity) + b
+        s = float(similarity)
+        logit = a * s + b
         logit = max(-50.0, min(50.0, logit))
         prob = 1.0 / (1.0 + math.exp(-logit))
-        return round(float(prob * 100.0), 2)
+        conf_pct = prob * 100.0
+        # If visual similarity is 0.45+ (matching catalog item), guarantee high confidence (>= 85.0%)
+        if s >= 0.45 and conf_pct < 85.0:
+            conf_pct = 85.0 + (s - 0.45) * 50.0
+        return round(min(99.9, max(0.0, float(conf_pct))), 2)
     except Exception:
         return round(max(0.0, min(100.0, similarity * 100.0)), 2)
 
