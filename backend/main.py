@@ -980,6 +980,16 @@ async def unassign_slot_endpoint(slot_id: int, current_user: dict = Depends(requ
 if FRONTEND_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="frontend_static")
 
+    # Root-level fallback routes for static assets
+    for asset_name in ["styles.css", "index.css", "app.js", "config.js", "hero_shoe.png", "placeholder.png", "placeholder.jpg", "favicon.ico"]:
+        asset_path = FRONTEND_DIR / asset_name
+        if asset_path.exists():
+            def make_handler(p):
+                async def handler():
+                    return FileResponse(str(p))
+                return handler
+            app.add_api_route(f"/{asset_name}", make_handler(asset_path), methods=["GET"])
+
 @app.get("/")
 async def serve_landing():
     """Serve landing page interface."""
