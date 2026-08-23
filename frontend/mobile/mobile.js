@@ -198,7 +198,7 @@
     }
 
     try {
-      const res = await window.authenticatedFetch(window.getApiUrl("/api/users/me"));
+      const res = await window.authenticatedFetch(window.getApiUrl("/api/auth/me"));
       if (res.status === 401) {
         window.setAuthToken("");
         showModal("auth-modal");
@@ -206,11 +206,12 @@
       }
 
       if (res.ok) {
-        const user = await res.json();
-        state.user = user;
+        const data = await res.json();
+        const userObj = data.user || data;
+        state.user = userObj;
         hideModal("auth-modal");
         hideModal("password-reset-modal");
-        updateUserRoleBadge(user);
+        updateUserRoleBadge(userObj);
       }
     } catch (err) {
       console.warn("Auth status check warning:", err);
@@ -220,10 +221,11 @@
   function updateUserRoleBadge(user) {
     const roleBadge = document.getElementById("role-badge");
     const adminTab = document.getElementById("nav-tab-admin");
+    const role = (user && user.role) ? String(user.role).toUpperCase() : "STAFF";
 
-    if (roleBadge) roleBadge.textContent = user.role.toUpperCase();
+    if (roleBadge) roleBadge.textContent = role;
     if (adminTab) {
-      if (user.role === "admin") adminTab.classList.remove("hidden");
+      if (role.toLowerCase() === "admin") adminTab.classList.remove("hidden");
       else adminTab.classList.add("hidden");
     }
   }

@@ -11,6 +11,7 @@ import numpy as np
 
 from backend.config import (
     DATASET_DIR,
+    CATALOG_DATA_DIR,
     CATALOG_IMAGES_DIR,
     DB_PATH,
     FAISS_INDEX_PATH
@@ -239,14 +240,14 @@ def ingest_catalog_from_dataset():
         logger.info(f"Catalog is already populated ({len(db.get_all_designs())} designs, {vector_store.total_vectors} vectors).")
         return
         
-    logger.info("Scanning dataset directory for ingestion...")
-    
-    if not DATASET_DIR.exists():
-        logger.warning(f"Dataset directory {DATASET_DIR} does not exist.")
+    src_dir = DATASET_DIR if DATASET_DIR.exists() else (CATALOG_DATA_DIR if CATALOG_DATA_DIR.exists() else None)
+    if not src_dir or not src_dir.exists():
+        logger.warning(f"Neither dataset directory ({DATASET_DIR}) nor catalog directory ({CATALOG_DATA_DIR}) exist.")
         return
 
-    # Check for subdirectories (structured format: dataset/shoes/... and dataset/slippers/...)
-    subdirs = [d for d in DATASET_DIR.iterdir() if d.is_dir()]
+    # Check for subdirectories
+    subdirs = [d for d in src_dir.iterdir() if d.is_dir()]
+
     
     design_folders = []
     for d in subdirs:

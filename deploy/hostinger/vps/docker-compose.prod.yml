@@ -15,8 +15,9 @@ services:
     env_file:
       - ../../.env
     environment:
-      HOST: 195.35.6.176
+      HOST: "0.0.0.0"
       PORT: 8000
+
       DEBUG: "false"
       WORKERS: "1"          # each worker loads its own copy of DINOv2 — raise only if RAM allows
       EMBEDDING_MODEL: facebook/dinov2-small

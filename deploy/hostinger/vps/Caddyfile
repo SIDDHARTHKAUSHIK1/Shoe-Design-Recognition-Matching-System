@@ -4,8 +4,9 @@
 # Caddy provisions and renews the Let's Encrypt certificate automatically.
 # ==============================================================================
 
-api.yourdomain.com {
+shoe.aflix.co.in {
 	encode gzip zstd
+
 
 	# Image uploads: the match endpoint accepts full-resolution photos.
 	request_body {

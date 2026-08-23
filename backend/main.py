@@ -554,6 +554,7 @@ async def delete_catalog_design(design_id: str, request: Request):
 
 
 @app.get("/api/logs")
+@app.get("/api/admin/audit-logs")
 async def get_logs(request: Request, limit: int = 50, user_id: Optional[int] = None):
     """Retrieve recent query audit logs."""
     current_user = await get_current_user(request)
@@ -563,6 +564,7 @@ async def get_logs(request: Request, limit: int = 50, user_id: Optional[int] = N
         
     logs = db.get_query_logs(limit=limit, user_id=filter_user_id)
     return JSONResponse(content={"total": len(logs), "logs": logs})
+
 
 
 @app.get("/api/stats")
@@ -692,12 +694,17 @@ async def logout_user():
 
 
 @app.get("/api/auth/me")
+@app.get("/api/users/me")
 async def get_my_profile(request: Request):
     """Get profile of current logged in user."""
     user = await get_current_user(request)
     if not user:
-        return JSONResponse(content={"authenticated": False, "user": None})
-    return JSONResponse(content={"authenticated": True, "user": user})
+        return JSONResponse(content={"authenticated": False, "user": None, "role": "guest"})
+    resp_data = dict(user)
+    resp_data["authenticated"] = True
+    resp_data["user"] = user
+    return JSONResponse(content=resp_data)
+
 
 
 @app.post("/api/auth/change-password")
@@ -924,7 +931,30 @@ async def get_flat_slots_endpoint(
 ):
     """Fetch flat list of physical slots with full location path and design assignment."""
     slots = db.get_all_slots_flat(search=search, zone_id=zone_id, status_filter=status)
-    return JSONResponse(content={"slots": slots, "total": len(slots)})
+    return JSONResponse(content={"slots": slots, "total": len(slots), "results": slots})
+
+
+@app.get("/api/locations/search")
+async def search_locations_endpoint(
+    request: Request,
+    q: str = Query("", description="Search query across locations and assigned designs")
+):
+    """Search slots and location paths for mobile search interface."""
+    slots = db.get_all_slots_flat(search=q)
+    formatted = []
+    for s in slots:
+        formatted.append({
+            "slot_id": s.get("slot_name", ""),
+            "drawer_id": s.get("drawer_name", ""),
+            "shelf_id": s.get("shelf_name", ""),
+            "zone_id": s.get("shoe_match_name", ""),
+            "design_id": s.get("assigned_design_id") or "Vacant",
+            "name": s.get("design_name") or s.get("slot_name") or "",
+            "category": s.get("design_category") or "",
+            "is_occupied": s.get("is_occupied", 0)
+        })
+    return JSONResponse(content={"results": formatted, "total": len(formatted), "slots": slots})
+
 
 
 @app.post("/api/locations/shoe-matches")

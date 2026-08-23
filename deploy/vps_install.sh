@@ -2,7 +2,8 @@
 set -e
 
 echo "================================================================="
-echo "   ShoeMatch AI — Hostinger VPS Server Automated Setup"
+echo "   ShoeMatch AI - Hostinger VPS Server Automated Setup"
+echo "   Target Domain: https://shoe.aflix.co.in"
 echo "================================================================="
 
 sudo apt update && sudo apt install -y python3-pip python3-venv python3-dev git libgl1 libglib2.0-0 ufw nginx certbot python3-certbot-nginx
@@ -25,6 +26,9 @@ source venv/bin/activate
 pip install --upgrade pip setuptools wheel
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 pip install -r requirements.txt
+
+# Initial catalog indexing if database is empty
+python scripts/reindex_missing_designs.py || true
 
 # 1. Setup backend systemd service on port 8000
 sudo tee /etc/systemd/system/shoematch.service > /dev/null <<'EOF'
@@ -52,12 +56,12 @@ EOF
 sudo systemctl daemon-reload
 sudo systemctl enable --now shoematch
 
-# 2. Setup Nginx Reverse Proxy on Port 80 & 443
+# 2. Setup Nginx Reverse Proxy for shoe.aflix.co.in and default traffic
 sudo tee /etc/nginx/sites-available/shoematch > /dev/null <<'EOF'
 server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
-    server_name _;
+    listen 80;
+    listen [::]:80;
+    server_name shoe.aflix.co.in _;
 
     client_max_body_size 50M;
 
@@ -76,12 +80,16 @@ sudo ln -sf /etc/nginx/sites-available/shoematch /etc/nginx/sites-enabled/shoema
 sudo systemctl restart shoematch
 sudo systemctl restart nginx
 
+# 3. Request Let's Encrypt SSL certificate for shoe.aflix.co.in
+echo "Setting up Let's Encrypt SSL for shoe.aflix.co.in..."
+sudo certbot --nginx -d shoe.aflix.co.in --non-interactive --agree-tos --register-unsafely-without-email --redirect || echo "Note: If DNS for shoe.aflix.co.in is not yet pointed to this server, run: sudo certbot --nginx -d shoe.aflix.co.in once DNS is active."
+
 sudo ufw allow 22/tcp
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
 sudo ufw --force enable
 
 echo "================================================================="
-echo "   SUCCESS! ShoeMatch AI Backend & Nginx Reverse Proxy Live"
-echo "   Check Health: http://127.0.0.1:8000/health"
+echo "   SUCCESS! ShoeMatch AI Web App & API is live at:"
+echo "   >> https://shoe.aflix.co.in"
 echo "================================================================="
