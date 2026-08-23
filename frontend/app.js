@@ -957,7 +957,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (elements.btnRefreshLogs) elements.btnRefreshLogs.addEventListener("click", fetchLogs);
 
     // Modal Events & Backdrop Dismissal
-    if (elements.btnOpenAddModal) elements.btnOpenAddModal.addEventListener("click", openAddModal);
     if (elements.btnCloseAddModal) elements.btnCloseAddModal.addEventListener("click", closeAddModal);
     if (elements.btnCancelAdd) elements.btnCancelAdd.addEventListener("click", closeAddModal);
     if (elements.btnCloseDetailModal) elements.btnCloseDetailModal.addEventListener("click", () => elements.detailModal.style.display = "none");
@@ -2114,20 +2113,24 @@ document.addEventListener("DOMContentLoaded", () => {
   // ==========================================
   function openAddModal() {
     state.modalFiles = [];
-    elements.modalPreviews.innerHTML = "";
-    elements.addDesignForm.reset();
+    if (elements.modalPreviews) elements.modalPreviews.innerHTML = "";
+    if (elements.addDesignForm) elements.addDesignForm.reset();
     if (document.getElementById("template-selector")) {
       document.getElementById("template-selector").value = "";
     }
-    // Auto-generate next design SKU
     const nextIdx = state.catalog.length + 1;
-    document.getElementById("new-design-id").value = `SHOE-${String(nextIdx).padStart(3, "0")}`;
-    elements.addModal.style.display = "flex";
+    const skuEl = document.getElementById("new-design-id");
+    if (skuEl) skuEl.value = `SHOE-${String(nextIdx).padStart(3, "0")}`;
+    const modal = document.getElementById("add-modal");
+    if (modal) modal.setAttribute("style", "display: flex !important; z-index: 2000 !important; visibility: visible !important; opacity: 1 !important;");
   }
+  window.openAddModal = openAddModal;
 
   function closeAddModal() {
-    elements.addModal.style.display = "none";
+    const modal = document.getElementById("add-modal");
+    if (modal) modal.setAttribute("style", "display: none !important;");
   }
+  window.closeAddModal = closeAddModal;
 
   function handleModalFilesSelect(e) {
     if (e.target.files) {
@@ -2218,6 +2221,8 @@ document.addEventListener("DOMContentLoaded", () => {
       submitBtn.querySelector("span").textContent = "Index Design (Incremental Add)";
     }
   }
+
+
 
   // ==========================================
   // Audit Logs & Pagination

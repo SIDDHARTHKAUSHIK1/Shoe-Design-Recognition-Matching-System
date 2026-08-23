@@ -32,30 +32,28 @@ ENV/
 env.bak/
 venv.bak/
 
-# User uploads & runtime temp files
+# Storage Databases & Vector Index Files (Never overwrite runtime DB on VPS)
+storage/*.db
+storage/*.db-shm
+storage/*.db-wal
+storage/*.faiss
+storage/*.npz
+storage/catalog_images/
 storage/uploads/*
 !storage/uploads/.gitkeep
 storage/models/*
 storage/hard_negatives/*
 storage/catalog_segmented/*
-*.pt
-storage/*.db-shm
-storage/*.db-wal
+storage/.fuse_hidden*
 storage/debug_*.jpg
+*.pt
 *.log
 .DS_Store
 Thumbs.db
 .idea/
 .vscode/
-
-# HuggingFace Cache
-.cache/
-hf_cache/
-
-# Environment Variables & Local Config
-.env
-.env.local
-.env.*.local
+_to_delete/
+master_prompt_*.md
 
 # Node Dependencies
 node_modules/

@@ -5,6 +5,7 @@ import os
 import io
 import csv
 import time
+import uuid
 import shutil
 import logging
 from pathlib import Path
@@ -12,7 +13,7 @@ from contextlib import asynccontextmanager
 from typing import List, Optional, Tuple
 from PIL import Image, ImageOps
 
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Request, Query, Depends
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Request, Query, Depends, BackgroundTasks
 from fastapi.responses import JSONResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -286,6 +287,7 @@ async def match_shoe_design(
 @app.post("/api/designs")
 async def create_design(
     request: Request,
+    background_tasks: BackgroundTasks,
     design_id: str = Form(...),
     name: str = Form(...),
     category: str = Form("Sneaker"),
@@ -338,8 +340,54 @@ async def create_design(
         materials=materials.strip(),
         season=season.strip(),
         production_status=production_status.strip(),
-        image_files=image_payloads
+        image_files=image_payloads,
+        background_tasks=background_tasks
     )
+
+    return JSONResponse(content=ingest_result)
+
+
+@app.post("/api/designs/mobile-add")
+async def create_design_mobile(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    name: str = Form(""),
+    category: str = Form("Sneaker"),
+    file: UploadFile = File(...),
+):
+    """
+    Quick-add a catalogue design from the mobile app. Open to any logged-in
+    user (not admin-only) for field use. Reuses the exact same incremental
+    ingestion pipeline as the admin desktop form (ingest_single_design) —
+    this endpoint only differs in who can call it and how forgiving the
+    input fields are, not in how the image is processed or indexed.
+    """
+    _ = await require_authenticated_user(request)
+
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="No image provided.")
+
+    clean_bytes, clean_name = validate_and_sanitize_image(file.filename, content)
+
+    # Auto-generate a collision-safe design_id since a field photo won't have
+    # a pre-assigned SKU — mirrors the desktop form's design_id but the user
+    # never has to type one.
+    design_id = f"MOBILE-{uuid.uuid4().hex[:8].upper()}"
+    design_name = name.strip() if name and name.strip() else f"Field Added Design {design_id[-8:]}"
+    design_category = category.strip() if category and category.strip() else "Sneaker"
+
+    try:
+        ingest_result = ingest_single_design(
+            design_id=design_id,
+            name=design_name,
+            category=design_category,
+            image_files=[{"filename": clean_name, "content": clean_bytes}],
+            background_tasks=background_tasks
+        )
+    except Exception as e:
+        logger.error(f"Mobile catalogue add failed for {design_id}: {e}")
+        raise HTTPException(status_code=500, detail="Could not add this design to the catalogue. Please try again.")
 
     return JSONResponse(content=ingest_result)
 
@@ -1036,7 +1084,7 @@ if FRONTEND_DIR.exists():
         if asset_path.exists():
             def make_handler(p):
                 async def handler():
-                    return FileResponse(str(p))
+                    return FileResponse(str(p), headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
                 return handler
             app.add_api_route(f"/{asset_name}", make_handler(asset_path), methods=["GET"])
 
@@ -1070,3 +1118,34 @@ async def serve_app():
             }
         )
     return JSONResponse(content={"message": "Shoe Design Matching API running. App file not found."})
+
+
+# Serve Mobile PWA Interface
+MOBILE_DIR = FRONTEND_DIR / "mobile"
+if MOBILE_DIR.exists():
+    app.mount("/mobile-static", StaticFiles(directory=str(MOBILE_DIR)), name="mobile_static")
+
+    for m_asset in ["mobile.css", "mobile.js"]:
+        m_path = MOBILE_DIR / m_asset
+        if m_path.exists():
+            def make_mobile_handler(p):
+                async def handler():
+                    return FileResponse(str(p), headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
+                return handler
+            app.add_api_route(f"/{m_asset}", make_mobile_handler(m_path), methods=["GET"])
+            app.add_api_route(f"/mobile/{m_asset}", make_mobile_handler(m_path), methods=["GET"])
+
+@app.get("/mobile")
+async def serve_mobile():
+    """Serve mobile application interface."""
+    mobile_file = MOBILE_DIR / "index.html"
+    if mobile_file.exists():
+        return FileResponse(
+            str(mobile_file),
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
+        )
+    return JSONResponse(content={"message": "Mobile interface not found."})

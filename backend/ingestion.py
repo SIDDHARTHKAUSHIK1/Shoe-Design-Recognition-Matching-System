@@ -86,7 +86,8 @@ def ingest_single_design(
     materials: str = "Full Grain Leather / Rubber Sole",
     season: str = "Collection 2026",
     production_status: str = "Active Production Sample",
-    image_files: List[Dict[str, Any]] = None
+    image_files: List[Dict[str, Any]] = None,
+    background_tasks=None,
 ) -> Dict[str, Any]:
     """
     Incrementally ingest a single shoe design with multiple angle photos.
@@ -187,14 +188,25 @@ def ingest_single_design(
                 )
 
         # 5. Refresh binary footwear gate prototype bank
-        try:
-            from scripts.build_footwear_gate import build_gate_bank
-            from backend.footwear_gate import BinaryFootwearGate
-            build_gate_bank()
-            gate_inst = BinaryFootwearGate.get_instance()
-            gate_inst._load_prototype_bank()
-        except Exception as e:
-            logger.warning(f"Could not auto-refresh footwear gate bank: {e}")
+        def _refresh_gate_bank():
+            try:
+                from scripts.build_footwear_gate import build_gate_bank, incremental_add_to_gate_bank
+                from backend.footwear_gate import BinaryFootwearGate
+
+                is_slipper_design = db.is_slipper_category(category)
+                updated = incremental_add_to_gate_bank(emb_matrix, is_slipper=is_slipper_design)
+                if not updated:
+                    build_gate_bank()
+
+                gate_inst = BinaryFootwearGate.get_instance()
+                gate_inst._load_prototype_bank()
+            except Exception as e:
+                logger.warning(f"Could not auto-refresh footwear gate bank: {e}")
+
+        if background_tasks is not None:
+            background_tasks.add_task(_refresh_gate_bank)
+        else:
+            _refresh_gate_bank()
 
         logger.info(f"Successfully ingested design '{name}' ({design_id}) with {len(embeddings)} reference images.")
         

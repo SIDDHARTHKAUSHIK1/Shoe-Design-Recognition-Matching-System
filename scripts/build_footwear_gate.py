@@ -333,6 +333,61 @@ def build_gate_bank():
     print(f"  - Vector Dimensionality:     {pos_embeddings.shape[1]}")
 
 
+def incremental_add_to_gate_bank(new_embeddings: np.ndarray, is_slipper: bool = False) -> bool:
+    """
+    Fast path for adding one newly-ingested design's embeddings to the existing
+    gate bank, without re-embedding anything else. Every vector already saved in
+    the bank is unchanged data — a photo's embedding never changes based on what
+    else gets added — so this produces identical results to a full rebuild for
+    every pre-existing vector; it just skips redoing work that was already done.
+
+    Returns True if the incremental update succeeded, False if a full rebuild
+    is needed instead (e.g., the bank doesn't exist yet on first run).
+    """
+    if not GATE_MODEL_PATH.exists():
+        return False
+
+    try:
+        data = np.load(str(GATE_MODEL_PATH))
+        pos_embeddings = data["pos_embeddings"].astype(np.float32)
+        neg_embeddings = data["neg_embeddings"].astype(np.float32)
+        neg_prototype = data["neg_prototype"].astype(np.float32)
+        neg_labels = data["neg_labels"]
+        slipper_embeddings = data["slipper_embeddings"].astype(np.float32)
+
+        new_vecs = np.atleast_2d(new_embeddings).astype(np.float32)
+        norms = np.linalg.norm(new_vecs, axis=1, keepdims=True) + 1e-9
+        new_vecs = new_vecs / norms
+
+        pos_embeddings = np.vstack([pos_embeddings, new_vecs])
+        pos_prototype = np.mean(pos_embeddings, axis=0)
+        pos_prototype = pos_prototype / (np.linalg.norm(pos_prototype) + 1e-9)
+
+        if is_slipper:
+            slipper_embeddings = np.vstack([slipper_embeddings, new_vecs])
+        if slipper_embeddings.shape[0] > 0:
+            slipper_prototype = np.mean(slipper_embeddings, axis=0)
+            slipper_prototype = slipper_prototype / (np.linalg.norm(slipper_prototype) + 1e-9)
+        else:
+            slipper_prototype = np.zeros(pos_embeddings.shape[1], dtype=np.float32)
+
+        GATE_MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
+        np.savez_compressed(
+            str(GATE_MODEL_PATH),
+            pos_embeddings=pos_embeddings,
+            pos_prototype=pos_prototype,
+            neg_embeddings=neg_embeddings,
+            neg_prototype=neg_prototype,
+            neg_labels=neg_labels,
+            slipper_embeddings=slipper_embeddings,
+            slipper_prototype=slipper_prototype
+        )
+        return True
+    except Exception as e:
+        print(f"Incremental gate bank update failed, will fall back to full rebuild: {e}")
+        return False
+
+
 if __name__ == "__main__":
     build_gate_bank()
 

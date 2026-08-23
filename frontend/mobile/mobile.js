@@ -14,6 +14,7 @@
   const state = {
     user: null,
     selectedQueryFile: null,
+    selectedCatalogAddFile: null,
     catalog: [],
     mobileTarget: localStorage.getItem("shoematch_mobile_target") || "wifi"
   };
@@ -355,6 +356,146 @@
     reader.readAsDataURL(file);
   }
 
+  function initCatalogAddEvents() {
+    const cameraBtn = document.getElementById("btn-catalog-add-camera");
+    const galleryBtn = document.getElementById("btn-catalog-add-gallery");
+    const filePicker = document.getElementById("file-catalog-add-picker");
+    const submitBtn = document.getElementById("btn-catalog-add-submit");
+
+    async function handleCatalogCameraCapture() {
+      if (window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins && window.Capacitor.Plugins.Camera) {
+        try {
+          const camera = window.Capacitor.Plugins.Camera;
+          const image = await camera.getPhoto({ quality: 90, allowEditing: false, resultType: 'uri', source: 'CAMERA' });
+          if (image && image.webPath) {
+            const res = await fetch(image.webPath);
+            const blob = await res.blob();
+            const file = new File([blob], `catalogue_photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
+            setCatalogAddFile(file);
+            return;
+          }
+        } catch (err) {
+          console.warn("Capacitor camera error/cancel:", err);
+        }
+      }
+      if (filePicker) filePicker.click();
+    }
+
+    if (cameraBtn) cameraBtn.addEventListener("click", handleCatalogCameraCapture);
+    if (galleryBtn) galleryBtn.addEventListener("click", () => filePicker && filePicker.click());
+    if (filePicker) {
+      filePicker.addEventListener("change", (e) => {
+        if (e.target.files && e.target.files[0]) {
+          setCatalogAddFile(e.target.files[0]);
+        }
+      });
+    }
+
+    if (submitBtn) submitBtn.addEventListener("click", submitCatalogAdd);
+  }
+
+  function setCatalogAddFile(file) {
+    state.selectedCatalogAddFile = file;
+    const previewContainer = document.getElementById("catalog-add-preview-container");
+    const previewImg = document.getElementById("catalog-add-preview-img");
+    const statusText = document.getElementById("catalog-add-status-text");
+    if (statusText) statusText.textContent = "";
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (previewImg) previewImg.src = e.target.result;
+      if (previewContainer) previewContainer.classList.remove("hidden");
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function submitCatalogAdd() {
+    const statusText = document.getElementById("catalog-add-status-text");
+    const loadingRow = document.getElementById("catalog-add-loading-row");
+    const submitBtn = document.getElementById("btn-catalog-add-submit");
+    if (!state.selectedCatalogAddFile) return;
+
+    const nameInput = document.getElementById("catalog-add-name-input");
+    const categoryInput = document.getElementById("catalog-add-category-input");
+
+    const formData = new FormData();
+    formData.append("file", state.selectedCatalogAddFile);
+    formData.append("name", nameInput ? nameInput.value : "");
+    formData.append("category", categoryInput ? categoryInput.value : "");
+
+    if (submitBtn) submitBtn.disabled = true;
+    if (loadingRow) loadingRow.style.display = "flex";
+    if (statusText) {
+      statusText.style.color = "var(--md-sys-color-on-surface-variant)";
+      statusText.textContent = "Adding to catalogue — this can take up to a minute while the AI re-indexes...";
+    }
+
+    try {
+      const res = await window.authenticatedFetch(window.getApiUrl("/api/designs/mobile-add"), {
+        method: "POST",
+        body: formData
+      });
+      const data = await res.json();
+
+      if (!res.ok || data.success === false) {
+        if (loadingRow) loadingRow.style.display = "none";
+        if (statusText) {
+          statusText.style.color = "var(--md-sys-color-error)";
+          statusText.textContent = data.detail || data.message || "Could not add design.";
+        }
+        return;
+      }
+
+      if (loadingRow) loadingRow.style.display = "none";
+      if (statusText) {
+        statusText.style.color = "var(--md-sys-color-secondary)";
+        statusText.textContent = `Added "${data.name}" (${data.design_id}) to the catalogue.`;
+      }
+
+      // Reset the form and refresh the visible catalog grid
+      state.selectedCatalogAddFile = null;
+      if (nameInput) nameInput.value = "";
+      if (categoryInput) categoryInput.value = "";
+      const previewContainer = document.getElementById("catalog-add-preview-container");
+      if (previewContainer) previewContainer.classList.add("hidden");
+      fetchCatalog();
+      const modal = document.getElementById("catalog-add-modal");
+      if (modal) modal.classList.add("hidden");
+    } catch (err) {
+      if (loadingRow) loadingRow.style.display = "none";
+      if (statusText) {
+        statusText.style.color = "var(--md-sys-color-error)";
+        statusText.textContent = "Network error while adding design.";
+      }
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  }
+
+  window.openCatalogAddModal = function() {
+    const modal = document.getElementById("catalog-add-modal");
+    if (modal) modal.classList.remove("hidden");
+  };
+
+  window.closeCatalogAddModal = function() {
+    const modal = document.getElementById("catalog-add-modal");
+    if (modal) modal.classList.add("hidden");
+  };
+
+  function initCatalogAddModalToggle() {
+    const openBtn = document.getElementById("btn-open-catalog-add");
+    const closeBtn = document.getElementById("btn-close-catalog-add");
+    const modal = document.getElementById("catalog-add-modal");
+
+    if (openBtn && modal) {
+      openBtn.addEventListener("click", window.openCatalogAddModal);
+    }
+
+    if (closeBtn && modal) {
+      closeBtn.addEventListener("click", window.closeCatalogAddModal);
+    }
+  }
+
   // ==========================================
   // Staged AI Scanning & Match Execution
   // ==========================================
@@ -378,19 +519,19 @@
     setTimeout(() => {
       stepExif.classList.replace("active", "done");
       stepU2Net.classList.add("active");
-      statusText.textContent = "Segmenting Shoe Cutout...";
+      statusText.textContent = "Isolating Shoe Image...";
     }, 400);
 
     setTimeout(() => {
       stepU2Net.classList.replace("active", "done");
       stepDINO.classList.add("active");
-      statusText.textContent = "Extracting DINOv2 Feature Vector...";
+      statusText.textContent = "Analyzing Design Features...";
     }, 1000);
 
     setTimeout(() => {
       stepDINO.classList.replace("active", "done");
       stepFAISS.classList.add("active");
-      statusText.textContent = "FAISS Similarity Search...";
+      statusText.textContent = "Searching Catalog Database...";
     }, 1800);
 
     const formData = new FormData();
@@ -645,6 +786,8 @@
     initTheme();
     initAuthEvents();
     initCameraEvents();
+    initCatalogAddEvents();
+    initCatalogAddModalToggle();
     initCatalogSearch();
     initLocationEvents();
 

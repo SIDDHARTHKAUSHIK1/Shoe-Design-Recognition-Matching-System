@@ -132,10 +132,6 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
             <span>Landing Page</span>
           </a>
-          <button class="btn btn-primary" id="btn-open-add-modal">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            <span>Add New Design</span>
-          </button>
         </div>
       </header>
 
@@ -143,44 +139,44 @@
       <section class="tab-pane active" id="dashboard-tab">
         <div style="display: flex; flex-direction: column; gap: 20px;">
           <!-- Top KPI Stat Cards -->
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-            <div class="card" style="padding: 16px; display: flex; align-items: center; gap: 14px; background: var(--bg-surface-subtle); border: 1px solid var(--border-strong);">
-              <div style="width: 44px; height: 44px; border-radius: var(--radius-md); background: rgba(59, 130, 246, 0.12); color: #3b82f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+            <div class="kpi-card-glow" style="display: flex; align-items: center; gap: 14px;">
+              <div class="kpi-icon-wrap" style="background: rgba(59, 130, 246, 0.15); color: var(--brand-primary);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
               </div>
               <div>
-                <span style="font-size: 0.72rem; font-family: var(--font-body); font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Today's Searches</span>
-                <h3 style="font-size: 1.4rem; font-weight: 700; color: var(--text-primary); margin-top: 2px;" id="dash-searches-count">0</h3>
+                <span style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: var(--text-muted);">Indexed Models</span>
+                <h4 style="font-size: 1.4rem; font-weight: 800; color: var(--text-primary); margin-top: 2px;" id="stat-kpi-total-designs">0</h4>
               </div>
             </div>
 
-            <div class="card" style="padding: 16px; display: flex; align-items: center; gap: 14px; background: var(--bg-surface-subtle); border: 1px solid var(--border-strong);">
-              <div style="width: 44px; height: 44px; border-radius: var(--radius-md); background: rgba(16, 185, 129, 0.12); color: #10b981; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <div class="kpi-card-glow" style="display: flex; align-items: center; gap: 14px;">
+              <div class="kpi-icon-wrap" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
               </div>
               <div>
-                <span style="font-size: 0.72rem; font-family: var(--font-body); font-weight: 700; text-transform: uppercase; color: var(--text-muted);">High Match Rate</span>
-                <h3 style="font-size: 1.4rem; font-weight: 700; color: var(--text-primary); margin-top: 2px;" id="dash-accuracy-pct">100%</h3>
+                <span style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: var(--text-muted);">Total Vectors</span>
+                <h4 style="font-size: 1.4rem; font-weight: 800; color: var(--text-primary); margin-top: 2px;" id="stat-kpi-total-vectors">0</h4>
               </div>
             </div>
 
-            <div class="card" style="padding: 16px; display: flex; align-items: center; gap: 14px; background: var(--bg-surface-subtle); border: 1px solid var(--border-strong);">
-              <div style="width: 44px; height: 44px; border-radius: var(--radius-md); background: rgba(245, 158, 11, 0.12); color: var(--brand-accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <div class="kpi-card-glow" style="display: flex; align-items: center; gap: 14px;">
+              <div class="kpi-icon-wrap" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
               </div>
               <div>
-                <span style="font-size: 0.72rem; font-family: var(--font-body); font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Avg Search Latency</span>
-                <h3 style="font-size: 1.4rem; font-weight: 700; color: var(--text-primary); margin-top: 2px;" id="dash-avg-latency">-- ms</h3>
+                <span style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: var(--text-muted);">Avg Search Time</span>
+                <h4 style="font-size: 1.4rem; font-weight: 800; color: var(--text-primary); margin-top: 2px;" id="stat-kpi-avg-latency">-- ms</h4>
               </div>
             </div>
 
-            <div class="card" style="padding: 16px; display: flex; align-items: center; gap: 14px; background: var(--bg-surface-subtle); border: 1px solid var(--border-strong);">
-              <div style="width: 44px; height: 44px; border-radius: var(--radius-md); background: rgba(139, 92, 246, 0.12); color: #8b5cf6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <div class="kpi-card-glow" style="display: flex; align-items: center; gap: 14px;">
+              <div class="kpi-icon-wrap" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               </div>
               <div>
-                <span style="font-size: 0.72rem; font-family: var(--font-body); font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Catalog Designs</span>
-                <h3 style="font-size: 1.4rem; font-weight: 700; color: var(--text-primary); margin-top: 2px;" id="dash-catalog-total">0</h3>
+                <span style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: var(--text-muted);">Match Accuracy</span>
+                <h4 style="font-size: 1.4rem; font-weight: 800; color: var(--text-primary); margin-top: 2px;" id="stat-kpi-accuracy">100.0%</h4>
               </div>
             </div>
           </div>
@@ -193,10 +189,6 @@
                 <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">Perform instant visual searches or inspect recent shelf match history.</p>
               </div>
               <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <button class="btn btn-primary" onclick="switchToTab('match-tab')">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                  <span>Start New Search</span>
-                </button>
                 <button type="button" id="btn-dashboard-snap-photo" class="btn btn-secondary" style="cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                   <span>Snap Photo</span>
@@ -978,7 +970,7 @@
             <input type="file" id="modal-files-input" multiple accept="image/*" hidden>
             <div class="drop-prompt-sm">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              <span>Click or Drag & Drop Multiple Photos (3ΓÇô10 photos recommended)</span>
+              <span>Click or Drag & Drop Multiple Photos (3–10 photos recommended)</span>
             </div>
           </div>
           <div class="modal-previews" id="modal-previews"></div>
@@ -992,7 +984,6 @@
         </div>
       </form>
     </div>
-  </div>
   </div>
 
   <!-- MODAL: Shoe Inspection & Warehouse Shelf Location Preview -->
@@ -1261,6 +1252,6 @@
   <div class="toast-container" id="toast-container"></div>
 
   <script src="/static/config.js?v=1.0"></script>
-  <script src="/static/app.js?v=2.2"></script>
+  <script src="/static/app.js?v=10.0"></script>
 </body>
 </html>
