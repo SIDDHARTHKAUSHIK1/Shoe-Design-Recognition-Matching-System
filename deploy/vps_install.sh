@@ -13,7 +13,9 @@ sudo mkdir -p /var/www/shoematch
 if [ ! -d "/var/www/shoematch/.git" ]; then
   git clone https://github.com/SIDDHARTHKAUSHIK1/Shoe-Design-Recognition-Matching-System.git /var/www/shoematch
 else
-  cd /var/www/shoematch && git pull origin main
+  cd /var/www/shoematch
+  git fetch origin main
+  git reset --hard origin/main
 fi
 
 cd /var/www/shoematch

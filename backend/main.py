@@ -128,9 +128,10 @@ app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 # REST API Endpoints
 # ==========================================
 
-@app.get("/health")
-@app.get("/api/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
+@app.api_route("/api/health", methods=["GET", "HEAD"])
 async def health_check():
+
     """Health check endpoint."""
     try:
         stats = db.get_catalog_stats()
