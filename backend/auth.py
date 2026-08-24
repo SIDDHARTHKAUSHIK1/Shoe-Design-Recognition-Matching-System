@@ -129,7 +129,7 @@ def authenticate_user(username: str, password: str) -> Optional[Dict[str, Any]]:
             "user_id": 1 if role == "admin" else 2,
             "username": username.lower(),
             "role": role,
-            "full_name": "System Administrator" if role == "admin" else "Inventory Specialist",
+            "full_name": "Admin" if role == "admin" else "Manager",
             "is_active": 1
         }
     return None
@@ -251,12 +251,12 @@ def seed_initial_users() -> Dict[str, str]:
             if not admin_row:
                 try:
                     cursor.execute(
-                        "INSERT INTO users (username, password_hash, role, full_name, must_change_password) VALUES ('admin', ?, 'admin', 'System Administrator', 0)",
+                        "INSERT INTO users (username, password_hash, role, full_name, must_change_password) VALUES ('admin', ?, 'admin', 'Admin', 0)",
                         (hash_password(admin_pwd),)
                     )
                 except sqlite3.OperationalError:
                     cursor.execute(
-                        "INSERT INTO users (username, password_hash, role, full_name) VALUES ('admin', ?, 'admin', 'System Administrator')",
+                        "INSERT INTO users (username, password_hash, role, full_name) VALUES ('admin', ?, 'admin', 'Admin')",
                         (hash_password(admin_pwd),)
                     )
             else:

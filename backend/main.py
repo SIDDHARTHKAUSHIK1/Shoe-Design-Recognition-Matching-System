@@ -641,7 +641,7 @@ DEFAULT_TEST_USER = {
     "user_id": 1,
     "username": "admin",
     "role": "admin",
-    "full_name": "System Administrator",
+    "full_name": "Admin",
     "is_active": 1,
     "must_change_password": 0
 }
@@ -692,7 +692,7 @@ async def login_user(request: Request, payload: Optional[dict] = None):
         "user_id": 1 if username.lower() == "admin" else 2,
         "username": username.lower(),
         "role": "admin" if username.lower() == "admin" else "employee",
-        "full_name": "System Administrator" if username.lower() == "admin" else "Inventory Specialist",
+        "full_name": "Admin" if username.lower() == "admin" else "Manager",
         "is_active": 1
     }
     
