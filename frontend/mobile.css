@@ -1,0 +1,560 @@
+/* ==========================================================================
+   ShoeMatch AI — Material Design 3 Native Mobile Stylesheet
+   ========================================================================== */
+
+:root {
+  /* Material Design 3 Light Palette */
+  --md-sys-color-primary: #1B133C;
+  --md-sys-color-on-primary: #FFFFFF;
+  --md-sys-color-primary-container: #E8DDFF;
+  --md-sys-color-on-primary-container: #23005B;
+  
+  --md-sys-color-secondary: #D97706; /* Amber Accent */
+  --md-sys-color-on-secondary: #FFFFFF;
+  --md-sys-color-secondary-container: #FFDDAA;
+  --md-sys-color-on-secondary-container: #2A1700;
+
+  --md-sys-color-surface: #F8F9FE;
+  --md-sys-color-surface-variant: #E7E0EC;
+  --md-sys-color-on-surface: #1C1B1F;
+  --md-sys-color-on-surface-variant: #49454F;
+  --md-sys-color-outline: #79747E;
+  --md-sys-color-background: #F3F4F8;
+  
+  --md-sys-color-error: #BA1A1A;
+  --md-sys-color-error-container: #FFDAD6;
+  --md-sys-color-on-error: #FFFFFF;
+  --md-sys-color-success: #15803D;
+  --md-sys-color-success-container: #DCFCE7;
+
+  --md-elevation-1: 0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px rgba(0, 0, 0, 0.06);
+  --md-elevation-2: 0px 4px 8px rgba(0, 0, 0, 0.12), 0px 2px 4px rgba(0, 0, 0, 0.08);
+  --md-elevation-3: 0px 8px 16px rgba(0, 0, 0, 0.14), 0px 4px 8px rgba(0, 0, 0, 0.1);
+
+  --font-family-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-mono: 'IBM Plex Mono', monospace;
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Material Design 3 Dark Palette Override */
+[data-theme="dark"] {
+  --md-sys-color-primary: #D0BCFF;
+  --md-sys-color-on-primary: #381E72;
+  --md-sys-color-primary-container: #1F173E;
+  --md-sys-color-on-primary-container: #E8DDFF;
+
+  --md-sys-color-secondary: #F59E0B;
+  --md-sys-color-on-secondary: #452B00;
+  --md-sys-color-secondary-container: #633F00;
+  --md-sys-color-on-secondary-container: #FFDDAA;
+
+  --md-sys-color-surface: #141218;
+  --md-sys-color-surface-variant: #49454F;
+  --md-sys-color-on-surface: #E6E1E5;
+  --md-sys-color-on-surface-variant: #CAC4D0;
+  --md-sys-color-outline: #938F99;
+  --md-sys-color-background: #0F0D13;
+
+  --md-sys-color-error: #FFB4AB;
+  --md-sys-color-error-container: #93000A;
+  --md-sys-color-on-error: #690005;
+  --md-sys-color-success: #4ADE80;
+  --md-sys-color-success-container: #052E16;
+
+  --md-elevation-1: 0px 1px 3px rgba(0, 0, 0, 0.4);
+  --md-elevation-2: 0px 4px 8px rgba(0, 0, 0, 0.5);
+  --md-elevation-3: 0px 8px 16px rgba(0, 0, 0, 0.6);
+}
+
+/* Base Mobile Reset */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+body {
+  font-family: var(--font-family-sans);
+  background-color: var(--md-sys-color-background);
+  color: var(--md-sys-color-on-surface);
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* App Shell Structure */
+#app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: -webkit-fill-available;
+  width: 100vw;
+  position: relative;
+}
+
+/* Top App Bar */
+.top-app-bar {
+  padding-top: calc(var(--safe-top) + 8px);
+  padding-bottom: 12px;
+  padding-left: 16px;
+  padding-right: 16px;
+  background-color: var(--md-sys-color-surface);
+  border-bottom: 1px solid var(--md-sys-color-surface-variant);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--md-elevation-1);
+  z-index: 20;
+}
+
+.brand-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--md-sys-color-on-surface);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-badge {
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.top-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-btn {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--md-sys-color-on-surface);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.icon-btn:active {
+  background-color: rgba(121, 116, 126, 0.15);
+}
+
+/* Main Scrollable Content Area */
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px;
+  padding-bottom: calc(80px + var(--safe-bottom));
+}
+
+.tab-pane {
+  display: none;
+}
+
+.tab-pane.active {
+  display: block;
+  animation: fadeIn 0.25s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Material 3 Bottom Navigation Bar */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--md-sys-color-surface);
+  border-top: 1px solid var(--md-sys-color-surface-variant);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  height: calc(65px + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  box-shadow: var(--md-elevation-3);
+  z-index: 30;
+}
+
+.nav-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  padding: 6px 0;
+  transition: color 0.2s ease;
+}
+
+.nav-tab-pill {
+  width: 56px;
+  height: 30px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease, width 0.2s ease;
+}
+
+.nav-tab.active .nav-tab-pill {
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.nav-tab.active {
+  color: var(--md-sys-color-primary);
+  font-weight: 700;
+}
+
+.nav-tab-label {
+  font-size: 0.72rem;
+  margin-top: 3px;
+  font-weight: 500;
+}
+
+/* Glove-Friendly Material 3 Floating Action Button (FAB) */
+.fab-container {
+  position: fixed;
+  bottom: calc(80px + var(--safe-bottom));
+  right: 20px;
+  z-index: 25;
+}
+
+.md-fab {
+  min-width: 64px;
+  min-height: 64px;
+  border-radius: 20px;
+  background-color: var(--md-sys-color-secondary);
+  color: var(--md-sys-color-on-secondary);
+  border: none;
+  box-shadow: var(--md-elevation-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 20px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s active, box-shadow 0.2s ease;
+}
+
+.md-fab:active {
+  transform: scale(0.95);
+  box-shadow: var(--md-elevation-1);
+}
+
+/* Cards & Surface Layouts */
+.md-card {
+  background-color: var(--md-sys-color-surface);
+  border-radius: 20px;
+  padding: 18px;
+  margin-bottom: 16px;
+  box-shadow: var(--md-elevation-1);
+  border: 1px solid var(--md-sys-color-surface-variant);
+}
+
+.card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--md-sys-color-on-surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Match Results Cards */
+.match-card {
+  border-left: 6px solid var(--md-sys-color-secondary);
+  position: relative;
+  overflow: hidden;
+}
+
+.match-card.rank-1 {
+  border-left-color: #D97706; /* Amber Gold */
+}
+.match-card.rank-2 {
+  border-left-color: #2563EB; /* Royal Blue */
+}
+.match-card.rank-3 {
+  border-left-color: #4F46E5; /* Indigo */
+}
+
+.match-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 12px;
+  margin-bottom: 10px;
+}
+
+.location-chip {
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  font-family: var(--font-family-mono);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+/* Staged AI Scanning Feedback Overlay */
+.scanner-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  color: #FFFFFF;
+}
+
+.scanner-ring {
+  width: 90px;
+  height: 90px;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  border-top-color: var(--md-sys-color-secondary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 24px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.catalog-add-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--md-sys-color-primary);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Farma Shelf Combobox Dropdown */
+.farma-shelf-dropdown {
+  background: var(--md-sys-color-surface);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: 12px;
+  box-shadow: var(--md-elevation-3);
+  overflow-y: auto;
+}
+.farma-shelf-item {
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  color: var(--md-sys-color-on-surface);
+  cursor: pointer;
+  border-bottom: 1px solid var(--md-sys-color-surface-variant);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.farma-shelf-item:last-child {
+  border-bottom: none;
+}
+.farma-shelf-item:hover, .farma-shelf-item:active {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+.farma-shelf-item-new {
+  color: var(--md-sys-color-secondary);
+  font-weight: 600;
+}
+
+.scanner-status {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.scanner-steps {
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.scan-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.85rem;
+  opacity: 0.4;
+  transition: opacity 0.3s ease;
+}
+
+.scan-step.active {
+  opacity: 1;
+  font-weight: 600;
+  color: #FCD34D;
+}
+
+.scan-step.done {
+  opacity: 0.8;
+  color: #4ADE80;
+}
+
+/* Form Controls & Touch Inputs */
+.md-input {
+  width: 100%;
+  min-height: 52px;
+  border-radius: 12px;
+  border: 1px solid var(--md-sys-color-outline);
+  background-color: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  padding: 12px 16px;
+  font-size: 1rem;
+  margin-bottom: 14px;
+  outline: none;
+}
+
+.md-input:focus {
+  border-color: var(--md-sys-color-primary);
+  box-shadow: 0 0 0 2px var(--md-sys-color-primary-container);
+}
+
+.md-btn {
+  min-height: 52px;
+  width: 100%;
+  border-radius: 16px;
+  border: none;
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  font-size: 1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: var(--md-elevation-1);
+}
+
+.md-btn:active {
+  transform: scale(0.98);
+}
+
+/* Search Keyword Highlight */
+mark.highlight {
+  background-color: #FEF08A;
+  color: #1E1B4B;
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+/* 2-Column Catalog Grid & Compact Edit Button */
+#catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 360px) {
+  #catalog-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+  }
+}
+
+.catalog-card {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px;
+}
+
+.catalog-card:active {
+  transform: scale(0.98);
+}
+
+.catalog-edit-btn {
+  min-height: unset;
+  width: auto;
+  padding: 3px 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: 6px;
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  border: 1px solid var(--md-sys-color-surface-variant);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  box-shadow: none;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.catalog-edit-btn:hover, .catalog-edit-btn:active {
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+.md-btn-add-top {
+  padding: 6px 12px;
+  border-radius: 12px;
+  border: none;
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  font-size: 0.82rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  box-shadow: var(--md-elevation-1);
+  transition: transform 0.15s ease;
+}
+
+.md-btn-add-top:active {
+  transform: scale(0.96);
+}
+
+/* Hidden Utility */
+.hidden {
+  display: none !important;
+}

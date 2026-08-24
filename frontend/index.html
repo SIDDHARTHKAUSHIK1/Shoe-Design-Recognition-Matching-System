@@ -2,667 +2,427 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ShoeMatch AI — Sub-Second Visual Search & Warehouse Location System</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>ShoeMatch AI Mobile</title>
   
-  <!-- Google Fonts: IBM Plex Sans & IBM Plex Mono -->
+  <!-- Material Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/index.css">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: ['class', '[data-theme="dark"]'],
-      theme: {
-        extend: {
-          colors: {
-            navy: '#1B133C',
-          },
-          fontFamily: {
-            sans: ['"IBM Plex Sans"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-            mono: ['"IBM Plex Mono"', 'monospace'],
-          }
-        }
-      }
-    }
-  </script>
-
-  <style>
-    body { 
-      font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif; 
-      color: #1B133C; 
-      background-color: #FFFFFF; 
-    }
-
-    .anim-entry {
-      animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-    .delay-badge    { animation-delay: 0.1s; }
-    .delay-title    { animation-delay: 0.2s; }
-    .delay-subtitle { animation-delay: 0.3s; }
-    .delay-cta      { animation-delay: 0.4s; }
-
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(16px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes pulseSoft {
-      0%, 100% { transform: scale(1); }
-      50%      { transform: scale(1.02); }
-    }
-    .animate-chip-pulse {
-      animation: pulseSoft 3s ease-in-out infinite;
-    }
-
-    /* Scroll Shrink / Glass Nav */
-    .nav-pill-scrolled {
-      padding-top: 0.5rem !important;
-      padding-bottom: 0.5rem !important;
-      background-color: rgba(255, 255, 255, 0.95) !important;
-      box-shadow: 0 10px 30px -10px rgba(27, 19, 60, 0.15) !important;
-    }
-    html[data-theme="dark"] .nav-pill-scrolled {
-      background-color: rgba(27, 19, 60, 0.95) !important;
-    }
-  </style>
+  <!-- Mobile Native Material 3 Stylesheet -->
+  <link rel="stylesheet" href="mobile.css">
 </head>
-<body class="relative min-h-screen antialiased selection:bg-amber-500/20 selection:text-amber-700">
+<body>
 
-  <!-- Fullscreen Ambient Gradient Background -->
-  <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-    <div class="absolute -top-[20%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-amber-500/5 blur-[120px]"></div>
-    <div class="absolute top-[40%] -right-[15%] w-[55vw] h-[55vw] rounded-full bg-[#1B133C]/5 blur-[140px]"></div>
-  </div>
-
-  <!-- FLOATING NAV PILL HEADER -->
-  <header class="fixed top-0 left-0 right-0 z-40 flex justify-center px-4 pt-4 sm:pt-6 transition-all duration-300 pointer-events-none">
-    <nav id="nav-pill" class="pointer-events-auto flex items-center justify-between gap-3 sm:gap-6 px-4 sm:px-6 py-2.5 sm:py-3 rounded-full bg-white/80 backdrop-blur-md border border-[#1B133C]/10 shadow-[0_4px_20px_-2px_rgba(27,19,60,0.08)] transition-all duration-300 max-w-5xl w-full">
-      
-      <!-- Brand Logo -->
-      <a href="#" class="flex items-center gap-2 group">
-        <div class="w-8 h-8 rounded-lg bg-[#1B133C] text-white flex items-center justify-center font-mono font-bold text-sm shadow-md group-hover:bg-amber-600 transition-colors">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M2 17l10 4 10-4"/>
-            <path d="M12 3L2 8l10 5 10-5-10-5z"/>
-          </svg>
-        </div>
-        <span class="font-sans font-bold text-sm tracking-tight text-[#1B133C] group-hover:text-amber-600 transition-colors hidden xs:inline">ShoeMatch AI</span>
-      </a>
-
-      <!-- Navigation Links -->
-      <div class="hidden md:flex items-center gap-5 text-xs font-medium text-[#1B133C]/70">
-        <a href="#how-it-works" class="hover:text-[#1B133C] transition-colors nav-item-link">How it works</a>
-        <a href="#proof-gallery" class="hover:text-[#1B133C] transition-colors nav-item-link">Catalog Variety</a>
-        <a href="#accuracy" class="hover:text-[#1B133C] transition-colors nav-item-link">Accuracy</a>
-        <a href="#use-cases" class="hover:text-[#1B133C] transition-colors nav-item-link">Warehouses</a>
-        <a href="#faq" class="hover:text-[#1B133C] transition-colors nav-item-link">FAQ</a>
+  <div id="app-shell">
+    
+    <!-- Material 3 Top App Bar -->
+    <header class="top-app-bar">
+      <div class="brand-title">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 17l10 4 10-4"/>
+          <path d="M12 3L2 8l10 5 10-5-10-5z"/>
+        </svg>
+        <span>ShoeMatch AI</span>
+        <span class="brand-badge" id="role-badge">Admin</span>
       </div>
 
-      <!-- Actions: Theme Toggle & Launch App Button -->
-      <div class="flex items-center gap-2">
-        <button class="btn-theme-toggle" onclick="toggleTheme()" aria-label="Toggle Theme">
-          <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-          <svg class="icon-sun hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <div class="top-bar-actions">
+        <button class="md-btn-add-top" id="btn-open-catalog-add" title="Add New Design" onclick="openCatalogAddModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          <span>Add New Design</span>
         </button>
-
-        <a href="/app" class="rounded-lg bg-[#1B133C] text-white px-4 py-2 text-xs font-semibold hover:bg-amber-600 transition-colors shadow-sm flex items-center gap-1.5">
-          <span>Launch App</span>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </a>
       </div>
+    </header>
+
+    <!-- Main Scrollable Body Area -->
+    <main class="main-content">
+      
+      <!-- TAB 1: MATCH STUDIO -->
+      <section id="tab-studio" class="tab-pane active">
+        <div class="md-card">
+          <div class="card-title">
+            <span>Visual Match Studio</span>
+            <span style="font-size: 0.75rem; color: var(--md-sys-color-outline);" id="target-host-indicator">LAN: 192.168.29.14</span>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--md-sys-color-on-surface-variant); margin-bottom: 14px;">
+            Snap a shoe photo with your camera or select an image from your gallery to match catalog designs and locate its warehouse slot.
+          </p>
+          
+          <div style="display: flex; gap: 10px;">
+            <button class="md-btn" id="btn-studio-camera" style="flex: 1; background-color: var(--md-sys-color-secondary); color: var(--md-sys-color-on-secondary);">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              <span>Camera</span>
+            </button>
+
+            <button class="md-btn" id="btn-studio-gallery" style="flex: 1; background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container);">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span>Gallery</span>
+            </button>
+          </div>
+          <input type="file" id="file-gallery-picker" accept="image/*" class="hidden">
+        </div>
+
+        <!-- Selected Query File Preview -->
+        <div id="query-preview-container" class="md-card hidden" style="text-align: center;">
+          <img id="query-preview-img" style="max-height: 220px; border-radius: 12px; object-fit: contain; width: 100%; margin-bottom: 12px;" />
+          <button class="md-btn" id="btn-execute-match">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <span>Run AI Visual Search</span>
+          </button>
+        </div>
+
+        <!-- Slipper Rejection Alert Container -->
+        <div id="slipper-alert-container" class="md-card hidden" style="background-color: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error); border: 1px solid var(--md-sys-color-error);">
+          <div style="display: flex; align-items: center; gap: 10px; font-weight: 700; margin-bottom: 6px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            <span>Slipper / Non-Shoe Object Detected</span>
+          </div>
+          <p style="font-size: 0.85rem;" id="slipper-alert-text">
+            The uploaded image was classified as a slipper or non-shoe item and rejected by the footwear gate. Please upload a clear photo of a shoe design.
+          </p>
+        </div>
+
+        <!-- Match Results Container -->
+        <div id="match-results-container"></div>
+      </section>
+
+      <!-- TAB 2: CATALOG -->
+      <section id="tab-catalog" class="tab-pane">
+        <div class="md-card" style="margin-bottom: 12px;">
+          <input type="text" id="catalog-search-input" class="md-input" placeholder="Search catalog by SKU, name, or material..." style="margin-bottom: 0;">
+        </div>
+        <div id="catalog-grid"></div>
+      </section>
+
+      <!-- TAB 3: ADMIN CONSOLE & PROFILE -->
+      <section id="tab-admin" class="tab-pane">
+
+        <!-- Account Controls & Options Card -->
+        <div class="md-card" style="margin-bottom: 12px; background: linear-gradient(135deg, var(--md-sys-color-surface), var(--md-sys-color-background)); border: 1px solid var(--md-sys-color-surface-variant);">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+            <div>
+              <div style="font-size: 0.76rem; font-weight: 700; color: var(--md-sys-color-outline); letter-spacing: 0.5px;">ACTIVE USER ACCOUNT</div>
+              <div style="font-size: 1.1rem; font-weight: 700; color: var(--md-sys-color-on-surface);" id="admin-user-display-name">Active User</div>
+            </div>
+            <span class="brand-badge" id="admin-role-badge" style="font-size: 0.78rem; padding: 4px 10px;">Employee</span>
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+            <button class="md-btn" id="btn-switch-account-role" style="flex: 1; min-width: 140px; padding: 8px 12px; min-height: 40px; font-size: 0.82rem; background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); border: none; font-weight: 600;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+              <span id="switch-role-btn-text">Switch Account</span>
+            </button>
+
+            <button class="md-btn" id="btn-theme-toggle" style="padding: 8px 12px; min-height: 40px; font-size: 0.82rem; background-color: var(--md-sys-color-surface-variant); color: var(--md-sys-color-on-surface-variant); border: none; font-weight: 600; width: auto;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/></svg>
+              <span id="theme-toggle-label">Dark Mode</span>
+            </button>
+
+            <button class="md-btn" id="btn-logout" style="padding: 8px 12px; min-height: 40px; font-size: 0.82rem; background-color: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error); border: none; font-weight: 600; width: auto;" title="Log Out">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Catalogue Statistics Overview Card -->
+        <div class="md-card" style="margin-bottom: 12px;">
+          <div class="card-title" style="margin-bottom: 10px;">Catalogue & Inventory Summary</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div style="background: var(--md-sys-color-background); padding: 12px; border-radius: 12px; border: 1px solid var(--md-sys-color-surface-variant); text-align: center;">
+              <div style="font-size: 1.6rem; font-weight: 800; color: var(--md-sys-color-secondary);" id="stat-total-designs">0</div>
+              <div style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant);">Total Designs</div>
+            </div>
+
+            <div style="background: var(--md-sys-color-background); padding: 12px; border-radius: 12px; border: 1px solid var(--md-sys-color-surface-variant); text-align: center;">
+              <div style="font-size: 1.6rem; font-weight: 800; color: var(--md-sys-color-primary);" id="stat-total-farma-shelves">0</div>
+              <div style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant);">Total Farma Shelves</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity History Card -->
+        <div class="md-card">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <div class="card-title" style="margin-bottom: 0;">Recent Activity History</div>
+            <button class="icon-btn" id="btn-refresh-audit-logs" title="Refresh Logs" style="min-width: 32px; min-height: 32px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            </button>
+          </div>
+          <div id="admin-audit-logs"></div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Staged AI Scanning Feedback Overlay -->
+    <div id="scanner-overlay" class="scanner-overlay hidden">
+      <div class="scanner-ring"></div>
+      <div class="scanner-status" id="scanner-status-text">Searching Catalog...</div>
+      <div class="scanner-steps">
+        <div class="scan-step" id="step-exif">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Checking Image Orientation</span>
+        </div>
+        <div class="scan-step" id="step-u2net">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Isolating Shoe Image</span>
+        </div>
+        <div class="scan-step" id="step-dinov2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Analyzing Design Features</span>
+        </div>
+        <div class="scan-step" id="step-faiss">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Searching Catalog Database</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Glove-Friendly Floating Action Button for Live Camera -->
+    <div class="fab-container">
+      <button class="md-fab" id="fab-camera-capture">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <span>SNAP</span>
+      </button>
+    </div>
+
+    <!-- Material 3 Bottom Navigation Bar -->
+    <nav class="bottom-nav">
+      <button class="nav-tab active" data-tab="tab-studio">
+        <div class="nav-tab-pill">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </div>
+        <span class="nav-tab-label">Studio</span>
+      </button>
+
+      <button class="nav-tab" data-tab="tab-catalog">
+        <div class="nav-tab-pill">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        </div>
+        <span class="nav-tab-label">Catalog</span>
+      </button>
+
+      <button class="nav-tab" id="nav-tab-admin" data-tab="tab-admin">
+        <div class="nav-tab-pill">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <span class="nav-tab-label">Admin</span>
+      </button>
     </nav>
-  </header>
 
-  <!-- SECTION 1: HERO SECTION -->
-  <section class="relative z-10 pt-28 sm:pt-36 pb-16 md:pb-24 px-4 sm:px-6 max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12 min-h-[85vh]">
-    <div class="flex-1 max-w-xl text-center md:text-left">
-      
-      <div class="anim-entry delay-badge inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-700 text-xs font-semibold mb-4">
-        <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-        <span>AI-Powered Visual Search</span>
-      </div>
-
-      <h1 class="anim-entry delay-title font-sans font-bold text-4xl sm:text-5xl lg:text-6xl text-[#1B133C] tracking-tight leading-[1.1]">
-        Find any shoe <br class="hidden sm:inline" />
-        <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#1B133C] via-amber-600 to-[#1B133C]">in seconds, not shelves</span>
-      </h1>
-
-      <p class="anim-entry delay-subtitle mt-4 text-base sm:text-lg text-[#1B133C]/70 leading-relaxed font-normal">
-        Take a picture of any shoe and instantly find its matching catalog design, material details, and exact shelf location. No more manual searching through unlabelled inventory boxes.
-      </p>
-
-      <div class="anim-entry delay-cta mt-6 sm:mt-7 flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4">
-        <a href="/app" id="btn-launch-app" class="rounded-xl bg-[#1B133C] px-7 sm:px-8 py-3.5 text-sm font-semibold text-white shadow-[0px_4px_16px_rgba(27,19,60,0.25)] hover:shadow-[0px_6px_20px_rgba(27,19,60,0.35)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer inline-flex items-center gap-2.5">
-          <span>Launch Match Studio</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </a>
-        <button id="btn-cta-access" class="rounded-xl bg-[#FEFEFE] px-6 sm:px-7 py-3.5 text-sm font-semibold text-[#1B133C] shadow-[0px_4px_12px_rgba(0,0,0,0.12)] hover:shadow-[0px_6px_16px_rgba(0,0,0,0.18)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] border border-[#1B133C]/10 cursor-pointer inline-flex items-center gap-2">
-          <span>Get Early Access</span>
-        </button>
+    <!-- Login Modal / Sheet -->
+    <div id="auth-modal" class="scanner-overlay hidden" style="background-color: var(--md-sys-color-background);">
+      <div style="width: 100%; max-width: 360px; background-color: var(--md-sys-color-surface); padding: 24px; border-radius: 24px; box-shadow: var(--md-elevation-3); text-align: center;">
+        <h2 style="color: var(--md-sys-color-on-surface); font-size: 1.4rem; font-weight: 700; margin-bottom: 6px;">Sign In to ShoeMatch AI</h2>
+        <p style="color: var(--md-sys-color-on-surface-variant); font-size: 0.85rem; margin-bottom: 20px;">Use your employee or administrator credentials</p>
+        
+        <form id="login-form">
+          <input type="text" id="login-username" class="md-input" placeholder="Username (e.g. employee)" required autocomplete="username">
+          <input type="password" id="login-password" class="md-input" placeholder="Password (Optional for testing)" autocomplete="current-password">
+          <button type="submit" class="md-btn">Sign In</button>
+        </form>
+        <div id="login-error-text" style="color: var(--md-sys-color-error); font-size: 0.82rem; margin-top: 12px;"></div>
       </div>
     </div>
 
-    <!-- Floating Hero Shoe Visual Element #1 (Clickable Preview) -->
-    <div class="anim-entry delay-subtitle flex-shrink-0 flex items-center justify-center relative w-60 sm:w-72 md:w-80 lg:w-[380px] max-w-full mt-4 md:mt-0 cursor-pointer" onclick="openImagePreview('hero_shoe.png', 'Hero Sample Shoe (AeroStride Pro)', 'Click-to-preview visual matching sample')">
-      <div class="hero-shoe-container w-full group">
-        <img src="hero_shoe.png" alt="ShoeMatch AI Catalog Sample SHOE-001" class="hero-floating-shoe w-full max-h-[300px] object-contain group-hover:scale-105 transition-transform" />
-        <div class="hero-shoe-shadow"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- SECTION 2: HOW IT WORKS STEP-BY-STEP (PLAIN LANGUAGE) -->
-  <section id="how-it-works" class="relative z-10 py-16 md:py-24 px-4 sm:px-6 max-w-6xl mx-auto border-t border-[#1B133C]/10">
-    <div class="text-center max-w-3xl mx-auto mb-14">
-      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold mb-3">Simple 5-Step Process</div>
-      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-[#1B133C]">How Workers Find Any Shoe Instantly</h2>
-      <p class="mt-3 text-base text-[#1B133C]/70">No technical training required. Your warehouse team simply snaps a photo and gets the exact location in seconds.</p>
-    </div>
-
-    <!-- Additional Animated Shoe Visual #2 (Clickable Preview - Unique Sport Shoe) -->
-    <div class="flex items-center justify-center mb-12">
-      <div class="hero-shoe-container w-48 sm:w-56 cursor-pointer" onclick="openImagePreview('/catalog_images/SHOE-023/angle_angle_34_1.jpeg', 'Sport Athletic Trainer Sample', 'Unique Sport Trainer Category Sample')">
-        <img src="/catalog_images/SHOE-023/angle_angle_34_1.jpeg" alt="Sport Athletic Sample" class="secondary-floating-shoe max-h-40 object-contain rounded-xl shadow-lg border border-amber-500/20 p-2 bg-white/80 dark:bg-navy/80 hover:scale-105 transition-transform" />
-        <div class="hero-shoe-shadow"></div>
+    <!-- Forced Password Reset Modal -->
+    <div id="password-reset-modal" class="scanner-overlay hidden" style="background-color: rgba(0,0,0,0.85);">
+      <div style="width: 100%; max-width: 360px; background-color: var(--md-sys-color-surface); padding: 24px; border-radius: 24px; text-align: center;">
+        <h2 style="color: var(--md-sys-color-on-surface); font-size: 1.25rem; font-weight: 700; margin-bottom: 8px;">Password Change Required</h2>
+        <p style="color: var(--md-sys-color-on-surface-variant); font-size: 0.85rem; margin-bottom: 16px;">You must change your default password before continuing.</p>
+        
+        <form id="password-reset-form">
+          <input type="password" id="reset-current-pass" class="md-input" placeholder="Current Password" required>
+          <input type="password" id="reset-new-pass" class="md-input" placeholder="New Password (min 8 chars)" required>
+          <button type="submit" class="md-btn">Update Password & Continue</button>
+        </form>
       </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-      <div class="glass-card text-center">
-        <div class="w-10 h-10 rounded-xl bg-[#1B133C] text-amber-400 font-mono font-bold text-sm flex items-center justify-center mx-auto mb-4">01</div>
-        <h4 class="font-bold text-sm text-[#1B133C] mb-1">1. Snap Photo</h4>
-        <p class="text-xs text-[#1B133C]/70">Take a photo of any shoe on the warehouse floor using a phone or tablet.</p>
-      </div>
+    <!-- Add to Catalogue Modal -->
+    <div id="catalog-add-modal" class="scanner-overlay hidden">
+      <div class="md-card" id="catalog-add-card" style="width: 100%; max-width: 400px; max-height: 85vh; overflow-y: auto;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+          <div class="card-title" style="margin-bottom: 0;">Add to Catalogue</div>
+          <button class="icon-btn" id="btn-close-catalog-add" title="Close" style="min-width: 36px; min-height: 36px;" onclick="closeCatalogAddModal()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--md-sys-color-on-surface-variant); margin-bottom: 12px;">
+          Snap or upload a photo of a new shoe design to add it to the searchable catalogue.
+        </p>
 
-      <div class="glass-card text-center">
-        <div class="w-10 h-10 rounded-xl bg-[#1B133C] text-amber-400 font-mono font-bold text-sm flex items-center justify-center mx-auto mb-4">02</div>
-        <h4 class="font-bold text-sm text-[#1B133C] mb-1">2. Cleans Background</h4>
-        <p class="text-xs text-[#1B133C]/70">The app automatically removes background floor clutter to focus only on the shoe.</p>
-      </div>
-
-      <div class="glass-card text-center">
-        <div class="w-10 h-10 rounded-xl bg-[#1B133C] text-amber-400 font-mono font-bold text-sm flex items-center justify-center mx-auto mb-4">03</div>
-        <h4 class="font-bold text-sm text-[#1B133C] mb-1">3. Reads Shape & Texture</h4>
-        <p class="text-xs text-[#1B133C]/70">Analyzes unique stitching, sole patterns, and materials in less than a second.</p>
-      </div>
-
-      <div class="glass-card text-center">
-        <div class="w-10 h-10 rounded-xl bg-[#1B133C] text-amber-400 font-mono font-bold text-sm flex items-center justify-center mx-auto mb-4">04</div>
-        <h4 class="font-bold text-sm text-[#1B133C] mb-1">4. Smart Quality Check</h4>
-        <p class="text-xs text-[#1B133C]/70">Gently lets workers know if an accidental non-shoe photo was taken.</p>
-      </div>
-
-      <div class="glass-card text-center">
-        <div class="w-10 h-10 rounded-xl bg-[#1B133C] text-amber-400 font-mono font-bold text-sm flex items-center justify-center mx-auto mb-4">05</div>
-        <h4 class="font-bold text-sm text-[#1B133C] mb-1">5. Shows Shelf Rack</h4>
-        <p class="text-xs text-[#1B133C]/70">Displays the exact matching shoe along with its building, rack, and shelf location.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- SECTION 3: VISUAL PROOF GALLERY (6 100% DISTINCT SHOE MODELS) -->
-  <section id="proof-gallery" class="relative z-10 py-16 md:py-24 px-4 sm:px-6 max-w-6xl mx-auto border-t border-[#1B133C]/10">
-    <div class="text-center max-w-3xl mx-auto mb-16">
-      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold mb-3">Catalog Variety & Accuracy</div>
-      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-[#1B133C]">Works Across All Shoe Types & Categories</h2>
-      <p class="mt-3 text-base text-[#1B133C]/70">Real registered catalog shoes from `storage/catalog.db` — click any image for a larger preview.</p>
-    </div>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      
-      <!-- Catalog Card 1: Classic Leather Dress Loafer -->
-      <div class="glass-card flex flex-col justify-between">
-        <div>
-          <div class="flex items-center justify-between mb-3">
-            <span class="px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-700 font-mono text-xs font-bold">SHOE-001</span>
-            <span class="text-xs font-semibold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded">99.8% Match</span>
-          </div>
-          <h3 class="font-bold text-base text-[#1B133C] mb-1">AeroStride Pro Runner</h3>
-          <p class="text-xs text-[#1B133C]/60 mb-3">Category: Leather Loafer &bull; Upper: Premium Italian Leather</p>
-          <div class="w-full h-44 rounded-xl bg-gray-50 dark:bg-navy/40 flex items-center justify-center p-3 mb-4 border border-[#1B133C]/5 overflow-hidden cursor-pointer" onclick="openImagePreview('/catalog_images/DESIGN_001/photo_1.jpg', 'AeroStride Classic Loafer (SHOE-001)', 'Category: Leather Loafer • Building A -> Section 2 -> Rack A-01 -> Shelf 1')">
-            <img src="/catalog_images/DESIGN_001/photo_1.jpg" alt="AeroStride Classic Loafer" class="max-h-full object-contain secondary-floating-shoe hover:scale-105 transition-transform" />
+        <div class="combobox-wrap" style="position: relative; margin-bottom: 12px;">
+          <input type="text" id="catalog-add-name-input" class="md-input" placeholder="Design name (optional)" autocomplete="off" style="margin-bottom: 0;">
+          <div id="design-name-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1202; max-height: 160px;">
+            <!-- Populated dynamically by mobile.js -->
           </div>
         </div>
-        <div class="font-mono text-xs text-[#1B133C]/80 bg-[#1B133C]/5 p-2.5 rounded-lg flex items-center gap-2">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          <span>Building A &rarr; Section 2 &rarr; Rack A-01 &rarr; Shelf 1</span>
-        </div>
-      </div>
 
-      <!-- Catalog Card 2: White Athletic Running Sneaker -->
-      <div class="glass-card flex flex-col justify-between">
-        <div>
-          <div class="flex items-center justify-between mb-3">
-            <span class="px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-700 font-mono text-xs font-bold">SHOE-003</span>
-            <span class="text-xs font-semibold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded">98.4% Match</span>
-          </div>
-          <h3 class="font-bold text-base text-[#1B133C] mb-1">Vortex Cushion Speed</h3>
-          <p class="text-xs text-[#1B133C]/60 mb-3">Category: Athletic Sneaker &bull; Upper: Breathable Mesh</p>
-          <div class="w-full h-44 rounded-xl bg-gray-50 dark:bg-navy/40 flex items-center justify-center p-3 mb-4 border border-[#1B133C]/5 overflow-hidden cursor-pointer" onclick="openImagePreview('/catalog_images/DESIGN_007/photo_7.jpg', 'Vortex Athletic Sneaker (SHOE-003)', 'Category: Athletic Sneaker • Building A -> Section 1 -> Rack A-04 -> Shelf 4')">
-            <img src="/catalog_images/DESIGN_007/photo_7.jpg" alt="Vortex Athletic Sneaker" class="max-h-full object-contain hover:scale-105 transition-transform" />
+        <div class="combobox-wrap" style="position: relative; margin-bottom: 12px;">
+          <input type="text" id="catalog-add-category-input" class="md-input" placeholder="Category (optional, e.g. Sneaker, Formal)" autocomplete="off" style="margin-bottom: 0;">
+          <div id="category-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1201; max-height: 160px;">
+            <!-- Populated dynamically by mobile.js -->
           </div>
         </div>
-        <div class="font-mono text-xs text-[#1B133C]/80 bg-[#1B133C]/5 p-2.5 rounded-lg flex items-center gap-2">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          <span>Building A &rarr; Section 1 &rarr; Rack A-04 &rarr; Shelf 4</span>
-        </div>
-      </div>
-
-      <!-- Catalog Card 3: Casual White-Sole Loafer -->
-      <div class="glass-card flex flex-col justify-between">
-        <div>
-          <div class="flex items-center justify-between mb-3">
-            <span class="px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-700 font-mono text-xs font-bold">SHOE-005</span>
-            <span class="text-xs font-semibold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded">97.1% Match</span>
-          </div>
-          <h3 class="font-bold text-base text-[#1B133C] mb-1">Zenith Minimalist Trainer</h3>
-          <p class="text-xs text-[#1B133C]/60 mb-3">Category: Casual Slip-On &bull; Sole: White EVA Midsole</p>
-          <div class="w-full h-44 rounded-xl bg-gray-50 dark:bg-navy/40 flex items-center justify-center p-3 mb-4 border border-[#1B133C]/5 overflow-hidden cursor-pointer" onclick="openImagePreview('/catalog_images/DESIGN_003/photo_3.jpg', 'Zenith Minimalist Trainer (SHOE-005)', 'Category: Casual Slip-On • Building A -> Section 3 -> Rack A-06 -> Shelf 2')">
-            <img src="/catalog_images/DESIGN_003/photo_3.jpg" alt="Zenith Minimalist Trainer" class="max-h-full object-contain hover:scale-105 transition-transform" />
+        
+        <div class="combobox-wrap" style="position: relative; margin-bottom: 12px;">
+          <input type="text" id="catalog-add-farma-shelf-input" class="md-input" placeholder="Farma Shelf (optional, e.g. Rack A-01)" autocomplete="off" style="margin-bottom: 0;">
+          <div id="farma-shelf-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1200; max-height: 160px;">
+            <!-- Populated dynamically by mobile.js -->
           </div>
         </div>
-        <div class="font-mono text-xs text-[#1B133C]/80 bg-[#1B133C]/5 p-2.5 rounded-lg flex items-center gap-2">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          <span>Building A &rarr; Section 3 &rarr; Rack A-06 &rarr; Shelf 2</span>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+          <button class="md-btn" id="btn-catalog-add-camera" style="flex: 1; background-color: var(--md-sys-color-secondary); color: var(--md-sys-color-on-secondary);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span>Camera</span>
+          </button>
+          <button class="md-btn" id="btn-catalog-add-gallery" style="flex: 1; background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <span>Gallery</span>
+          </button>
+        </div>
+        <input type="file" id="file-catalog-add-picker" accept="image/*" class="hidden">
+
+        <div id="catalog-add-preview-container" class="hidden" style="text-align: center;">
+          <img id="catalog-add-preview-img" style="max-height: 180px; border-radius: 12px; object-fit: contain; width: 100%; margin-bottom: 10px;" />
+          <button class="md-btn" id="btn-catalog-add-submit">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            <span>Add to Catalogue</span>
+          </button>
+        </div>
+        <div id="catalog-add-loading-row" style="display: none; align-items: center; gap: 8px; margin-top: 8px;">
+          <div class="catalog-add-spinner"></div>
+          <span id="catalog-add-status-text" style="font-size: 0.82rem;"></span>
         </div>
       </div>
+    </div>
 
-      <!-- Catalog Card 4: Heavy Outdoor Leather Boot -->
-      <div class="glass-card flex flex-col justify-between">
-        <div>
-          <div class="flex items-center justify-between mb-3">
-            <span class="px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-700 font-mono text-xs font-bold">SHOE-007</span>
-            <span class="text-xs font-semibold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded">96.5% Match</span>
+    <!-- Edit Catalog Item Modal -->
+    <div id="catalog-edit-modal" class="scanner-overlay hidden">
+      <div class="md-card" id="catalog-edit-card" style="width: 100%; max-width: 400px; max-height: 85vh; overflow-y: auto;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+          <div class="card-title" style="margin-bottom: 0;">Edit Catalog Design</div>
+          <button class="icon-btn" id="btn-close-catalog-edit" title="Close" style="min-width: 36px; min-height: 36px;" onclick="closeCatalogEditModal()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <p id="catalog-edit-sku-text" style="font-size: 0.8rem; font-weight: 700; color: var(--md-sys-color-secondary); margin-bottom: 12px;"></p>
+
+        <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Design Name</label>
+        <div class="combobox-wrap" style="position: relative; margin-bottom: 12px;">
+          <input type="text" id="catalog-edit-name-input" class="md-input" placeholder="Design Name" autocomplete="off" style="margin-bottom: 0;">
+          <div id="edit-name-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1302; max-height: 140px;"></div>
+        </div>
+
+        <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Category</label>
+        <div class="combobox-wrap" style="position: relative; margin-bottom: 12px;">
+          <input type="text" id="catalog-edit-category-input" class="md-input" placeholder="Category" autocomplete="off" style="margin-bottom: 0;">
+          <div id="edit-category-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1301; max-height: 140px;"></div>
+        </div>
+
+        <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Farma Shelf</label>
+        <div class="combobox-wrap" style="position: relative; margin-bottom: 12px;">
+          <input type="text" id="catalog-edit-farma-shelf-input" class="md-input" placeholder="Farma Shelf (e.g. Rack A-01)" autocomplete="off" style="margin-bottom: 0;">
+          <div id="edit-farma-shelf-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1300; max-height: 140px;"></div>
+        </div>
+
+        <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Warehouse Location</label>
+        <div style="margin-bottom: 12px;">
+          <input type="text" id="catalog-edit-location-input" class="md-input" placeholder="Warehouse Location (e.g. Warehouse A - Rack 03)" style="margin-bottom: 0;">
+        </div>
+
+        <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Materials</label>
+        <div style="margin-bottom: 12px;">
+          <input type="text" id="catalog-edit-materials-input" class="md-input" placeholder="Materials (e.g. Leather Upper / Rubber Sole)" style="margin-bottom: 0;">
+        </div>
+
+        <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Season</label>
+        <div style="margin-bottom: 16px;">
+          <input type="text" id="catalog-edit-season-input" class="md-input" placeholder="Season (e.g. Collection 2026)" style="margin-bottom: 0;">
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-top: 14px;">
+          <button type="button" class="md-btn" id="btn-catalog-edit-delete" style="background-color: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error); border: none; font-weight: 600; width: auto; padding: 10px 14px; display: inline-flex; align-items: center; gap: 6px;" title="Delete Design">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            <span>Delete</span>
+          </button>
+
+          <button class="md-btn" id="btn-catalog-edit-submit" style="flex: 1;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            <span>Save Changes</span>
+          </button>
+        </div>
+        <div id="catalog-edit-loading-row" style="display: none; align-items: center; gap: 8px; margin-top: 8px;">
+          <div class="catalog-add-spinner"></div>
+          <span id="catalog-edit-status-text" style="font-size: 0.82rem;"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Large Shoe Design Detail Preview Modal -->
+    <div id="catalog-preview-modal" class="scanner-overlay hidden">
+      <div class="md-card" id="catalog-preview-card" style="width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; padding: 20px; position: relative;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <span id="preview-design-id-badge" style="font-size: 0.78rem; font-weight: 700; background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); padding: 4px 10px; border-radius: 8px;"></span>
+          <button class="icon-btn" onclick="closeCatalogPreviewModal()" title="Close" style="min-width: 36px; min-height: 36px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <!-- Large Image Preview -->
+        <div style="width: 100%; background-color: var(--md-sys-color-background); border-radius: 16px; padding: 12px; text-align: center; margin-bottom: 14px; border: 1px solid var(--md-sys-color-surface-variant);">
+          <img id="preview-shoe-img" src="" alt="Shoe Design Preview" style="width: 100%; max-height: 240px; object-fit: contain; border-radius: 12px;" />
+        </div>
+
+        <h2 id="preview-design-name" style="font-size: 1.2rem; font-weight: 700; color: var(--md-sys-color-on-surface); margin-bottom: 4px;"></h2>
+        <div id="preview-design-category" style="font-size: 0.85rem; font-weight: 600; color: var(--md-sys-color-secondary); margin-bottom: 12px;"></div>
+
+        <!-- Details Table Grid -->
+        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.83rem; background: var(--md-sys-color-surface); padding: 12px; border-radius: 12px; border: 1px solid var(--md-sys-color-surface-variant); margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--md-sys-color-surface-variant); padding-bottom: 6px;">
+            <span style="color: var(--md-sys-color-on-surface-variant); font-weight: 600;">Farma Shelf:</span>
+            <span id="preview-farma-shelf" style="font-weight: 700; color: var(--md-sys-color-on-surface);"></span>
           </div>
-          <h3 class="font-bold text-base text-[#1B133C] mb-1">HyperSprint Track Racer</h3>
-          <p class="text-xs text-[#1B133C]/60 mb-3">Category: Heavy Outdoor Boot &bull; Rugged Leather</p>
-          <div class="w-full h-44 rounded-xl bg-gray-50 dark:bg-navy/40 flex items-center justify-center p-3 mb-4 border border-[#1B133C]/5 overflow-hidden cursor-pointer" onclick="openImagePreview('/catalog_images/SHOE-071/angle_angle_34_1.jpeg', 'HyperSprint Outdoor Boot (SHOE-007)', 'Category: Heavy Outdoor Boot • Building A -> Section 2 -> Rack A-08 -> Shelf 4')">
-            <img src="/catalog_images/SHOE-071/angle_angle_34_1.jpeg" alt="HyperSprint Outdoor Boot" class="max-h-full object-contain hover:scale-105 transition-transform" />
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--md-sys-color-surface-variant); padding-bottom: 6px;">
+            <span style="color: var(--md-sys-color-on-surface-variant); font-weight: 600;">Warehouse Location:</span>
+            <span id="preview-shelf-location" style="font-weight: 600; color: var(--md-sys-color-on-surface);"></span>
+          </div>
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--md-sys-color-surface-variant); padding-bottom: 6px;">
+            <span style="color: var(--md-sys-color-on-surface-variant); font-weight: 600;">Materials:</span>
+            <span id="preview-materials" style="color: var(--md-sys-color-on-surface);"></span>
+          </div>
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--md-sys-color-surface-variant); padding-bottom: 6px;">
+            <span style="color: var(--md-sys-color-on-surface-variant); font-weight: 600;">Season:</span>
+            <span id="preview-season" style="color: var(--md-sys-color-on-surface);"></span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--md-sys-color-on-surface-variant); font-weight: 600;">Created Date:</span>
+            <span id="preview-created-at" style="color: var(--md-sys-color-on-surface);"></span>
           </div>
         </div>
-        <div class="font-mono text-xs text-[#1B133C]/80 bg-[#1B133C]/5 p-2.5 rounded-lg flex items-center gap-2">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          <span>Building A &rarr; Section 2 &rarr; Rack A-08 &rarr; Shelf 4</span>
-        </div>
-      </div>
 
-      <!-- Catalog Card 5: Croc-Pattern Brown Loafer -->
-      <div class="glass-card flex flex-col justify-between">
-        <div>
-          <div class="flex items-center justify-between mb-3">
-            <span class="px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-700 font-mono text-xs font-bold">SHOE-009</span>
-            <span class="text-xs font-semibold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded">95.9% Match</span>
-          </div>
-          <h3 class="font-bold text-base text-[#1B133C] mb-1">TitanShield Heavy Trek</h3>
-          <p class="text-xs text-[#1B133C]/60 mb-3">Category: Executive Loafer &bull; Croc-Pattern Leather</p>
-          <div class="w-full h-44 rounded-xl bg-gray-50 dark:bg-navy/40 flex items-center justify-center p-3 mb-4 border border-[#1B133C]/5 overflow-hidden cursor-pointer" onclick="openImagePreview('/catalog_images/DESIGN_005/photo_5.jpg', 'TitanShield Croc Loafer (SHOE-009)', 'Category: Executive Loafer • Building A -> Section 1 -> Rack A-02 -> Shelf 2')">
-            <img src="/catalog_images/DESIGN_005/photo_5.jpg" alt="TitanShield Croc Loafer" class="max-h-full object-contain hover:scale-105 transition-transform" />
-          </div>
-        </div>
-        <div class="font-mono text-xs text-[#1B133C]/80 bg-[#1B133C]/5 p-2.5 rounded-lg flex items-center gap-2">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          <span>Building A &rarr; Section 1 &rarr; Rack A-02 &rarr; Shelf 2</span>
-        </div>
-      </div>
-
-      <!-- Catalog Card 6: High-Top Sport Basketball Trainer -->
-      <div class="glass-card flex flex-col justify-between">
-        <div>
-          <div class="flex items-center justify-between mb-3">
-            <span class="px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-700 font-mono text-xs font-bold">SHOE-011</span>
-            <span class="text-xs font-semibold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded">95.2% Match</span>
-          </div>
-          <h3 class="font-bold text-base text-[#1B133C] mb-1">Monarch Leather Casual</h3>
-          <p class="text-xs text-[#1B133C]/60 mb-3">Category: High-Top Basketball &bull; Performance Rubber</p>
-          <div class="w-full h-44 rounded-xl bg-gray-50 dark:bg-navy/40 flex items-center justify-center p-3 mb-4 border border-[#1B133C]/5 overflow-hidden cursor-pointer" onclick="openImagePreview('/catalog_images/SHOE-034/angle_angle_34_1.jpg', 'Monarch Basketball Trainer (SHOE-011)', 'Category: High-Top Basketball • Building A -> Section 3 -> Rack A-04 -> Shelf 4')">
-            <img src="/catalog_images/SHOE-034/angle_angle_34_1.jpg" alt="Monarch Basketball Trainer" class="max-h-full object-contain hover:scale-105 transition-transform" />
-          </div>
-        </div>
-        <div class="font-mono text-xs text-[#1B133C]/80 bg-[#1B133C]/5 p-2.5 rounded-lg flex items-center gap-2">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          <span>Building A &rarr; Section 3 &rarr; Rack A-04 &rarr; Shelf 4</span>
-        </div>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- SECTION 4: ACCURACY & SUB-SECOND PERFORMANCE (PLAIN LANGUAGE) -->
-  <section id="accuracy" class="relative z-10 py-16 md:py-24 px-4 sm:px-6 max-w-6xl mx-auto border-t border-[#1B133C]/10">
-    <div class="text-center max-w-3xl mx-auto mb-16">
-      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold mb-3">Reliable & Fast</div>
-      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-[#1B133C]">High Accuracy Built for Real Warehouse Floors</h2>
-      <p class="mt-3 text-base text-[#1B133C]/70">Traditional color search fails under warehouse overhead lights. Our visual search focuses on shoe shape, textures, and stitching for dependable results.</p>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="glass-card">
-        <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center mb-4">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        </div>
-        <h3 class="font-bold text-lg text-[#1B133C] mb-2">Sub-Second Speed (~38ms)</h3>
-        <p class="text-sm text-[#1B133C]/70 leading-relaxed">Search results display almost instantly so your staff never waits around during busy warehouse shifts.</p>
-      </div>
-
-      <div class="glass-card">
-        <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center mb-4">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-        </div>
-        <h3 class="font-bold text-lg text-[#1B133C] mb-2">Handles Any Camera Angle</h3>
-        <p class="text-sm text-[#1B133C]/70 leading-relaxed">Whether a phone photo is taken straight-on, sideways, or tilted, the app correctly identifies the shoe model.</p>
-      </div>
-
-      <div class="glass-card">
-        <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center mb-4">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        </div>
-        <h3 class="font-bold text-lg text-[#1B133C] mb-2">Filters Out Non-Shoes</h3>
-        <p class="text-sm text-[#1B133C]/70 leading-relaxed">Accidental photos of slippers or non-footwear objects are flagged immediately so your database remains clean.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- SECTION 5: WAREHOUSE & FACTORY USE CASES (PLAIN LANGUAGE) -->
-  <section id="use-cases" class="relative z-10 py-16 md:py-24 px-4 sm:px-6 max-w-6xl mx-auto border-t border-[#1B133C]/10">
-    <div class="text-center max-w-3xl mx-auto mb-16">
-      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold mb-3">Warehouse Workflow</div>
-      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-[#1B133C]">Say Goodbye to Hunting Through Unlabelled Boxes</h2>
-      <p class="mt-3 text-base text-[#1B133C]/70">Compare the old manual searching process with point-and-shoot visual location.</p>
-    </div>
-
-    <!-- Additional Animated Shoe Visual #3 (Clickable Preview - Black Dress Oxford) -->
-    <div class="flex items-center justify-center mb-12">
-      <div class="hero-shoe-container w-48 sm:w-56 cursor-pointer" onclick="openImagePreview('/catalog_images/DESIGN_009/photo_9.jpg', 'Black Leather Oxford Sample', 'Classic Dress Oxford Footwear Sample')">
-        <img src="/catalog_images/DESIGN_009/photo_9.jpg" alt="Black Leather Oxford Sample" class="secondary-floating-shoe max-h-40 object-contain rounded-xl shadow-lg border border-amber-500/20 p-2 bg-white/80 dark:bg-navy/80 hover:scale-105 transition-transform" />
-        <div class="hero-shoe-shadow"></div>
-      </div>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-      <!-- Traditional Method -->
-      <div class="glass-card border-red-500/20 bg-red-500/5">
-        <div class="flex items-center gap-2 font-bold text-red-600 text-sm mb-3">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-          <span>The Old Manual Way</span>
-        </div>
-        <ul class="space-y-3 text-xs sm:text-sm text-[#1B133C]/80">
-          <li class="flex items-start gap-2"><span>&bull;</span> <span>Workers waste 15 to 25 minutes walking aisles searching for sample shoes.</span></li>
-          <li class="flex items-start gap-2"><span>&bull;</span> <span>Opening dozens of unlabelled boxes manually just to check the shoe style.</span></li>
-          <li class="flex items-start gap-2"><span>&bull;</span> <span>Lost sample shoes and mislabeled box tags cause costly shipping delays.</span></li>
-        </ul>
-      </div>
-
-      <!-- ShoeMatch AI Method -->
-      <div class="glass-card border-emerald-500/30 bg-emerald-500/5">
-        <div class="flex items-center gap-2 font-bold text-emerald-600 text-sm mb-3">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          <span>The ShoeMatch AI Way</span>
-        </div>
-        <ul class="space-y-3 text-xs sm:text-sm text-[#1B133C]/80">
-          <li class="flex items-start gap-2"><span>&bull;</span> <span>Snap a photo on a phone or tablet and get matching results in under 1 second.</span></li>
-          <li class="flex items-start gap-2"><span>&bull;</span> <span>Exact location details provided immediately: Building &rarr; Section &rarr; Rack &rarr; Shelf.</span></li>
-          <li class="flex items-start gap-2"><span>&bull;</span> <span>Includes complete product info like leather type, sole material, and season tag.</span></li>
-        </ul>
-      </div>
-    </div>
-  </section>
-
-  <!-- SECTION 6: BUILT FOR THE FLOOR (WEB + NATIVE MOBILE) -->
-  <section id="built-for-floor" class="relative z-10 py-16 md:py-24 px-4 sm:px-6 max-w-6xl mx-auto border-t border-[#1B133C]/10">
-    <div class="text-center max-w-3xl mx-auto mb-16">
-      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold mb-3">Multi-Platform Ready</div>
-      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-[#1B133C]">Built for Factory & Warehouse Staff</h2>
-      <p class="mt-3 text-base text-[#1B133C]/70">Designed to work seamlessly on desktop computers, tablets, and mobile phones.</p>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="glass-card">
-        <h4 class="font-bold text-base text-[#1B133C] mb-2">Use Phone Camera</h4>
-        <p class="text-xs text-[#1B133C]/70 leading-relaxed">Staff can take pictures directly using their Android phone camera while walking warehouse aisles.</p>
-      </div>
-
-      <div class="glass-card">
-        <h4 class="font-bold text-base text-[#1B133C] mb-2">Glove-Friendly Buttons</h4>
-        <p class="text-xs text-[#1B133C]/70 leading-relaxed">Large, easy-to-tap buttons designed specifically for factory workers wearing protective gloves.</p>
-      </div>
-
-      <div class="glass-card">
-        <h4 class="font-bold text-base text-[#1B133C] mb-2">Employee & Admin Roles</h4>
-        <p class="text-xs text-[#1B133C]/70 leading-relaxed">Secure sign-in with simple search access for workers and catalog management for managers.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- SECTION 8: FREQUENTLY ASKED QUESTIONS (FAQ - PLAIN LANGUAGE) -->
-  <section id="faq" class="relative z-10 py-16 md:py-24 px-4 sm:px-6 max-w-4xl mx-auto border-t border-[#1B133C]/10">
-    <div class="text-center max-w-3xl mx-auto mb-14">
-      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold mb-3">FAQ</div>
-      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-[#1B133C]">Frequently Asked Questions</h2>
-    </div>
-
-    <div class="space-y-4">
-      <div class="faq-item">
-        <button class="faq-question" onclick="toggleFaq(this)">
-          <span>What if the photo has a messy background or bad lighting?</span>
-          <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="faq-answer">
-          The app automatically cleans up background clutter (like warehouse floor tiles, shelf racks, or hands) so it only focuses on matching the shoe itself.
-        </div>
-      </div>
-
-      <div class="faq-item">
-        <button class="faq-question" onclick="toggleFaq(this)">
-          <span>What if someone takes a picture of something that isn't a shoe?</span>
-          <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="faq-answer">
-          ShoeMatch AI checks whether the photo contains actual footwear. If an accidental non-shoe photo or slipper is uploaded, the app politely lets the worker know to try again.
-        </div>
-      </div>
-
-      <div class="faq-item">
-        <button class="faq-question" onclick="toggleFaq(this)">
-          <span>Can workers use this on mobile phones on the warehouse floor?</span>
-          <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="faq-answer">
-          Yes! The app runs in any web browser and is also available as a native Android mobile application with single-tap camera controls.
-        </div>
-      </div>
-
-      <div class="faq-item">
-        <button class="faq-question" onclick="toggleFaq(this)">
-          <span>How do managers add new shoe designs to the system?</span>
-          <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="faq-answer">
-          Warehouse managers can upload sample photos along with product details (materials, season) and exact rack locations (Building, Section, Rack, Shelf).
+        <!-- Modal Action Buttons -->
+        <div style="display: flex; gap: 10px;">
+          <button class="md-btn" id="btn-preview-edit" style="flex: 1; background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            <span>Edit Details</span>
+          </button>
+          <button class="md-btn" onclick="closeCatalogPreviewModal()" style="flex: 1; background-color: var(--md-sys-color-surface-variant); color: var(--md-sys-color-on-surface-variant);">
+            <span>Close</span>
+          </button>
         </div>
       </div>
     </div>
-  </section>
 
-  <!-- SECTION 9: FINAL CONVERSION CTA -->
-  <section class="relative z-10 py-16 md:py-24 px-4 sm:px-6 max-w-5xl mx-auto text-center border-t border-[#1B133C]/10">
-    <div class="glass-card p-8 md:p-12 bg-gradient-to-br from-[#1B133C] to-[#2A1E5C] text-white">
-      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-4">Eliminate Warehouse Search Time Today</h2>
-      <p class="text-base text-gray-300 max-w-2xl mx-auto mb-8">Deploy ShoeMatch AI across your warehouse team or test visual search in your browser right now.</p>
-      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-        <a href="/app" class="rounded-xl bg-amber-500 px-8 py-3.5 text-sm font-bold text-[#1B133C] hover:bg-amber-400 transition-colors shadow-lg">
-          Launch Match Studio Now
-        </a>
-        <button id="btn-cta-access-bottom" onclick="document.getElementById('btn-cta-access').click()" class="rounded-xl bg-white/10 px-8 py-3.5 text-sm font-semibold text-white hover:bg-white/20 transition-colors border border-white/20">
-          Request Early Access
-        </button>
-      </div>
-    </div>
-  </section>
-
-  <!-- FOOTER -->
-  <footer class="relative z-10 py-8 px-4 sm:px-6 border-t border-[#1B133C]/10 text-center text-xs text-[#1B133C]/60">
-    <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-      <div>ShoeMatch AI &bull; Sub-Second Visual Search Infrastructure</div>
-      <div class="flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-        <span>FastAPI + FAISS Server: Operational</span>
-      </div>
-    </div>
-  </footer>
-
-  <!-- LIGHTBOX PREVIEW MODAL -->
-  <div id="image-preview-modal" class="fixed inset-0 z-50 bg-[#1B133C]/80 backdrop-blur-md hidden items-center justify-center p-4 cursor-pointer" onclick="closeImagePreview(event)">
-    <div class="glass-card max-w-2xl w-full p-6 relative border border-white/20 shadow-2xl text-center cursor-default" onclick="event.stopPropagation()">
-      <button class="absolute top-4 right-4 text-[#1B133C] dark:text-white hover:text-amber-500 text-2xl font-bold p-1 transition-colors" onclick="closeImagePreviewModal()">&times;</button>
-      <img id="preview-modal-img" src="" alt="Enlarged Preview" class="max-h-[60vh] w-auto mx-auto object-contain rounded-xl mb-4 shadow-lg border border-black/5" />
-      <h3 id="preview-modal-title" class="font-bold text-lg text-[#1B133C] dark:text-white"></h3>
-      <p id="preview-modal-caption" class="text-xs text-[#1B133C]/70 dark:text-gray-300 mt-1 font-mono"></p>
-    </div>
   </div>
 
-  <!-- Early Access Modal (Preserved) -->
-  <div id="access-modal" class="fixed inset-0 z-50 bg-[#1B133C]/60 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="bg-white rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-[#1B133C]/10 relative animate-fade-in-up">
-      <button id="btn-close-modal" class="absolute top-4 right-4 text-[#1B133C]/50 hover:text-[#1B133C] text-xl font-bold p-1">&times;</button>
-      <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center mb-4">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-      </div>
-      <h3 class="font-sans font-bold text-2xl text-[#1B133C] mb-2">Request Early Access</h3>
-      <p class="text-xs text-[#1B133C]/70 mb-5 leading-relaxed">Join factory managers and warehouse teams using ShoeMatch AI to streamline visual catalog searches.</p>
-      
-      <form id="access-form" onsubmit="handleAccessSubmit(event)" class="space-y-4">
-        <div>
-          <label class="block text-xs font-semibold text-[#1B133C] mb-1">Work Email</label>
-          <input type="email" required placeholder="manager@factory.com" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-[#1B133C]/20 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition-all">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-[#1B133C] mb-1">Company / Facility Name</label>
-          <input type="text" required placeholder="Acro Footwear Logistics" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-[#1B133C]/20 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition-all">
-        </div>
-        <button type="submit" class="w-full py-3 rounded-xl bg-[#1B133C] text-white text-sm font-semibold hover:bg-[#1B133C]/90 transition-all shadow-md">Submit Early Access Request</button>
-      </form>
-    </div>
-  </div>
-
-  <script>
-    // Click-to-Preview Lightbox Modal Functions
-    function openImagePreview(src, title, caption) {
-      const modal = document.getElementById('image-preview-modal');
-      const img = document.getElementById('preview-modal-img');
-      const t = document.getElementById('preview-modal-title');
-      const c = document.getElementById('preview-modal-caption');
-      
-      img.src = src;
-      t.textContent = title || 'Shoe Design Catalog Preview';
-      c.textContent = caption || 'ShoeMatch AI Visual Inspection';
-      
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-    }
-
-    function closeImagePreviewModal() {
-      const modal = document.getElementById('image-preview-modal');
-      if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-      }
-    }
-
-    function closeImagePreview(e) {
-      if (e.target.id === 'image-preview-modal') {
-        closeImagePreviewModal();
-      }
-    }
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        closeImagePreviewModal();
-      }
-    });
-
-    // Nav Scroll Shrink Effect
-    window.addEventListener("scroll", () => {
-      const nav = document.getElementById("nav-pill");
-      if (window.scrollY > 20) {
-        nav.classList.add("nav-pill-scrolled");
-      } else {
-        nav.classList.remove("nav-pill-scrolled");
-      }
-    });
-
-    // FAQ Accordion Toggle
-    function toggleFaq(btn) {
-      const item = btn.parentElement;
-      item.classList.toggle("open");
-    }
-
-    // Modal Triggers
-    const modal = document.getElementById("access-modal");
-    const btnCta = document.getElementById("btn-cta-access");
-    const btnClose = document.getElementById("btn-close-modal");
-
-    if (btnCta && modal) {
-      btnCta.onclick = () => {
-        modal.classList.remove("hidden");
-        modal.classList.add("flex");
-      };
-    }
-
-    if (btnClose && modal) {
-      btnClose.onclick = () => {
-        modal.classList.add("hidden");
-        modal.classList.remove("flex");
-      };
-    }
-
-    // Theme Toggle Functionality
-    function initThemeToggle() {
-      const currentTheme = localStorage.getItem("shoematch_theme") || "light";
-      document.documentElement.setAttribute("data-theme", currentTheme);
-      updateThemeToggleUI(currentTheme);
-    }
-
-    function toggleTheme() {
-      const html = document.documentElement;
-      const current = html.getAttribute("data-theme") === "dark" ? "dark" : "light";
-      const target = current === "dark" ? "light" : "dark";
-      html.setAttribute("data-theme", target);
-      try {
-        localStorage.setItem("shoematch_theme", target);
-      } catch(e) {}
-      updateThemeToggleUI(target);
-    }
-
-    function updateThemeToggleUI(theme) {
-      const btns = document.querySelectorAll(".btn-theme-toggle");
-      const isDark = theme === "dark";
-      btns.forEach(btn => {
-        btn.setAttribute("aria-pressed", isDark ? "true" : "false");
-        btn.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
-        btn.setAttribute("title", isDark ? "Switch to light mode" : "Switch to dark mode");
-        const moon = btn.querySelector(".icon-moon");
-        const sun = btn.querySelector(".icon-sun");
-        if (moon) moon.style.display = isDark ? "none" : "block";
-        if (sun) sun.style.display = isDark ? "block" : "none";
-      });
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-      initThemeToggle();
-    });
-
-    function handleAccessSubmit(e) {
-      e.preventDefault();
-      alert("Thank you! Your early access request for ShoeMatch AI has been received.");
-      if (modal) {
-        modal.classList.add("hidden");
-        modal.classList.remove("flex");
-      }
-    }
-  </script>
+  <!-- Mobile Logic -->
+  <script src="config.js"></script>
+  <script src="mobile.js"></script>
 </body>
 </html>
