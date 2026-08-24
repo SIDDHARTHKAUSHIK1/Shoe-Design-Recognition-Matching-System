@@ -283,33 +283,14 @@ class ShoeMatcher:
                     "faiss_id": int(faiss_id)
                 }
 
-        # 6. Sort candidates and select top_k visually distinct designs (diversity de-duplication)
+        # 6. Sort candidates strictly by similarity score (Top #1 most similar at top, followed by #2 and #3)
         sorted_candidates = sorted(
             seen_designs.values(),
-            key=lambda x: x["combined_score"],
+            key=lambda x: (x["combined_score"], x["cosine_similarity"]),
             reverse=True
         )
 
-        sorted_matches = []
-        selected_vectors = []
-
-        for cand in sorted_candidates:
-            fid = cand["faiss_id"]
-            vec = self.vector_store.index.reconstruct(fid)
-            
-            # Ensure candidate is not a visual duplicate (> 0.98 similarity) of an already chosen match
-            is_dup = False
-            for svec in selected_vectors:
-                sim = float(np.dot(vec, svec))
-                if sim > 0.980:
-                    is_dup = True
-                    break
-            
-            if not is_dup:
-                sorted_matches.append(cand)
-                selected_vectors.append(vec)
-                if len(sorted_matches) >= top_k:
-                    break
+        sorted_matches = sorted_candidates[:top_k]
 
         # Margin and Ambiguity Analysis
         thresholds = load_thresholds_config()
@@ -374,6 +355,7 @@ class ShoeMatcher:
                 "category": match["category"],
                 "description": match["description"],
                 "shelf_location": full_design.get("shelf_location", "Warehouse A - Rack 03 - Shelf B-02"),
+                "farma_shelf": full_design.get("farma_shelf", ""),
                 "materials": full_design.get("materials", "Full Grain Leather / Rubber Sole"),
                 "season": full_design.get("season", "Collection 2026"),
                 "production_status": full_design.get("production_status", "Sample Archive"),

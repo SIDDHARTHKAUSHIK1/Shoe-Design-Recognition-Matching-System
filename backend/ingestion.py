@@ -84,6 +84,7 @@ def ingest_single_design(
     description: str = "",
     created_by: str = "Design Team",
     shelf_location: str = "Warehouse A - Rack 03 - Shelf B-02",
+    farma_shelf: str = "",
     materials: str = "Full Grain Leather / Rubber Sole",
     season: str = "Collection 2026",
     production_status: str = "Active Production Sample",
@@ -109,6 +110,7 @@ def ingest_single_design(
         description=description,
         created_by=created_by,
         shelf_location=shelf_location,
+        farma_shelf=farma_shelf,
         materials=materials,
         season=season,
         production_status=production_status

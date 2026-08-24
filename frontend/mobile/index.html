@@ -25,22 +25,13 @@
           <path d="M12 3L2 8l10 5 10-5-10-5z"/>
         </svg>
         <span>ShoeMatch AI</span>
-        <span class="brand-badge" id="role-badge">Employee</span>
+        <span class="brand-badge" id="role-badge">Admin</span>
       </div>
 
       <div class="top-bar-actions">
-        <button class="icon-btn" id="btn-open-catalog-add" title="Add to Catalogue" onclick="openCatalogAddModal()">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-        </button>
-        <button class="icon-btn" id="btn-theme-toggle" title="Toggle Theme">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
-          </svg>
-        </button>
-        <button class="icon-btn" id="btn-logout" title="Log Out">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
-          </svg>
+        <button class="md-btn-add-top" id="btn-open-catalog-add" title="Add New Design" onclick="openCatalogAddModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          <span>Add New Design</span>
         </button>
       </div>
     </header>
@@ -105,28 +96,61 @@
         <div id="catalog-grid"></div>
       </section>
 
-      <!-- TAB 3: LOCATIONS -->
-      <section id="tab-locations" class="tab-pane">
-        <div class="md-card" style="margin-bottom: 12px;">
-          <div class="card-title">Location & Warehouse Hierarchy</div>
-          <p style="font-size: 0.85rem; color: var(--md-sys-color-on-surface-variant); margin-bottom: 10px;">
-            Search for Facility Zones, Shelves, Drawers, or Storage Slots:
-          </p>
-          <input type="text" id="location-search-input" class="md-input" placeholder="Type slot or rack keyword (e.g. Rack 03)..." style="margin-bottom: 0;">
-        </div>
-        <div id="location-results-container"></div>
-      </section>
-
-      <!-- TAB 4: ADMIN CONSOLE -->
+      <!-- TAB 3: ADMIN CONSOLE & PROFILE -->
       <section id="tab-admin" class="tab-pane">
+
+        <!-- Account Controls & Options Card -->
+        <div class="md-card" style="margin-bottom: 12px; background: linear-gradient(135deg, var(--md-sys-color-surface), var(--md-sys-color-background)); border: 1px solid var(--md-sys-color-surface-variant);">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+            <div>
+              <div style="font-size: 0.76rem; font-weight: 700; color: var(--md-sys-color-outline); letter-spacing: 0.5px;">ACTIVE USER ACCOUNT</div>
+              <div style="font-size: 1.1rem; font-weight: 700; color: var(--md-sys-color-on-surface);" id="admin-user-display-name">Active User</div>
+            </div>
+            <span class="brand-badge" id="admin-role-badge" style="font-size: 0.78rem; padding: 4px 10px;">Employee</span>
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+            <button class="md-btn" id="btn-switch-account-role" style="flex: 1; min-width: 140px; padding: 8px 12px; min-height: 40px; font-size: 0.82rem; background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); border: none; font-weight: 600;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+              <span id="switch-role-btn-text">Switch Account</span>
+            </button>
+
+            <button class="md-btn" id="btn-theme-toggle" style="padding: 8px 12px; min-height: 40px; font-size: 0.82rem; background-color: var(--md-sys-color-surface-variant); color: var(--md-sys-color-on-surface-variant); border: none; font-weight: 600; width: auto;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/></svg>
+              <span id="theme-toggle-label">Dark Mode</span>
+            </button>
+
+            <button class="md-btn" id="btn-logout" style="padding: 8px 12px; min-height: 40px; font-size: 0.82rem; background-color: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error); border: none; font-weight: 600; width: auto;" title="Log Out">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Catalogue Statistics Overview Card -->
+        <div class="md-card" style="margin-bottom: 12px;">
+          <div class="card-title" style="margin-bottom: 10px;">Catalogue & Inventory Summary</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div style="background: var(--md-sys-color-background); padding: 12px; border-radius: 12px; border: 1px solid var(--md-sys-color-surface-variant); text-align: center;">
+              <div style="font-size: 1.6rem; font-weight: 800; color: var(--md-sys-color-secondary);" id="stat-total-designs">0</div>
+              <div style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant);">Total Designs</div>
+            </div>
+
+            <div style="background: var(--md-sys-color-background); padding: 12px; border-radius: 12px; border: 1px solid var(--md-sys-color-surface-variant); text-align: center;">
+              <div style="font-size: 1.6rem; font-weight: 800; color: var(--md-sys-color-primary);" id="stat-total-farma-shelves">0</div>
+              <div style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant);">Total Farma Shelves</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity History Card -->
         <div class="md-card">
-          <div class="card-title">Admin Management & Audit Logs</div>
-          <p style="font-size: 0.85rem; color: var(--md-sys-color-on-surface-variant); margin-bottom: 12px;">
-            Role-gated administrative console for auditing system access and managing shoe design records.
-          </p>
-          <button class="md-btn" id="btn-refresh-audit-logs" style="margin-bottom: 16px;">
-            <span>Refresh Audit Logs</span>
-          </button>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <div class="card-title" style="margin-bottom: 0;">Recent Activity History</div>
+            <button class="icon-btn" id="btn-refresh-audit-logs" title="Refresh Logs" style="min-width: 32px; min-height: 32px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            </button>
+          </div>
           <div id="admin-audit-logs"></div>
         </div>
       </section>
@@ -181,14 +205,7 @@
         <span class="nav-tab-label">Catalog</span>
       </button>
 
-      <button class="nav-tab" data-tab="tab-locations">
-        <div class="nav-tab-pill">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        </div>
-        <span class="nav-tab-label">Locations</span>
-      </button>
-
-      <button class="nav-tab hidden" id="nav-tab-admin" data-tab="tab-admin">
+      <button class="nav-tab" id="nav-tab-admin" data-tab="tab-admin">
         <div class="nav-tab-pill">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         </div>
@@ -238,8 +255,26 @@
           Snap or upload a photo of a new shoe design to add it to the searchable catalogue.
         </p>
 
-        <input type="text" id="catalog-add-name-input" class="md-input" placeholder="Design name (optional)">
-        <input type="text" id="catalog-add-category-input" class="md-input" placeholder="Category (optional, defaults to Sneaker)">
+        <div class="combobox-wrap" style="position: relative; margin-bottom: 12px;">
+          <input type="text" id="catalog-add-name-input" class="md-input" placeholder="Design name (optional)" autocomplete="off" style="margin-bottom: 0;">
+          <div id="design-name-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1202; max-height: 160px;">
+            <!-- Populated dynamically by mobile.js -->
+          </div>
+        </div>
+
+        <div class="combobox-wrap" style="position: relative; margin-bottom: 12px;">
+          <input type="text" id="catalog-add-category-input" class="md-input" placeholder="Category (optional, e.g. Sneaker, Formal)" autocomplete="off" style="margin-bottom: 0;">
+          <div id="category-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1201; max-height: 160px;">
+            <!-- Populated dynamically by mobile.js -->
+          </div>
+        </div>
+        
+        <div class="combobox-wrap" style="position: relative; margin-bottom: 12px;">
+          <input type="text" id="catalog-add-farma-shelf-input" class="md-input" placeholder="Farma Shelf (optional, e.g. Rack A-01)" autocomplete="off" style="margin-bottom: 0;">
+          <div id="farma-shelf-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1200; max-height: 160px;">
+            <!-- Populated dynamically by mobile.js -->
+          </div>
+        </div>
 
         <div style="display: flex; gap: 10px; margin-bottom: 10px;">
           <button class="md-btn" id="btn-catalog-add-camera" style="flex: 1; background-color: var(--md-sys-color-secondary); color: var(--md-sys-color-on-secondary);">
@@ -263,6 +298,123 @@
         <div id="catalog-add-loading-row" style="display: none; align-items: center; gap: 8px; margin-top: 8px;">
           <div class="catalog-add-spinner"></div>
           <span id="catalog-add-status-text" style="font-size: 0.82rem;"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Catalog Item Modal -->
+    <div id="catalog-edit-modal" class="scanner-overlay hidden">
+      <div class="md-card" id="catalog-edit-card" style="width: 100%; max-width: 400px; max-height: 85vh; overflow-y: auto;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+          <div class="card-title" style="margin-bottom: 0;">Edit Catalog Design</div>
+          <button class="icon-btn" id="btn-close-catalog-edit" title="Close" style="min-width: 36px; min-height: 36px;" onclick="closeCatalogEditModal()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <p id="catalog-edit-sku-text" style="font-size: 0.8rem; font-weight: 700; color: var(--md-sys-color-secondary); margin-bottom: 12px;"></p>
+
+        <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Design Name</label>
+        <div class="combobox-wrap" style="position: relative; margin-bottom: 12px;">
+          <input type="text" id="catalog-edit-name-input" class="md-input" placeholder="Design Name" autocomplete="off" style="margin-bottom: 0;">
+          <div id="edit-name-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1302; max-height: 140px;"></div>
+        </div>
+
+        <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Category</label>
+        <div class="combobox-wrap" style="position: relative; margin-bottom: 12px;">
+          <input type="text" id="catalog-edit-category-input" class="md-input" placeholder="Category" autocomplete="off" style="margin-bottom: 0;">
+          <div id="edit-category-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1301; max-height: 140px;"></div>
+        </div>
+
+        <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Farma Shelf</label>
+        <div class="combobox-wrap" style="position: relative; margin-bottom: 12px;">
+          <input type="text" id="catalog-edit-farma-shelf-input" class="md-input" placeholder="Farma Shelf (e.g. Rack A-01)" autocomplete="off" style="margin-bottom: 0;">
+          <div id="edit-farma-shelf-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1300; max-height: 140px;"></div>
+        </div>
+
+        <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Warehouse Location</label>
+        <div style="margin-bottom: 12px;">
+          <input type="text" id="catalog-edit-location-input" class="md-input" placeholder="Warehouse Location (e.g. Warehouse A - Rack 03)" style="margin-bottom: 0;">
+        </div>
+
+        <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Materials</label>
+        <div style="margin-bottom: 12px;">
+          <input type="text" id="catalog-edit-materials-input" class="md-input" placeholder="Materials (e.g. Leather Upper / Rubber Sole)" style="margin-bottom: 0;">
+        </div>
+
+        <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Season</label>
+        <div style="margin-bottom: 16px;">
+          <input type="text" id="catalog-edit-season-input" class="md-input" placeholder="Season (e.g. Collection 2026)" style="margin-bottom: 0;">
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-top: 14px;">
+          <button type="button" class="md-btn" id="btn-catalog-edit-delete" style="background-color: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error); border: none; font-weight: 600; width: auto; padding: 10px 14px; display: inline-flex; align-items: center; gap: 6px;" title="Delete Design">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            <span>Delete</span>
+          </button>
+
+          <button class="md-btn" id="btn-catalog-edit-submit" style="flex: 1;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            <span>Save Changes</span>
+          </button>
+        </div>
+        <div id="catalog-edit-loading-row" style="display: none; align-items: center; gap: 8px; margin-top: 8px;">
+          <div class="catalog-add-spinner"></div>
+          <span id="catalog-edit-status-text" style="font-size: 0.82rem;"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Large Shoe Design Detail Preview Modal -->
+    <div id="catalog-preview-modal" class="scanner-overlay hidden">
+      <div class="md-card" id="catalog-preview-card" style="width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; padding: 20px; position: relative;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <span id="preview-design-id-badge" style="font-size: 0.78rem; font-weight: 700; background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); padding: 4px 10px; border-radius: 8px;"></span>
+          <button class="icon-btn" onclick="closeCatalogPreviewModal()" title="Close" style="min-width: 36px; min-height: 36px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <!-- Large Image Preview -->
+        <div style="width: 100%; background-color: var(--md-sys-color-background); border-radius: 16px; padding: 12px; text-align: center; margin-bottom: 14px; border: 1px solid var(--md-sys-color-surface-variant);">
+          <img id="preview-shoe-img" src="" alt="Shoe Design Preview" style="width: 100%; max-height: 240px; object-fit: contain; border-radius: 12px;" />
+        </div>
+
+        <h2 id="preview-design-name" style="font-size: 1.2rem; font-weight: 700; color: var(--md-sys-color-on-surface); margin-bottom: 4px;"></h2>
+        <div id="preview-design-category" style="font-size: 0.85rem; font-weight: 600; color: var(--md-sys-color-secondary); margin-bottom: 12px;"></div>
+
+        <!-- Details Table Grid -->
+        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.83rem; background: var(--md-sys-color-surface); padding: 12px; border-radius: 12px; border: 1px solid var(--md-sys-color-surface-variant); margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--md-sys-color-surface-variant); padding-bottom: 6px;">
+            <span style="color: var(--md-sys-color-on-surface-variant); font-weight: 600;">Farma Shelf:</span>
+            <span id="preview-farma-shelf" style="font-weight: 700; color: var(--md-sys-color-on-surface);"></span>
+          </div>
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--md-sys-color-surface-variant); padding-bottom: 6px;">
+            <span style="color: var(--md-sys-color-on-surface-variant); font-weight: 600;">Warehouse Location:</span>
+            <span id="preview-shelf-location" style="font-weight: 600; color: var(--md-sys-color-on-surface);"></span>
+          </div>
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--md-sys-color-surface-variant); padding-bottom: 6px;">
+            <span style="color: var(--md-sys-color-on-surface-variant); font-weight: 600;">Materials:</span>
+            <span id="preview-materials" style="color: var(--md-sys-color-on-surface);"></span>
+          </div>
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--md-sys-color-surface-variant); padding-bottom: 6px;">
+            <span style="color: var(--md-sys-color-on-surface-variant); font-weight: 600;">Season:</span>
+            <span id="preview-season" style="color: var(--md-sys-color-on-surface);"></span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--md-sys-color-on-surface-variant); font-weight: 600;">Created Date:</span>
+            <span id="preview-created-at" style="color: var(--md-sys-color-on-surface);"></span>
+          </div>
+        </div>
+
+        <!-- Modal Action Buttons -->
+        <div style="display: flex; gap: 10px;">
+          <button class="md-btn" id="btn-preview-edit" style="flex: 1; background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            <span>Edit Details</span>
+          </button>
+          <button class="md-btn" onclick="closeCatalogPreviewModal()" style="flex: 1; background-color: var(--md-sys-color-surface-variant); color: var(--md-sys-color-on-surface-variant);">
+            <span>Close</span>
+          </button>
         </div>
       </div>
     </div>

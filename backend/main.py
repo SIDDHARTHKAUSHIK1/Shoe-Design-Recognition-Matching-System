@@ -348,12 +348,24 @@ async def create_design(
     return JSONResponse(content=ingest_result)
 
 
+@app.get("/api/designs/farma-shelves")
+async def list_farma_shelves(request: Request):
+    """
+    Return distinct, non-empty farma_shelf names in use across designs.
+    Gated by require_authenticated_user.
+    """
+    _ = await require_authenticated_user(request)
+    shelves = db.get_all_farma_shelves()
+    return JSONResponse(content={"farma_shelves": shelves})
+
+
 @app.post("/api/designs/mobile-add")
 async def create_design_mobile(
     request: Request,
     background_tasks: BackgroundTasks,
     name: str = Form(""),
     category: str = Form("Sneaker"),
+    farma_shelf: str = Form(""),
     file: UploadFile = File(...),
 ):
     """
@@ -377,12 +389,14 @@ async def create_design_mobile(
     design_id = f"MOBILE-{uuid.uuid4().hex[:8].upper()}"
     design_name = name.strip() if name and name.strip() else f"Field Added Design {design_id[-8:]}"
     design_category = category.strip() if category and category.strip() else "Sneaker"
+    clean_farma_shelf = farma_shelf.strip() if farma_shelf else ""
 
     try:
         ingest_result = ingest_single_design(
             design_id=design_id,
             name=design_name,
             category=design_category,
+            farma_shelf=clean_farma_shelf,
             image_files=[{"filename": clean_name, "content": clean_bytes}],
             background_tasks=background_tasks
         )
@@ -485,6 +499,38 @@ async def update_design(design_id: str, payload: dict, request: Request):
     return JSONResponse(content={"success": True, "design_id": design_id, "message": "Design metadata updated successfully."})
 
 
+@app.put("/api/designs/{design_id}/mobile-edit")
+async def update_design_mobile(design_id: str, payload: dict, request: Request):
+    """
+    Update design metadata (name, category, farma_shelf) from the mobile app.
+    Gated by require_authenticated_user.
+    """
+    _ = await require_authenticated_user(request)
+    design = db.get_design(design_id)
+    if not design:
+        raise HTTPException(status_code=404, detail=f"Design '{design_id}' not found.")
+
+    update_payload = {}
+    if "name" in payload and payload["name"] is not None:
+        update_payload["name"] = str(payload["name"]).strip()
+    if "category" in payload and payload["category"] is not None:
+        update_payload["category"] = str(payload["category"]).strip()
+    if "farma_shelf" in payload and payload["farma_shelf"] is not None:
+        update_payload["farma_shelf"] = str(payload["farma_shelf"]).strip()
+    if "shelf_location" in payload and payload["shelf_location"] is not None:
+        update_payload["shelf_location"] = str(payload["shelf_location"]).strip()
+    if "materials" in payload and payload["materials"] is not None:
+        update_payload["materials"] = str(payload["materials"]).strip()
+    if "season" in payload and payload["season"] is not None:
+        update_payload["season"] = str(payload["season"]).strip()
+
+    if not update_payload:
+        raise HTTPException(status_code=400, detail="No metadata attributes updated.")
+
+    success = db.update_design_metadata(design_id, **update_payload)
+    return JSONResponse(content={"success": True, "design_id": design_id, "updated": update_payload})
+
+
 @app.put("/api/admin/designs/{design_id}/status")
 async def toggle_admin_design_status(design_id: str, payload: dict, request: Request):
     """Activate, deactivate, or archive a design (Admin only). Excluded from candidate pool when inactive/archived."""
@@ -511,46 +557,21 @@ async def get_design_details(design_id: str):
 
 @app.delete("/api/designs/{design_id}")
 async def delete_catalog_design(design_id: str, request: Request):
-    """Delete a design and refresh the vector store (Admin only)."""
+    """Fast-delete a design record and its image folder (Admin only)."""
     _ = await require_admin_user(request)
     design = db.get_design(design_id)
     if not design:
         raise HTTPException(status_code=404, detail=f"Design '{design_id}' not found.")
 
-    # Remove storage folder
+    # 1. Remove storage folder
     design_dir = CATALOG_IMAGES_DIR / design_id
     if design_dir.exists():
         shutil.rmtree(design_dir, ignore_errors=True)
 
-    # Delete from DB
+    # 2. Delete design record from SQLite database
     db.delete_design(design_id)
 
-    # Rebuild shoe-only index from remaining DB reference images
-    vs = VectorStore.get_instance()
-    vs.reset()
-    all_refs = db.get_all_shoe_reference_images()
-
-
-    
-    if all_refs:
-        engine = EmbeddingEngine.get_instance()
-        images = []
-        for r in all_refs:
-            p = CATALOG_IMAGES_DIR / r["design_id"] / Path(r["image_path"]).name
-            if p.exists():
-                images.append(p)
-                
-        if images:
-            embs = engine.get_batch_embeddings(images)
-            assigned_ids = vs.add_vectors(embs)
-            
-            # Update FAISS IDs in DB
-            with db.get_db_connection() as conn:
-                for r, new_fid in zip(all_refs, assigned_ids):
-                    conn.execute("UPDATE reference_images SET faiss_id = ? WHERE id = ?;", (new_fid, r["id"]))
-                conn.commit()
-
-    return JSONResponse(content={"success": True, "message": f"Design {design_id} deleted."})
+    return JSONResponse(content={"success": True, "message": f"Design '{design_id}' deleted successfully.", "design_id": design_id})
 
 
 
@@ -952,6 +973,8 @@ async def search_locations_endpoint(
             "design_id": s.get("assigned_design_id") or "Vacant",
             "name": s.get("design_name") or s.get("slot_name") or "",
             "category": s.get("design_category") or "",
+            "farma_shelf": s.get("farma_shelf") or "",
+            "thumbnail_path": s.get("design_thumbnail") or "",
             "is_occupied": s.get("is_occupied", 0)
         })
     return JSONResponse(content={"results": formatted, "total": len(formatted), "slots": slots})

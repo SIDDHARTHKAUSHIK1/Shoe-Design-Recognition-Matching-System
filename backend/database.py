@@ -124,6 +124,7 @@ def init_db():
                 description TEXT DEFAULT '',
                 created_by TEXT DEFAULT 'Design Team',
                 shelf_location TEXT DEFAULT 'Warehouse A - Rack 03 - Shelf B-02',
+                farma_shelf TEXT DEFAULT '',
                 materials TEXT DEFAULT 'Full Grain Leather / Anti-Slip Rubber',
                 season TEXT DEFAULT 'Collection 2026',
                 production_status TEXT DEFAULT 'Sample Archive',
@@ -140,6 +141,7 @@ def init_db():
         # Automatic column migrations for existing databases
         for col, col_def in [
             ("shelf_location", "TEXT DEFAULT 'Warehouse A - Rack 03 - Shelf B-02'"),
+            ("farma_shelf", "TEXT DEFAULT ''"),
             ("materials", "TEXT DEFAULT 'Full Grain Leather / Anti-Slip Rubber'"),
             ("season", "TEXT DEFAULT 'Collection 2026'"),
             ("production_status", "TEXT DEFAULT 'Sample Archive'"),
@@ -351,6 +353,7 @@ def add_design(
     description: str = "",
     created_by: str = "Design Team",
     shelf_location: str = "Warehouse A - Rack 03 - Shelf B-02",
+    farma_shelf: str = "",
     materials: str = "Full Grain Leather / Anti-Slip Rubber",
     season: str = "Collection 2026",
     production_status: str = "Sample Archive",
@@ -362,24 +365,34 @@ def add_design(
         cursor.execute("""
             INSERT INTO designs (
                 design_id, name, category, description, created_by, 
-                shelf_location, materials, season, production_status, thumbnail_path
+                shelf_location, farma_shelf, materials, season, production_status, thumbnail_path
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(design_id) DO UPDATE SET
                 name = excluded.name,
                 category = excluded.category,
                 description = excluded.description,
                 shelf_location = CASE WHEN excluded.shelf_location != '' THEN excluded.shelf_location ELSE shelf_location END,
+                farma_shelf = CASE WHEN excluded.farma_shelf != '' THEN excluded.farma_shelf ELSE farma_shelf END,
                 materials = CASE WHEN excluded.materials != '' THEN excluded.materials ELSE materials END,
                 season = CASE WHEN excluded.season != '' THEN excluded.season ELSE season END,
                 production_status = CASE WHEN excluded.production_status != '' THEN excluded.production_status ELSE production_status END,
                 thumbnail_path = CASE WHEN excluded.thumbnail_path != '' THEN excluded.thumbnail_path ELSE thumbnail_path END;
         """, (
             design_id, name, category, description, created_by,
-            shelf_location, materials, season, production_status, thumbnail_path
+            shelf_location, farma_shelf, materials, season, production_status, thumbnail_path
         ))
         conn.commit()
         return True
+
+
+def get_all_farma_shelves() -> List[str]:
+    """Retrieve distinct non-empty farma_shelf names in use across designs."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT farma_shelf FROM designs WHERE farma_shelf IS NOT NULL AND farma_shelf != '' ORDER BY farma_shelf ASC;")
+        rows = cursor.fetchall()
+        return [row[0] for row in rows if row[0]]
 
 
 def update_design_location(design_id: str, shelf_location: str, production_status: Optional[str] = None) -> bool:
@@ -424,7 +437,7 @@ def update_design_status(design_id: str, is_active: Optional[int] = None, is_arc
 
 def update_design_metadata(design_id: str, **kwargs) -> bool:
     """Update general design metadata attributes."""
-    allowed = {"name", "category", "description", "shelf_location", "materials", "season", "production_status", "drawer", "slot", "shoe_match_tag"}
+    allowed = {"name", "category", "description", "shelf_location", "farma_shelf", "materials", "season", "production_status", "drawer", "slot", "shoe_match_tag"}
     updates = []
     params = []
     for k, v in kwargs.items():
@@ -478,6 +491,7 @@ def get_all_designs() -> List[Dict[str, Any]]:
                 d.description,
                 d.created_by,
                 d.shelf_location,
+                d.farma_shelf,
                 d.materials,
                 d.season,
                 d.production_status,
@@ -828,6 +842,7 @@ def get_all_slots_flat(search: str = "", zone_id: Optional[int] = None, status_f
                 sm.name as shoe_match_name,
                 d.name as design_name,
                 d.category as design_category,
+                d.farma_shelf,
                 d.thumbnail_path as design_thumbnail
             FROM slots s
             JOIN drawers dr ON s.drawer_id = dr.id
