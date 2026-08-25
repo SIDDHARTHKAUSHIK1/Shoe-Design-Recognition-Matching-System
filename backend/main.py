@@ -359,6 +359,50 @@ async def list_farma_shelves(request: Request):
     return JSONResponse(content={"farma_shelves": shelves})
 
 
+def generate_user_based_sku(category: str, name: str) -> str:
+    """
+    Generate meaningful SKU code derived directly from user details.
+    Examples:
+    - category='Formal', name='Oxford Derby' -> 'F-OD-7E04F2'
+    - category='Formal' -> 'F-7E04F2'
+    - category='Sneaker' -> 'SNK-7E04F2'
+    - category='Sports' -> 'SPT-7E04F2'
+    """
+    cat_str = (category or "").strip().upper()
+    name_str = (name or "").strip().upper()
+    hex_suffix = uuid.uuid4().hex[:6].upper()
+
+    if cat_str.startswith("FORMAL"):
+        prefix = "F"
+    elif cat_str.startswith("SNEAKER"):
+        prefix = "SNK"
+    elif cat_str.startswith("SPORT"):
+        prefix = "SPT"
+    elif cat_str.startswith("CASUAL"):
+        prefix = "CSL"
+    elif cat_str.startswith("SLIPPER") or cat_str.startswith("SANDAL"):
+        prefix = "SLP"
+    elif cat_str.startswith("BOOT"):
+        prefix = "BT"
+    elif cat_str.startswith("LOAFER"):
+        prefix = "LF"
+    elif cat_str:
+        clean_cat = "".join(c for c in cat_str if c.isalnum())
+        prefix = clean_cat[:3] if len(clean_cat) >= 3 else (clean_cat or "DSG")
+    else:
+        prefix = "DSG"
+
+    name_part = ""
+    if name_str and not name_str.startswith("FIELD ADDED"):
+        words = [w for w in name_str.split() if w.isalnum()]
+        if len(words) == 1:
+            name_part = f"-{words[0][:6]}"
+        elif len(words) >= 2:
+            name_part = f"-{''.join(w[0] for w in words[:4])}"
+
+    return f"{prefix}{name_part}-{hex_suffix}"
+
+
 @app.post("/api/designs/mobile-add")
 async def create_design_mobile(
     request: Request,
@@ -373,7 +417,7 @@ async def create_design_mobile(
     file: UploadFile = File(...),
 ):
     """
-    Quick-add a catalogue design from the mobile app with complete details.
+    Quick-add a catalogue design from the mobile app with user-derived SKU details.
     """
     _ = await require_authenticated_user(request)
 
@@ -383,9 +427,12 @@ async def create_design_mobile(
 
     clean_bytes, clean_name = validate_and_sanitize_image(file.filename, content)
 
-    design_id = f"MOBILE-{uuid.uuid4().hex[:8].upper()}"
-    design_name = name.strip() if name and name.strip() else f"Field Added Design {design_id[-8:]}"
     design_category = category.strip() if category and category.strip() else "Sneaker"
+    raw_name = name.strip() if name and name.strip() else ""
+    
+    # Generate SKU starting with category initial (e.g. F for Formal)
+    design_id = generate_user_based_sku(design_category, raw_name)
+    design_name = raw_name if raw_name else f"Field Added Design {design_id[-6:]}"
     clean_farma_shelf = farma_shelf.strip() if farma_shelf else ""
     clean_location = shelf_location.strip() if shelf_location and shelf_location.strip() else "Warehouse A - Rack 03 - Shelf B-02"
     clean_drawer = drawer.strip() if drawer and drawer.strip() else (season.strip() if season and season.strip() else "Drawer 01")
