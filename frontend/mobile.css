@@ -554,6 +554,137 @@ mark.highlight {
   transform: scale(0.96);
 }
 
+/* ==========================================================================
+   Responsive Multi-Device Adaptation (Mobile, Tablet, Desktop)
+   ========================================================================== */
+
+/* Main Container Constraint & Desktop Centering */
+.main-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.top-app-bar {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+}
+
+/* Floating Bottom Navigation Bar (Centered on Large Screens) */
+.bottom-nav {
+  max-width: 540px;
+  margin: 0 auto;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Fluid Multi-Column Catalog Grid */
+#catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+}
+
+/* Small Phones (< 400px) */
+@media (max-width: 400px) {
+  #catalog-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .brand-title span {
+    font-size: 0.95rem;
+  }
+  .md-btn-add-top {
+    padding: 6px 10px;
+    font-size: 0.76rem;
+  }
+  .md-card {
+    padding: 12px;
+  }
+}
+
+/* Tablets (641px - 1024px) */
+@media (min-width: 641px) and (max-width: 1024px) {
+  #catalog-grid {
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 16px;
+  }
+  .main-content {
+    padding: 24px;
+  }
+}
+
+/* Desktop Screens (> 1024px) */
+@media (min-width: 1025px) {
+  #catalog-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
+  }
+  .main-content {
+    padding: 32px;
+  }
+  .md-card {
+    padding: 24px;
+  }
+}
+
+/* Responsive Modal Overlays */
+.scanner-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 16px;
+}
+
+.scanner-overlay .md-card {
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  padding: 20px;
+}
+
+/* Responsive Images & Cards */
+.catalog-card img,
+.match-card img,
+#query-preview-img,
+#preview-design-img {
+  width: 100%;
+  height: auto;
+  max-height: clamp(140px, 28vh, 240px);
+  object-fit: contain;
+  border-radius: 12px;
+}
+
+/* Touch Targets & Buttons */
+.md-btn, button, input {
+  touch-action: manipulation;
+}
+
+button:focus-visible, input:focus-visible {
+  outline: 2px solid var(--md-sys-color-secondary);
+  outline-offset: 2px;
+}
+
 /* Hidden Utility */
 .hidden {
   display: none !important;
