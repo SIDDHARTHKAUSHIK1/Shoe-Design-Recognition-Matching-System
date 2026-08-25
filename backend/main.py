@@ -366,14 +366,13 @@ async def create_design_mobile(
     name: str = Form(""),
     category: str = Form("Sneaker"),
     farma_shelf: str = Form(""),
+    shelf_location: str = Form(""),
+    materials: str = Form(""),
+    season: str = Form(""),
     file: UploadFile = File(...),
 ):
     """
-    Quick-add a catalogue design from the mobile app. Open to any logged-in
-    user (not admin-only) for field use. Reuses the exact same incremental
-    ingestion pipeline as the admin desktop form (ingest_single_design) —
-    this endpoint only differs in who can call it and how forgiving the
-    input fields are, not in how the image is processed or indexed.
+    Quick-add a catalogue design from the mobile app with complete details.
     """
     _ = await require_authenticated_user(request)
 
@@ -383,13 +382,13 @@ async def create_design_mobile(
 
     clean_bytes, clean_name = validate_and_sanitize_image(file.filename, content)
 
-    # Auto-generate a collision-safe design_id since a field photo won't have
-    # a pre-assigned SKU — mirrors the desktop form's design_id but the user
-    # never has to type one.
     design_id = f"MOBILE-{uuid.uuid4().hex[:8].upper()}"
     design_name = name.strip() if name and name.strip() else f"Field Added Design {design_id[-8:]}"
     design_category = category.strip() if category and category.strip() else "Sneaker"
     clean_farma_shelf = farma_shelf.strip() if farma_shelf else ""
+    clean_location = shelf_location.strip() if shelf_location and shelf_location.strip() else "Warehouse A - Rack 03 - Shelf B-02"
+    clean_materials = materials.strip() if materials and materials.strip() else "Full Grain Leather / Rubber Sole"
+    clean_season = season.strip() if season and season.strip() else "Collection 2026"
 
     try:
         ingest_result = ingest_single_design(
@@ -397,6 +396,9 @@ async def create_design_mobile(
             name=design_name,
             category=design_category,
             farma_shelf=clean_farma_shelf,
+            shelf_location=clean_location,
+            materials=clean_materials,
+            season=clean_season,
             image_files=[{"filename": clean_name, "content": clean_bytes}],
             background_tasks=background_tasks
         )

@@ -614,6 +614,72 @@
         updateAdminDashboard();
       }
     });
+
+    // 4. Warehouse Location Combobox
+    setupCombobox({
+      inputId: "catalog-add-location-input",
+      dropdownId: "add-location-dropdown",
+      getSuggestions: () => {
+        const deleted = state.customDeletedLocations || [];
+        const defaults = ["Warehouse A - Rack 01 - Shelf A-01", "Warehouse A - Rack 03 - Shelf B-02", "Warehouse B - Rack 05 - Shelf C-01"];
+        const fromCatalog = (state.catalog || []).map(d => d.shelf_location).filter(Boolean);
+        return Array.from(new Set([...defaults, ...fromCatalog])).filter(l => !deleted.includes(l));
+      },
+      newItemPrefix: "Add new location",
+      onDeleteItem: (val) => {
+        state.customDeletedLocations = state.customDeletedLocations || [];
+        state.customDeletedLocations.push(val);
+        addActivityLog({
+          action: "Warehouse Location Option Deleted",
+          details: `Removed "${val}" from Warehouse Location selection options.`,
+          type: "catalog_edit"
+        });
+      }
+    });
+
+    // 5. Materials Combobox
+    setupCombobox({
+      inputId: "catalog-add-materials-input",
+      dropdownId: "add-materials-dropdown",
+      getSuggestions: () => {
+        const deleted = state.customDeletedMaterials || [];
+        const defaults = ["Full Grain Leather / Rubber Sole", "Knit Mesh / Foam Sole", "Suede Leather / Rubber Sole", "Canvas Upper / Vulcanized Sole"];
+        const fromCatalog = (state.catalog || []).map(d => d.materials).filter(Boolean);
+        return Array.from(new Set([...defaults, ...fromCatalog])).filter(m => !deleted.includes(m));
+      },
+      newItemPrefix: "Add new material",
+      onDeleteItem: (val) => {
+        state.customDeletedMaterials = state.customDeletedMaterials || [];
+        state.customDeletedMaterials.push(val);
+        addActivityLog({
+          action: "Materials Option Deleted",
+          details: `Removed "${val}" from Materials selection options.`,
+          type: "catalog_edit"
+        });
+      }
+    });
+
+    // 6. Season Combobox
+    setupCombobox({
+      inputId: "catalog-add-season-input",
+      dropdownId: "add-season-dropdown",
+      getSuggestions: () => {
+        const deleted = state.customDeletedSeasons || [];
+        const defaults = ["Collection 2026", "Summer 2026", "Winter 2025", "Autumn Archive"];
+        const fromCatalog = (state.catalog || []).map(d => d.season).filter(Boolean);
+        return Array.from(new Set([...defaults, ...fromCatalog])).filter(s => !deleted.includes(s));
+      },
+      newItemPrefix: "Add new season",
+      onDeleteItem: (val) => {
+        state.customDeletedSeasons = state.customDeletedSeasons || [];
+        state.customDeletedSeasons.push(val);
+        addActivityLog({
+          action: "Season Option Deleted",
+          details: `Removed "${val}" from Season selection options.`,
+          type: "catalog_edit"
+        });
+      }
+    });
   }
 
   function initCatalogAddEvents() {
@@ -624,27 +690,37 @@
 
     initCatalogAddComboboxes();
 
-    async function handleCatalogCameraCapture() {
-      if (window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins && window.Capacitor.Plugins.Camera) {
-        try {
-          const camera = window.Capacitor.Plugins.Camera;
-          const image = await camera.getPhoto({ quality: 90, allowEditing: false, resultType: 'uri', source: 'CAMERA' });
-          if (image && image.webPath) {
-            const res = await fetch(image.webPath);
-            const blob = await res.blob();
-            const file = new File([blob], `catalogue_photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
-            setCatalogAddFile(file);
-            return;
+    if (cameraBtn) {
+      cameraBtn.addEventListener("click", async () => {
+        if (window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins && window.Capacitor.Plugins.Camera) {
+          try {
+            const camera = window.Capacitor.Plugins.Camera;
+            const image = await camera.getPhoto({
+              quality: 90,
+              allowEditing: false,
+              resultType: 'uri',
+              source: 'CAMERA'
+            });
+
+            if (image && image.webPath) {
+              const res = await fetch(image.webPath);
+              const blob = await res.blob();
+              const file = new File([blob], `catalog_photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
+              setCatalogAddFile(file);
+              return;
+            }
+          } catch (err) {
+            console.warn("Capacitor add camera notice:", err);
           }
-        } catch (err) {
-          console.warn("Capacitor camera error/cancel:", err);
         }
-      }
-      if (filePicker) filePicker.click();
+        if (filePicker) filePicker.click();
+      });
     }
 
-    if (cameraBtn) cameraBtn.addEventListener("click", handleCatalogCameraCapture);
-    if (galleryBtn) galleryBtn.addEventListener("click", () => filePicker && filePicker.click());
+    if (galleryBtn) {
+      galleryBtn.addEventListener("click", () => filePicker && filePicker.click());
+    }
+
     if (filePicker) {
       filePicker.addEventListener("change", (e) => {
         if (e.target.files && e.target.files[0]) {
@@ -653,7 +729,9 @@
       });
     }
 
-    if (submitBtn) submitBtn.addEventListener("click", submitCatalogAdd);
+    if (submitBtn) {
+      submitBtn.addEventListener("click", submitCatalogAdd);
+    }
   }
 
   function setCatalogAddFile(file) {
@@ -672,26 +750,36 @@
   }
 
   async function submitCatalogAdd() {
+    if (!state.selectedCatalogAddFile) {
+      alert("Please select or capture a shoe photo first.");
+      return;
+    }
+
     const statusText = document.getElementById("catalog-add-status-text");
     const loadingRow = document.getElementById("catalog-add-loading-row");
     const submitBtn = document.getElementById("btn-catalog-add-submit");
-    if (!state.selectedCatalogAddFile) return;
 
     const nameInput = document.getElementById("catalog-add-name-input");
     const categoryInput = document.getElementById("catalog-add-category-input");
     const farmaShelfInput = document.getElementById("catalog-add-farma-shelf-input");
+    const locationInput = document.getElementById("catalog-add-location-input");
+    const materialsInput = document.getElementById("catalog-add-materials-input");
+    const seasonInput = document.getElementById("catalog-add-season-input");
 
     const formData = new FormData();
     formData.append("file", state.selectedCatalogAddFile);
     formData.append("name", nameInput ? nameInput.value : "");
     formData.append("category", categoryInput ? categoryInput.value : "");
     formData.append("farma_shelf", farmaShelfInput ? farmaShelfInput.value : "");
+    formData.append("shelf_location", locationInput ? locationInput.value : "");
+    formData.append("materials", materialsInput ? materialsInput.value : "");
+    formData.append("season", seasonInput ? seasonInput.value : "");
 
     if (submitBtn) submitBtn.disabled = true;
     if (loadingRow) loadingRow.style.display = "flex";
     if (statusText) {
       statusText.style.color = "var(--md-sys-color-on-surface-variant)";
-      statusText.textContent = "Adding to catalogue — this can take up to a minute while the AI re-indexes...";
+      statusText.textContent = "Adding to catalogue — processing DINOv2 feature vectors...";
     }
 
     try {
@@ -718,7 +806,7 @@
 
       addActivityLog({
         action: "Catalogue Design Added",
-        details: `Added "${data.name || nameInput.value || 'New Design'}" (SKU: ${data.design_id || 'SKU'})${categoryInput && categoryInput.value ? ' • Category: ' + categoryInput.value : ''}${farmaShelfInput && farmaShelfInput.value ? ' • Farma Shelf: ' + farmaShelfInput.value : ''}`,
+        details: `Added "${data.name || nameInput.value || 'New Design'}" (SKU: ${data.design_id || 'SKU'})`,
         type: "catalog_add"
       });
 
@@ -727,9 +815,12 @@
       if (nameInput) nameInput.value = "";
       if (categoryInput) categoryInput.value = "";
       if (farmaShelfInput) farmaShelfInput.value = "";
+      if (locationInput) locationInput.value = "";
+      if (materialsInput) materialsInput.value = "";
+      if (seasonInput) seasonInput.value = "";
       const previewContainer = document.getElementById("catalog-add-preview-container");
       if (previewContainer) previewContainer.classList.add("hidden");
-      fetchCatalog();
+      fetchCatalog({ silent: true });
       fetchFarmaShelves();
       updateAdminDashboard();
       const modal = document.getElementById("catalog-add-modal");
