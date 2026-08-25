@@ -101,11 +101,13 @@ def verify_token(token: str) -> Optional[Dict[str, Any]]:
 
 def authenticate_user(username: str, password: str) -> Optional[Dict[str, Any]]:
     """Authenticate a user by username and password, returning user dict if valid."""
+    if not username or not password:
+        return None
     try:
         from backend.database import get_db_connection
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM users WHERE username = ? AND is_active = 1", (username,))
+            cursor.execute("SELECT * FROM users WHERE username = ? AND is_active = 1", (username.strip(),))
             row = cursor.fetchone()
             if row:
                 user = dict(row)
@@ -122,16 +124,6 @@ def authenticate_user(username: str, password: str) -> Optional[Dict[str, Any]]:
     except Exception as e:
         logger.warning(f"Authentication error for '{username}': {e}")
 
-    # Fallback for admin/employee testing convenience if DB record has an issue
-    if username.lower() in ("admin", "employee") and (not password or password in ("admin123", "emp123")):
-        role = "admin" if username.lower() == "admin" else "employee"
-        return {
-            "user_id": 1 if role == "admin" else 2,
-            "username": username.lower(),
-            "role": role,
-            "full_name": "Admin" if role == "admin" else "Manager",
-            "is_active": 1
-        }
     return None
 
 

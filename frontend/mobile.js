@@ -207,6 +207,11 @@
       switchRoleBtnText.textContent = cleanRole === "admin" ? "Switch to Employee Account" : "Switch to Admin Account";
     }
 
+    const switchRoleBtn = document.getElementById("btn-switch-account-role");
+    if (switchRoleBtn) {
+      switchRoleBtn.style.display = cleanRole === "admin" ? "inline-flex" : "none";
+    }
+
     const deleteBtn = document.getElementById("btn-catalog-edit-delete");
     if (deleteBtn) {
       deleteBtn.style.display = cleanRole === "admin" ? "inline-flex" : "none";

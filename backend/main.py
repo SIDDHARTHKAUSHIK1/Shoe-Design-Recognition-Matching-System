@@ -740,28 +740,27 @@ async def require_admin_user(request: Request) -> dict:
 
 @app.post("/api/auth/login")
 async def login_user(request: Request, payload: Optional[dict] = None):
-    """Bypass password requirement in testing mode — auto-authenticates any username."""
+    """Authenticate user with strict username and password check against database."""
     if payload is None:
         payload = {}
-    username = payload.get("username", "admin").strip() or "admin"
+    username = payload.get("username", "").strip()
     password = payload.get("password", "").strip()
     
-    user = auth.authenticate_user(username, password) or {
-        "user_id": 1 if username.lower() == "admin" else 2,
-        "username": username.lower(),
-        "role": "admin" if username.lower() == "admin" else "employee",
-        "full_name": "Admin" if username.lower() == "admin" else "Manager",
-        "is_active": 1
-    }
+    if not username or not password:
+        raise HTTPException(status_code=400, detail="Username and password are required.")
+        
+    user = auth.authenticate_user(username, password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Incorrect username or password. Access Denied.")
     
     token = auth.create_token(user["user_id"], user["username"], user.get("role", "admin"))
     
     response = JSONResponse(content={
         "token": token,
         "user": user,
-        "message": "Testing Mode: Login successful"
+        "message": "Login successful"
     })
-    response.set_cookie(key="session_token", value=token, httponly=True, max_age=86400)
+    response.set_cookie(key="session_token", value=token, httponly=True, max_age=86400 * 30)
     return response
 
 
