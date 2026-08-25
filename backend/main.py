@@ -359,18 +359,19 @@ async def list_farma_shelves(request: Request):
     return JSONResponse(content={"farma_shelves": shelves})
 
 
-def generate_user_based_sku(category: str, name: str) -> str:
+def generate_user_based_sku(category: str, name: str, farma_shelf: str = "", drawer: str = "") -> str:
     """
-    Generate meaningful SKU code derived directly from user details.
+    Generate meaningful SKU code derived ONLY from user input details.
+    NO artificial random hex codes or UUID suffixes!
     Examples:
-    - category='Formal', name='Oxford Derby' -> 'F-OD-7E04F2'
-    - category='Formal' -> 'F-7E04F2'
-    - category='Sneaker' -> 'SNK-7E04F2'
-    - category='Sports' -> 'SPT-7E04F2'
+    - category='Formal', name='Shes24' -> 'F-SHES24'
+    - category='Formal', drawer='Drawer 01' -> 'F-DRAWER01'
+    - category='Formal' only -> 'FORMAL'
     """
     cat_str = (category or "").strip().upper()
     name_str = (name or "").strip().upper()
-    hex_suffix = uuid.uuid4().hex[:6].upper()
+    shelf_str = (farma_shelf or "").strip().upper()
+    drawer_str = (drawer or "").strip().upper()
 
     if cat_str.startswith("FORMAL"):
         prefix = "F"
@@ -388,19 +389,40 @@ def generate_user_based_sku(category: str, name: str) -> str:
         prefix = "LF"
     elif cat_str:
         clean_cat = "".join(c for c in cat_str if c.isalnum())
-        prefix = clean_cat[:3] if len(clean_cat) >= 3 else (clean_cat or "DSG")
+        prefix = clean_cat[:4] if len(clean_cat) >= 4 else (clean_cat or "SKU")
     else:
-        prefix = "DSG"
+        prefix = "SKU"
 
-    name_part = ""
+    user_parts = []
     if name_str and not name_str.startswith("FIELD ADDED"):
-        words = [w for w in name_str.split() if w.isalnum()]
-        if len(words) == 1:
-            name_part = f"-{words[0][:6]}"
-        elif len(words) >= 2:
-            name_part = f"-{''.join(w[0] for w in words[:4])}"
+        clean_name = "".join(c for c in name_str if c.isalnum() or c == '-')
+        if clean_name:
+            user_parts.append(clean_name[:12])
 
-    return f"{prefix}{name_part}-{hex_suffix}"
+    if drawer_str:
+        clean_drawer = "".join(c for c in drawer_str if c.isalnum())
+        if clean_drawer and not any(clean_drawer in p for p in user_parts):
+            user_parts.append(clean_drawer[:8])
+
+    if shelf_str and len(user_parts) < 2:
+        clean_shelf = "".join(c for c in shelf_str if c.isalnum())
+        if clean_shelf and not any(clean_shelf in p for p in user_parts):
+            user_parts.append(clean_shelf[:8])
+
+    if user_parts:
+        candidate_sku = f"{prefix}-" + "-".join(user_parts)
+    else:
+        candidate_sku = cat_str if cat_str else "SKU"
+
+    final_sku = candidate_sku
+    counter = 1
+    existing_design = db.get_design(final_sku)
+    while existing_design:
+        counter += 1
+        final_sku = f"{candidate_sku}-{counter}"
+        existing_design = db.get_design(final_sku)
+
+    return final_sku
 
 
 @app.post("/api/designs/mobile-add")
@@ -417,7 +439,7 @@ async def create_design_mobile(
     file: UploadFile = File(...),
 ):
     """
-    Quick-add a catalogue design from the mobile app with user-derived SKU details.
+    Quick-add a catalogue design from the mobile app with pure user-derived SKU details.
     """
     _ = await require_authenticated_user(request)
 
@@ -429,14 +451,14 @@ async def create_design_mobile(
 
     design_category = category.strip() if category and category.strip() else "Sneaker"
     raw_name = name.strip() if name and name.strip() else ""
-    
-    # Generate SKU starting with category initial (e.g. F for Formal)
-    design_id = generate_user_based_sku(design_category, raw_name)
-    design_name = raw_name if raw_name else f"Field Added Design {design_id[-6:]}"
     clean_farma_shelf = farma_shelf.strip() if farma_shelf else ""
-    clean_location = shelf_location.strip() if shelf_location and shelf_location.strip() else "Warehouse A - Rack 03 - Shelf B-02"
     clean_drawer = drawer.strip() if drawer and drawer.strip() else (season.strip() if season and season.strip() else "Drawer 01")
+    clean_location = shelf_location.strip() if shelf_location and shelf_location.strip() else "Warehouse A - Rack 03 - Shelf B-02"
     clean_materials = materials.strip() if materials and materials.strip() else "Full Grain Leather / Rubber Sole"
+
+    # Generate SKU derived strictly from user details (no artificial hex)
+    design_id = generate_user_based_sku(design_category, raw_name, clean_farma_shelf, clean_drawer)
+    design_name = raw_name if raw_name else f"Field Added Design {design_id}"
 
     try:
         ingest_result = ingest_single_design(

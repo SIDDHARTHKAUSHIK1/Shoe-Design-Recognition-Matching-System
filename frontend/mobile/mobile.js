@@ -1127,23 +1127,25 @@
 
     currentEditingDesignId = designId;
 
+    const skuInput = document.getElementById("catalog-edit-sku-input");
     const skuText = document.getElementById("catalog-edit-sku-text");
     const nameInput = document.getElementById("catalog-edit-name-input");
     const categoryInput = document.getElementById("catalog-edit-category-input");
     const farmaShelfInput = document.getElementById("catalog-edit-farma-shelf-input");
     const locationInput = document.getElementById("catalog-edit-location-input");
+    const drawerInput = document.getElementById("catalog-edit-drawer-input");
     const materialsInput = document.getElementById("catalog-edit-materials-input");
-    const seasonInput = document.getElementById("catalog-edit-season-input");
     const statusText = document.getElementById("catalog-edit-status-text");
     const loadingRow = document.getElementById("catalog-edit-loading-row");
 
+    if (skuInput) skuInput.value = design.design_id || "";
     if (skuText) skuText.textContent = `SKU: ${design.design_id}`;
     if (nameInput) nameInput.value = design.name || "";
     if (categoryInput) categoryInput.value = design.category || "";
     if (farmaShelfInput) farmaShelfInput.value = design.farma_shelf || "";
     if (locationInput) locationInput.value = design.shelf_location || "";
+    if (drawerInput) drawerInput.value = design.drawer || design.season || "";
     if (materialsInput) materialsInput.value = design.materials || "";
-    if (seasonInput) seasonInput.value = design.season || "";
     if (statusText) statusText.textContent = "";
     if (loadingRow) loadingRow.style.display = "none";
 
@@ -1160,23 +1162,29 @@
   async function submitCatalogEdit() {
     if (!currentEditingDesignId) return;
 
+    const skuInput = document.getElementById("catalog-edit-sku-input");
     const nameInput = document.getElementById("catalog-edit-name-input");
     const categoryInput = document.getElementById("catalog-edit-category-input");
     const farmaShelfInput = document.getElementById("catalog-edit-farma-shelf-input");
     const locationInput = document.getElementById("catalog-edit-location-input");
+    const drawerInput = document.getElementById("catalog-edit-drawer-input");
     const materialsInput = document.getElementById("catalog-edit-materials-input");
-    const seasonInput = document.getElementById("catalog-edit-season-input");
     const statusText = document.getElementById("catalog-edit-status-text");
     const loadingRow = document.getElementById("catalog-edit-loading-row");
     const submitBtn = document.getElementById("btn-catalog-edit-submit");
 
+    const drawerVal = drawerInput ? drawerInput.value.trim() : "";
+    const newSku = skuInput && skuInput.value.trim() ? skuInput.value.trim().toUpperCase() : currentEditingDesignId;
+
     const payload = {
+      new_sku: newSku,
       name: nameInput ? nameInput.value.trim() : "",
       category: categoryInput ? categoryInput.value.trim() : "",
       farma_shelf: farmaShelfInput ? farmaShelfInput.value.trim() : "",
       shelf_location: locationInput ? locationInput.value.trim() : "",
-      materials: materialsInput ? materialsInput.value.trim() : "",
-      season: seasonInput ? seasonInput.value.trim() : ""
+      drawer: drawerVal,
+      season: drawerVal,
+      materials: materialsInput ? materialsInput.value.trim() : ""
     };
 
     if (submitBtn) submitBtn.disabled = true;
@@ -1203,31 +1211,36 @@
         return;
       }
 
+      const updatedSku = data.design_id || newSku;
+
       // Update local state design object immediately
       const targetDesign = (state.catalog || []).find(d => d.design_id === currentEditingDesignId);
       if (targetDesign) {
+        targetDesign.design_id = updatedSku;
         targetDesign.name = payload.name;
         targetDesign.category = payload.category;
         targetDesign.farma_shelf = payload.farma_shelf;
         targetDesign.shelf_location = payload.shelf_location;
+        targetDesign.drawer = payload.drawer;
         targetDesign.materials = payload.materials;
-        targetDesign.season = payload.season;
       }
 
       // Live update preview modal elements if currently open
+      const pSku = document.getElementById("preview-design-sku");
       const pName = document.getElementById("preview-design-name");
       const pCat = document.getElementById("preview-design-category");
       const pFarma = document.getElementById("preview-farma-shelf");
       const pLoc = document.getElementById("preview-shelf-location");
       const pMat = document.getElementById("preview-materials");
-      const pSeason = document.getElementById("preview-season");
+      const pDrawer = document.getElementById("preview-drawer");
 
+      if (pSku) pSku.textContent = updatedSku;
       if (pName && payload.name) pName.textContent = payload.name;
       if (pCat && payload.category) pCat.textContent = payload.category;
       if (pFarma && payload.farma_shelf) pFarma.textContent = payload.farma_shelf;
       if (pLoc && payload.shelf_location) pLoc.textContent = payload.shelf_location;
       if (pMat && payload.materials) pMat.textContent = payload.materials;
-      if (pSeason && payload.season) pSeason.textContent = payload.season;
+      if (pDrawer && payload.drawer) pDrawer.textContent = payload.drawer;
 
       if (loadingRow) loadingRow.style.display = "none";
       if (statusText) {
@@ -1237,7 +1250,7 @@
 
       addActivityLog({
         action: "Catalogue Design Updated",
-        details: `Updated SKU: ${currentEditingDesignId}${payload.name ? ' • Name: "' + payload.name + '"' : ''}${payload.category ? ' • Category: ' + payload.category : ''}${payload.farma_shelf ? ' • Farma Shelf: ' + payload.farma_shelf : ''}`,
+        details: `Updated SKU: ${updatedSku}${payload.name ? ' • Name: "' + payload.name + '"' : ''}`,
         type: "catalog_edit"
       });
 

@@ -435,6 +435,23 @@ def update_design_status(design_id: str, is_active: Optional[int] = None, is_arc
         return cursor.rowcount > 0
 
 
+def update_design_sku(old_design_id: str, new_sku: str) -> bool:
+    """Update primary design_id SKU across designs and reference_images tables."""
+    new_sku = new_sku.strip().upper()
+    if not new_sku or old_design_id == new_sku:
+        return True
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        # Check if new_sku already exists
+        cursor.execute("SELECT design_id FROM designs WHERE design_id = ?", (new_sku,))
+        if cursor.fetchone():
+            return False
+        cursor.execute("UPDATE designs SET design_id = ? WHERE design_id = ?", (new_sku, old_design_id))
+        cursor.execute("UPDATE reference_images SET design_id = ? WHERE design_id = ?", (new_sku, old_design_id))
+        conn.commit()
+        return True
+
+
 def update_design_metadata(design_id: str, **kwargs) -> bool:
     """Update general design metadata attributes."""
     allowed = {"name", "category", "description", "shelf_location", "farma_shelf", "materials", "season", "production_status", "drawer", "slot", "shoe_match_tag"}
