@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import unittest
 from fastapi.testclient import TestClient
 
@@ -20,6 +23,7 @@ class TestAuthAndRoles(unittest.TestCase):
     def test_02_password_hashing(self):
         pwd = "testpassword123"
         h = auth.hash_password(pwd)
+        self.assertTrue(h.startswith(("$2a$", "$2b$", "$2y$")))
         self.assertTrue(auth.verify_password(pwd, h))
         self.assertFalse(auth.verify_password("wrongpassword", h))
 
@@ -38,12 +42,19 @@ class TestAuthAndRoles(unittest.TestCase):
         self.assertIn("token", data)
         self.assertEqual(data["user"]["role"], "admin")
 
+        res_alias = self.client.post("/api/login", json={"username": "employee", "password": "emp123"})
+        self.assertEqual(res_alias.status_code, 200)
+        data_alias = res_alias.json()
+        self.assertIn("token", data_alias)
+        self.assertEqual(data_alias["user"]["role"], "employee")
+
     def test_05_login_endpoint_invalid(self):
         res = self.client.post("/api/auth/login", json={"username": "admin", "password": "wrongpassword"})
         self.assertEqual(res.status_code, 401)
 
     def test_06_me_endpoint(self):
         login_res = self.client.post("/api/auth/login", json={"username": "employee", "password": "emp123"})
+        self.assertEqual(login_res.status_code, 200)
         token = login_res.json()["token"]
         
         me_res = self.client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
@@ -52,6 +63,11 @@ class TestAuthAndRoles(unittest.TestCase):
         self.assertTrue(data["authenticated"])
         self.assertEqual(data["user"]["username"], "employee")
         self.assertEqual(data["user"]["role"], "employee")
+
+        me_alias = self.client.get("/api/me", headers={"Authorization": f"Bearer {token}"})
+        self.assertEqual(me_alias.status_code, 200)
+        data_alias = me_alias.json()
+        self.assertTrue(data_alias["authenticated"])
 
 if __name__ == "__main__":
     unittest.main()

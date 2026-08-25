@@ -109,21 +109,28 @@
             <span class="brand-badge" id="admin-role-badge" style="font-size: 0.78rem; padding: 4px 10px;">Employee</span>
           </div>
 
-          <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
-            <button class="md-btn" id="btn-switch-account-role" style="flex: 1; min-width: 140px; padding: 8px 12px; min-height: 40px; font-size: 0.82rem; background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); border: none; font-weight: 600;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
-              <span id="switch-role-btn-text">Switch Account</span>
-            </button>
+          <div style="display: flex; gap: 8px; margin-top: 12px; flex-direction: column;">
+            <div id="switch-role-container" style="width: 100%;">
+              <button class="md-btn" id="btn-open-switch-employee-modal" style="width: 100%; padding: 10px 14px; min-height: 42px; font-size: 0.84rem; background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); border: none; font-weight: 600; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+                <span id="switch-employee-btn-label">-- Switch to Employee View --</span>
+              </button>
+              <button class="md-btn hidden" id="btn-return-to-admin" style="width: 100%; padding: 10px 14px; min-height: 42px; font-size: 0.84rem; background-color: var(--md-sys-color-tertiary-container, #E8DEF8); color: var(--md-sys-color-on-tertiary-container, #1D192B); border: none; font-weight: 700; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                ↩️ Return to Admin Account
+              </button>
+            </div>
 
-            <button class="md-btn" id="btn-theme-toggle" style="padding: 8px 12px; min-height: 40px; font-size: 0.82rem; background-color: var(--md-sys-color-surface-variant); color: var(--md-sys-color-on-surface-variant); border: none; font-weight: 600; width: auto;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/></svg>
-              <span id="theme-toggle-label">Dark Mode</span>
-            </button>
+            <div style="display: flex; gap: 8px; width: 100%;">
+              <button class="md-btn" id="btn-theme-toggle" style="flex: 1; padding: 8px 12px; min-height: 40px; font-size: 0.82rem; background-color: var(--md-sys-color-surface-variant); color: var(--md-sys-color-on-surface-variant); border: none; font-weight: 600;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/></svg>
+                <span id="theme-toggle-label">Dark Mode</span>
+              </button>
 
-            <button class="md-btn" id="btn-logout" style="padding: 8px 12px; min-height: 40px; font-size: 0.82rem; background-color: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error); border: none; font-weight: 600; width: auto;" title="Log Out">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-              <span>Logout</span>
-            </button>
+              <button class="md-btn" id="btn-logout" style="flex: 1; padding: 8px 12px; min-height: 40px; font-size: 0.82rem; background-color: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error); border: none; font-weight: 600;" title="Log Out">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                <span>Logout</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -150,24 +157,8 @@
           </div>
         </div>
 
-        <!-- Catalogue Statistics Overview Card -->
-        <div class="md-card" style="margin-bottom: 12px;">
-          <div class="card-title" style="margin-bottom: 10px;">Catalogue & Inventory Summary</div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div style="background: var(--md-sys-color-background); padding: 12px; border-radius: 12px; border: 1px solid var(--md-sys-color-surface-variant); text-align: center;">
-              <div style="font-size: 1.6rem; font-weight: 800; color: var(--md-sys-color-secondary);" id="stat-total-designs">0</div>
-              <div style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant);">Total Designs</div>
-            </div>
-
-            <div style="background: var(--md-sys-color-background); padding: 12px; border-radius: 12px; border: 1px solid var(--md-sys-color-surface-variant); text-align: center;">
-              <div style="font-size: 1.6rem; font-weight: 800; color: var(--md-sys-color-primary);" id="stat-total-farma-shelves">0</div>
-              <div style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant);">Total Farma Shelves</div>
-            </div>
-          </div>
-        </div>
-
         <!-- Create and Manage User Section (Admin Only) -->
-        <div class="md-card" id="admin-user-management-card" style="margin-bottom: 12px;">
+        <div class="md-card" id="admin-user-management-card" style="margin-bottom: 12px; display: none;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
             <div>
               <div class="card-title" style="margin-bottom: 2px;">Create and Manage User</div>
@@ -185,16 +176,24 @@
           </div>
         </div>
 
-        <!-- Activity History Card -->
-        <div class="md-card">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-            <div class="card-title" style="margin-bottom: 0;">Recent Activity History</div>
-            <button class="icon-btn" id="btn-refresh-audit-logs" title="Refresh Logs" style="min-width: 32px; min-height: 32px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-            </button>
+        <!-- Recent Activity History Section (Bottom of Admin Panel) -->
+        <div class="md-card" id="admin-activity-history-card" style="margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <div class="card-title" style="margin-bottom: 2px;">⏱️ Recent Activity History</div>
+              <div style="font-size: 0.78rem; color: var(--md-sys-color-on-surface-variant);">Real-time audit log of visual searches, catalog updates, and user actions</div>
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <button class="md-btn" id="btn-refresh-activity-logs" style="padding: 4px 8px; font-size: 0.75rem; min-height: 32px; background-color: var(--md-sys-color-surface-variant); color: var(--md-sys-color-on-surface-variant); width: auto;">🔄 Refresh</button>
+              <button class="md-btn" id="btn-clear-activity-logs" style="padding: 4px 8px; font-size: 0.75rem; min-height: 32px; background-color: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container); width: auto;">🗑️ Clear History</button>
+            </div>
           </div>
-          <div id="admin-audit-logs"></div>
+
+          <div id="admin-activity-history-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; padding-right: 4px;">
+            <div style="font-size: 0.82rem; color: var(--md-sys-color-outline); text-align: center; padding: 12px 0;">Loading activity logs...</div>
+          </div>
         </div>
+
       </section>
 
     </main>
@@ -278,6 +277,21 @@
       </div>
     </div>
 
+    <!-- Switch Employee Account Modal -->
+    <div id="switch-employee-modal" class="scanner-overlay hidden" style="background-color: rgba(0,0,0,0.6); z-index: 99999;">
+      <div style="width: 100%; max-width: 360px; background-color: var(--md-sys-color-surface); padding: 20px; border-radius: 24px; box-shadow: var(--md-elevation-3); text-align: left;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <h3 style="color: var(--md-sys-color-on-surface); font-size: 1.1rem; font-weight: 700; margin: 0;">Switch to Employee View</h3>
+          <button class="icon-btn" onclick="window.closeSwitchEmployeeModal();" style="min-width: 28px; min-height: 28px; font-size: 1.1rem; border: none; background: none; cursor: pointer; color: var(--md-sys-color-on-surface);">✕</button>
+        </div>
+        <p style="color: var(--md-sys-color-on-surface-variant); font-size: 0.82rem; margin-bottom: 14px;">Select an employee account to switch into employee view mode:</p>
+        
+        <div id="switch-employee-modal-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; padding-right: 4px;">
+          <div style="font-size: 0.82rem; color: var(--md-sys-color-outline); text-align: center; padding: 12px 0;">Loading employee accounts...</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Forced Password Reset Modal -->
     <div id="password-reset-modal" class="scanner-overlay hidden" style="background-color: rgba(0,0,0,0.85);">
       <div style="width: 100%; max-width: 360px; background-color: var(--md-sys-color-surface); padding: 24px; border-radius: 24px; text-align: center;">
@@ -341,9 +355,18 @@
           <div id="add-location-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1198; max-height: 160px;"></div>
         </div>
 
-        <div class="combobox-wrap" style="position: relative; margin-bottom: 14px;">
-          <input type="text" id="catalog-add-materials-input" class="md-input" placeholder="Size (optional, e.g. Size 8)" autocomplete="off" style="margin-bottom: 0;">
-          <div id="add-materials-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1197; max-height: 160px;"></div>
+        <div style="margin-bottom: 14px;">
+          <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Size</label>
+          <select id="catalog-add-materials-input" class="md-input" style="margin-bottom: 0; background-color: var(--md-sys-color-surface); font-weight: 600; cursor: pointer;">
+            <option value="">-- Select Size (6 to 12) --</option>
+            <option value="6">Size 6</option>
+            <option value="7">Size 7</option>
+            <option value="8">Size 8</option>
+            <option value="9">Size 9</option>
+            <option value="10">Size 10</option>
+            <option value="11">Size 11</option>
+            <option value="12">Size 12</option>
+          </select>
         </div>
 
         <div style="display: flex; gap: 10px; margin-bottom: 10px;">
@@ -418,10 +441,16 @@
         </div>
 
         <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Size</label>
-        <div class="combobox-wrap" style="position: relative; margin-bottom: 16px;">
-          <input type="text" id="catalog-edit-materials-input" class="md-input" placeholder="Select Size (e.g. Size 8)" autocomplete="off" style="margin-bottom: 0;">
-          <div id="edit-materials-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1297; max-height: 140px;"></div>
-        </div>
+        <select id="catalog-edit-materials-input" class="md-input" style="margin-bottom: 16px; background-color: var(--md-sys-color-surface); font-weight: 600; cursor: pointer;">
+          <option value="">-- Select Size (6 to 12) --</option>
+          <option value="6">Size 6</option>
+          <option value="7">Size 7</option>
+          <option value="8">Size 8</option>
+          <option value="9">Size 9</option>
+          <option value="10">Size 10</option>
+          <option value="11">Size 11</option>
+          <option value="12">Size 12</option>
+        </select>
 
         <div style="display: flex; gap: 8px; margin-top: 14px;">
           <button type="button" class="md-btn" id="btn-catalog-edit-delete" style="background-color: #DC2626; color: #FFFFFF; border: none; font-weight: 700; width: auto; padding: 10px 16px; display: inline-flex; align-items: center; gap: 6px; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);" title="Delete Design">

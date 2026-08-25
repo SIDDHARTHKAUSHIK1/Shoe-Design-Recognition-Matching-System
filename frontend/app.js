@@ -146,16 +146,9 @@ window.handleLoginSubmit = async function(e) {
   let username = usernameInput ? usernameInput.value.trim() : "";
   let password = passwordInput ? passwordInput.value.trim() : "";
 
-  // Dev testing convenience: auto-fill default passwords if blank
-  if (username.toLowerCase() === "admin" && !password) {
-    password = "admin123";
-  } else if (username.toLowerCase() === "employee" && !password) {
-    password = "emp123";
-  }
-
-  if (!username) {
+  if (!username || !password) {
     if (alertEl) {
-      alertEl.textContent = "Please enter a username (e.g. admin or employee).";
+      alertEl.textContent = "❌ Please enter both username and password to sign in.";
       alertEl.style.display = "block";
     }
     return;
@@ -227,23 +220,36 @@ window.updateUserUI = function(user) {
   const locTabNav = document.getElementById("nav-locations");
 
   if (!user) {
-    user = {
-      username: "admin",
-      role: "admin",
-      full_name: "Admin (Testing Mode)"
-    };
+    if (nameEl) nameEl.textContent = "Sign In";
+    if (roleEl) roleEl.textContent = "GUEST";
+    if (avatarEl) avatarEl.textContent = "?";
+    if (loginModal) loginModal.style.display = "flex";
+    if (adminTabNav) adminTabNav.style.display = "none";
+    if (locTabNav) locTabNav.style.display = "none";
+    if (pwdModal) pwdModal.style.display = "none";
+    return;
   }
 
+  const roleStr = (user.role || "employee").toLowerCase();
+  const isAdmin = roleStr === "admin";
+
   if (nameEl) nameEl.textContent = user.full_name || user.username;
-  if (roleEl) roleEl.textContent = (user.role || "ADMIN").toUpperCase();
+  if (roleEl) roleEl.textContent = roleStr.toUpperCase();
   if (avatarEl) avatarEl.textContent = (user.full_name || user.username).charAt(0).toUpperCase();
   if (loginModal) loginModal.style.display = "none";
-  if (adminTabNav) adminTabNav.style.display = "flex";
+  if (adminTabNav) adminTabNav.style.display = isAdmin ? "flex" : "none";
   if (locTabNav) locTabNav.style.display = "flex";
-  if (pwdModal) pwdModal.style.display = "none";
+  
+  if (pwdModal) {
+    if (user.must_change_password) {
+      pwdModal.style.display = "flex";
+    } else {
+      pwdModal.style.display = "none";
+    }
+  }
 
   window.fetchDashboardStats();
-  if (window.fetchAdminUsers) window.fetchAdminUsers();
+  if (isAdmin && window.fetchAdminUsers) window.fetchAdminUsers();
 };
 
 window.handleChangePasswordSubmit = async function(e) {
@@ -2196,7 +2202,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const submitBtn = document.getElementById("btn-submit-add");
     submitBtn.disabled = true;
-    submitBtn.querySelector("span").textContent = "Indexing (Incremental Add)...";
+    if (submitBtn.querySelector("span")) {
+      submitBtn.querySelector("span").textContent = "Adding in process...";
+    }
 
     try {
       const res = await fetch(getApiUrl("/api/designs"), {

@@ -23,9 +23,24 @@ from backend.classifier import ZeroShotCategoryClassifier
 from backend.vector_store import VectorStore
 from backend.color_extractor import ColorExtractor
 from backend import database as db
+import hashlib
 import json
 
 logger = logging.getLogger(__name__)
+
+
+def _get_image_file_hash(img_path: str) -> Optional[str]:
+    """Calculate MD5 file hash of an image file to deduplicate visual references."""
+    if not img_path:
+        return None
+    try:
+        p = Path(img_path)
+        if not p.exists():
+            return None
+        with open(p, "rb") as f:
+            return hashlib.md5(f.read()).hexdigest()
+    except Exception:
+        return None
 
 
 def classify_match_level(confidence_pct: float, category: str = "shoe") -> Tuple[str, str, str]:

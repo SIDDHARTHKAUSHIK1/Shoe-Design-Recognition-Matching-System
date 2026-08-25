@@ -5,9 +5,13 @@ Verifies:
 2. Diverse non-footwear objects (vehicles, faces, phones, mugs, blank images) are rejected (True Negative).
 3. Zero false positives on non-footwear queries.
 """
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import unittest
 import numpy as np
 from PIL import Image
+import io
 
 from backend.footwear_gate import BinaryFootwearGate
 from backend.classifier import ZeroShotCategoryClassifier

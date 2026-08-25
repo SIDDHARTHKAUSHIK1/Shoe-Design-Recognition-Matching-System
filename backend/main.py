@@ -705,7 +705,7 @@ DEFAULT_TEST_USER = {
 }
 
 async def get_current_user(request: Request) -> Optional[dict]:
-    """Retrieve current authenticated user, defaulting to admin test user if unauthenticated."""
+    """Retrieve current authenticated user, returning None if unauthenticated."""
     auth_header = request.headers.get("Authorization")
     token = None
     if auth_header and auth_header.startswith("Bearer "):
@@ -723,21 +723,28 @@ async def get_current_user(request: Request) -> Optional[dict]:
         except Exception:
             pass
             
-    return DEFAULT_TEST_USER
+    return None
 
 
 async def require_authenticated_user(request: Request) -> dict:
-    """Dependency ensuring caller is authenticated (defaults to testing admin user)."""
+    """Dependency ensuring caller is authenticated."""
     user = await get_current_user(request)
-    return user or DEFAULT_TEST_USER
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required. Please sign in.")
+    return user
 
 
 async def require_admin_user(request: Request) -> dict:
-    """Dependency ensuring caller is an Admin (defaults to testing admin user)."""
+    """Dependency ensuring caller is an Admin."""
     user = await get_current_user(request)
-    return user or DEFAULT_TEST_USER
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required. Please sign in.")
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required.")
+    return user
 
 
+@app.post("/api/login")
 @app.post("/api/auth/login")
 async def login_user(request: Request, payload: Optional[dict] = None):
     """Authenticate user with strict username and password check against database."""
@@ -751,7 +758,7 @@ async def login_user(request: Request, payload: Optional[dict] = None):
         
     user = auth.authenticate_user(username, password)
     if not user:
-        raise HTTPException(status_code=401, detail="Incorrect username or password. Access Denied.")
+        raise HTTPException(status_code=401, detail="Invalid username or password.")
     
     token = auth.create_token(user["user_id"], user["username"], user.get("role", "admin"))
     
@@ -760,10 +767,11 @@ async def login_user(request: Request, payload: Optional[dict] = None):
         "user": user,
         "message": "Login successful"
     })
-    response.set_cookie(key="session_token", value=token, httponly=True, max_age=86400 * 30)
+    response.set_cookie(key="session_token", value=token, httponly=True, samesite="lax", max_age=86400 * 30)
     return response
 
 
+@app.post("/api/logout")
 @app.post("/api/auth/logout")
 async def logout_user():
     """Logout current session."""
@@ -772,13 +780,14 @@ async def logout_user():
     return response
 
 
+@app.get("/api/me")
 @app.get("/api/auth/me")
 @app.get("/api/users/me")
 async def get_my_profile(request: Request):
     """Get profile of current logged in user."""
     user = await get_current_user(request)
     if not user:
-        return JSONResponse(content={"authenticated": False, "user": None, "role": "guest"})
+        return JSONResponse(status_code=401, content={"authenticated": False, "user": None, "role": "guest", "detail": "Not authenticated"})
     resp_data = dict(user)
     resp_data["authenticated"] = True
     resp_data["user"] = user
@@ -857,11 +866,12 @@ async def update_admin_user(user_id: int, payload: dict, request: Request):
 
 
 @app.delete("/api/admin/users/{user_id}")
+@app.post("/api/admin/users/{user_id}/delete")
 async def delete_admin_user(user_id: int, request: Request):
     """Delete a user account (Admin only)."""
-    _ = await require_admin_user(request)
-    if user_id in (1, 2):
-        raise HTTPException(status_code=400, detail="Cannot delete core system accounts (Admin/Employee defaults).")
+    current_admin = await require_admin_user(request)
+    if current_admin and current_admin.get("user_id") == user_id:
+        raise HTTPException(status_code=400, detail="Cannot delete your own active Admin account while logged in.")
     success = auth.delete_user(user_id)
     if not success:
         raise HTTPException(status_code=404, detail="User not found or could not be deleted.")

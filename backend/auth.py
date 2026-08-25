@@ -18,31 +18,40 @@ from backend.database import get_db_connection
 
 logger = logging.getLogger(__name__)
 
+import bcrypt
+
 # Secret key for signing tokens (pulled from environment, with secure fallback for dev)
 SECRET_KEY = os.getenv("SECRET_KEY", "shoematch_secret_jwt_key_enterprise_2026")
 TOKEN_EXPIRY_SECONDS = 24 * 3600  # 24 hours
 
 
 def hash_password(password: str, salt: Optional[str] = None) -> str:
-    """Hash a password using PBKDF2 HMAC SHA256."""
-    if not salt:
-        salt = secrets.token_hex(16)
-    key = hashlib.pbkdf2_hmac(
-        'sha256',
-        password.encode('utf-8'),
-        salt.encode('utf-8'),
-        100000
-    )
-    return f"{salt}${key.hex()}"
+    """Hash a password securely using Bcrypt."""
+    pw_bytes = password.encode('utf-8')
+    hashed = bcrypt.hashpw(pw_bytes, bcrypt.gensalt())
+    return hashed.decode('utf-8')
 
 
 def verify_password(password: str, password_hash: str) -> bool:
-    """Verify a plain password against its PBKDF2 hash."""
+    """Verify a plain password against a Bcrypt or legacy PBKDF2 hash."""
+    if not password or not password_hash:
+        return False
     try:
-        salt, key_hex = password_hash.split('$')
-        computed_hash = hash_password(password, salt)
-        return hmac.compare_digest(computed_hash, password_hash)
-    except Exception:
+        pw_bytes = password.encode('utf-8')
+        # Check if hash is Bcrypt ($2a$, $2b$, $2y$)
+        if password_hash.startswith(("$2a$", "$2b$", "$2y$")):
+            return bcrypt.checkpw(pw_bytes, password_hash.encode('utf-8'))
+        
+        # Legacy PBKDF2 fallback for backward compatibility
+        if '$' in password_hash:
+            parts = password_hash.split('$')
+            if len(parts) == 2:
+                salt, key_hex = parts
+                computed_key = hashlib.pbkdf2_hmac('sha256', pw_bytes, salt.encode('utf-8'), 100000).hex()
+                return hmac.compare_digest(f"{salt}${computed_key}", password_hash)
+        return False
+    except Exception as e:
+        logger.warning(f"Password verification failed: {e}")
         return False
 
 
@@ -169,18 +178,16 @@ def change_user_password(user_id: int, old_password: str, new_password: str) -> 
                 return False
                 
             new_hash = hash_password(new_password)
-            try:
-                cursor.execute("UPDATE users SET password_hash = ?, plain_password = ?, must_change_password = 0 WHERE user_id = ?", (new_hash, new_password, user_id))
-            except sqlite3.OperationalError:
-                cursor.execute("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE user_id = ?", (new_hash, user_id))
+            cursor.execute("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE user_id = ?", (new_hash, user_id))
             conn.commit()
             return True
-    except Exception:
+    except Exception as e:
+        logger.warning(f"Error changing password for user {user_id}: {e}")
         return False
 
 
 def create_user(username: str, password: str, role: str, full_name: str) -> Optional[int]:
-    """Create a new user account."""
+    """Create a new user account with Bcrypt password hash and plain_password stored."""
     pwd_hash = hash_password(password)
     try:
         from backend.database import get_db_connection
@@ -190,12 +197,12 @@ def create_user(username: str, password: str, role: str, full_name: str) -> Opti
                 cursor.execute("""
                     INSERT INTO users (username, password_hash, plain_password, role, full_name)
                     VALUES (?, ?, ?, ?, ?)
-                """, (username, pwd_hash, password, role, full_name))
+                """, (username.strip(), pwd_hash, password.strip(), role.strip(), full_name.strip()))
             except sqlite3.OperationalError:
                 cursor.execute("""
                     INSERT INTO users (username, password_hash, role, full_name)
                     VALUES (?, ?, ?, ?)
-                """, (username, pwd_hash, role, full_name))
+                """, (username.strip(), pwd_hash, role.strip(), full_name.strip()))
             conn.commit()
             return cursor.lastrowid
     except Exception as e:
@@ -213,10 +220,10 @@ def update_user(user_id: int, role: Optional[str] = None, full_name: Optional[st
             params = []
             if role is not None:
                 updates.append("role = ?")
-                params.append(role)
+                params.append(role.strip())
             if full_name is not None:
                 updates.append("full_name = ?")
-                params.append(full_name)
+                params.append(full_name.strip())
             if is_active is not None:
                 updates.append("is_active = ?")
                 params.append(is_active)
@@ -224,17 +231,15 @@ def update_user(user_id: int, role: Optional[str] = None, full_name: Optional[st
                 updates.append("password_hash = ?")
                 params.append(hash_password(password))
                 try:
-                    cursor.execute("UPDATE users SET plain_password = ? WHERE user_id = ?", (password, user_id))
-                except sqlite3.OperationalError:
+                    cursor.execute("UPDATE users SET plain_password = ? WHERE user_id = ?", (password.strip(), user_id))
+                except Exception:
                     pass
                 
-            if not updates:
-                return False
-                
-            params.append(user_id)
-            cursor.execute(f"UPDATE users SET {', '.join(updates)} WHERE user_id = ?", tuple(params))
+            if updates:
+                params.append(user_id)
+                cursor.execute(f"UPDATE users SET {', '.join(updates)} WHERE user_id = ?", tuple(params))
             conn.commit()
-            return cursor.rowcount > 0
+            return True
     except Exception as e:
         logger.warning(f"Error updating user {user_id}: {e}")
         return False
@@ -256,9 +261,8 @@ def delete_user(user_id: int) -> bool:
 
 def seed_initial_users() -> Dict[str, str]:
     """
-    Ensure admin and employee accounts exist securely.
+    Ensure admin and employee accounts exist securely with Bcrypt hashes.
     """
-    import os
     admin_pwd = os.getenv("ADMIN_PASSWORD", "admin123")
     emp_pwd = os.getenv("EMPLOYEE_PASSWORD", "emp123")
     
@@ -267,28 +271,27 @@ def seed_initial_users() -> Dict[str, str]:
         with get_db_connection() as conn:
             cursor = conn.cursor()
             
-            # Seed or check Admin
-            cursor.execute("SELECT user_id FROM users WHERE username = 'admin'")
+            # Seed or update Admin
+            cursor.execute("SELECT user_id, password_hash FROM users WHERE username = 'admin'")
             admin_row = cursor.fetchone()
             if not admin_row:
                 try:
                     cursor.execute(
-                        "INSERT INTO users (username, password_hash, plain_password, role, full_name, must_change_password) VALUES ('admin', ?, ?, 'admin', 'Admin', 0)",
+                        "INSERT INTO users (username, password_hash, plain_password, role, full_name, must_change_password) VALUES ('admin', ?, ?, 'admin', 'System Administrator', 0)",
                         (hash_password(admin_pwd), admin_pwd)
                     )
-                except sqlite3.OperationalError:
+                except Exception:
                     cursor.execute(
-                        "INSERT INTO users (username, password_hash, role, full_name) VALUES ('admin', ?, 'admin', 'Admin')",
+                        "INSERT INTO users (username, password_hash, role, full_name, must_change_password) VALUES ('admin', ?, 'admin', 'System Administrator', 0)",
                         (hash_password(admin_pwd),)
                     )
             else:
-                try:
-                    cursor.execute("UPDATE users SET password_hash = ?, plain_password = ? WHERE username = 'admin'", (hash_password(admin_pwd), admin_pwd))
-                except sqlite3.OperationalError:
-                    cursor.execute("UPDATE users SET password_hash = ? WHERE username = 'admin'", (hash_password(admin_pwd),))
+                # Upgrade hash to Bcrypt if legacy or invalid
+                if not verify_password(admin_pwd, admin_row["password_hash"]) or not admin_row["password_hash"].startswith(("$2a$", "$2b$", "$2y$")):
+                    cursor.execute("UPDATE users SET password_hash = ? WHERE user_id = ?", (hash_password(admin_pwd), admin_row["user_id"]))
 
-            # Seed or check Employee
-            cursor.execute("SELECT user_id FROM users WHERE username = 'employee'")
+            # Seed or update Employee
+            cursor.execute("SELECT user_id, password_hash FROM users WHERE username = 'employee'")
             emp_row = cursor.fetchone()
             if not emp_row:
                 try:
@@ -296,16 +299,15 @@ def seed_initial_users() -> Dict[str, str]:
                         "INSERT INTO users (username, password_hash, plain_password, role, full_name, must_change_password) VALUES ('employee', ?, ?, 'employee', 'Inventory Specialist', 0)",
                         (hash_password(emp_pwd), emp_pwd)
                     )
-                except sqlite3.OperationalError:
+                except Exception:
                     cursor.execute(
-                        "INSERT INTO users (username, password_hash, role, full_name) VALUES ('employee', ?, 'employee', 'Inventory Specialist')",
+                        "INSERT INTO users (username, password_hash, role, full_name, must_change_password) VALUES ('employee', ?, 'employee', 'Inventory Specialist', 0)",
                         (hash_password(emp_pwd),)
                     )
             else:
-                try:
-                    cursor.execute("UPDATE users SET password_hash = ?, plain_password = ? WHERE username = 'employee'", (hash_password(emp_pwd), emp_pwd))
-                except sqlite3.OperationalError:
-                    cursor.execute("UPDATE users SET password_hash = ? WHERE username = 'employee'", (hash_password(emp_pwd),))
+                # Upgrade hash to Bcrypt if legacy or invalid
+                if not verify_password(emp_pwd, emp_row["password_hash"]) or not emp_row["password_hash"].startswith(("$2a$", "$2b$", "$2y$")):
+                    cursor.execute("UPDATE users SET password_hash = ? WHERE user_id = ?", (hash_password(emp_pwd), emp_row["user_id"]))
 
             conn.commit()
     except Exception as e:

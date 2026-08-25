@@ -176,10 +176,53 @@
     return localStorage.getItem("shoematch_active_role") || "admin";
   }
 
+  window.openSwitchEmployeeModal = function () {
+    renderSwitchEmployeeModalList();
+    showModal("switch-employee-modal");
+  };
+
+  window.closeSwitchEmployeeModal = function () {
+    hideModal("switch-employee-modal");
+  };
+
+  function renderSwitchEmployeeModalList() {
+    const listContainer = document.getElementById("switch-employee-modal-list");
+    if (!listContainer) return;
+
+    const employees = (state.allUsers || []).filter(u => u.role === "employee");
+    if (employees.length === 0) {
+      listContainer.innerHTML = `<div style="font-size: 0.82rem; color: var(--md-sys-color-outline); text-align: center; padding: 12px 0;">No employee accounts found. Create one in User Management.</div>`;
+      return;
+    }
+
+    listContainer.innerHTML = "";
+    employees.forEach(emp => {
+      const item = document.createElement("div");
+      item.style.cssText = "display: flex; align-items: center; justify-content: space-between; background: var(--md-sys-color-background); padding: 10px 12px; border-radius: 12px; border: 1px solid var(--md-sys-color-surface-variant); cursor: pointer;";
+      item.innerHTML = `
+        <div>
+          <div style="font-size: 0.86rem; font-weight: 700; color: var(--md-sys-color-on-surface);">${escapeHtml(emp.full_name || emp.username)}</div>
+          <div style="font-size: 0.76rem; color: var(--md-sys-color-secondary);">@${escapeHtml(emp.username)}</div>
+        </div>
+        <button class="md-btn" style="padding: 6px 12px; font-size: 0.76rem; background-color: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); width: auto;">Select View</button>
+      `;
+      item.addEventListener("click", () => {
+        window.closeSwitchEmployeeModal();
+        window.switchToEmployeeAccount(emp);
+      });
+      listContainer.appendChild(item);
+    });
+  }
+
   function applyActiveRole(role) {
     const cleanRole = (role || "").toLowerCase() === "employee" ? "employee" : "admin";
     state.currentRole = cleanRole;
     localStorage.setItem("shoematch_active_role", cleanRole);
+
+    if (state.user && state.user.role === "admin") {
+      state.isPrimaryAdmin = true;
+    }
+    const isPrimaryAdmin = (state.user && state.user.role === "admin") || state.isPrimaryAdmin || false;
 
     const headerBadge = document.getElementById("role-badge");
     if (headerBadge) {
@@ -193,23 +236,37 @@
 
     const userDisplayName = document.getElementById("admin-user-display-name");
     const adminRoleBadge = document.getElementById("admin-role-badge");
-    const switchRoleBtnText = document.getElementById("switch-role-btn-text");
 
     if (userDisplayName) {
-      userDisplayName.textContent = cleanRole === "admin" ? "Admin Account" : "Employee Account";
+      if (cleanRole === "admin") {
+        userDisplayName.textContent = "Admin Account";
+      } else if (state.viewingEmployeeUser) {
+        userDisplayName.textContent = `Viewing Account: ${state.viewingEmployeeUser.full_name || state.viewingEmployeeUser.username}`;
+      } else {
+        userDisplayName.textContent = "Employee Account View";
+      }
     }
 
     if (adminRoleBadge) {
-      adminRoleBadge.textContent = cleanRole === "admin" ? "Admin" : "Employee";
+      adminRoleBadge.textContent = cleanRole === "admin" ? "Admin" : "Employee View";
     }
 
-    if (switchRoleBtnText) {
-      switchRoleBtnText.textContent = cleanRole === "admin" ? "Switch to Employee Account" : "Switch to Admin Account";
+    const switchContainer = document.getElementById("switch-role-container");
+    const openModalBtn = document.getElementById("btn-open-switch-employee-modal");
+    const returnAdminBtn = document.getElementById("btn-return-to-admin");
+
+    if (switchContainer) {
+      switchContainer.style.display = isPrimaryAdmin ? "block" : "none";
     }
 
-    const switchRoleBtn = document.getElementById("btn-switch-account-role");
-    if (switchRoleBtn) {
-      switchRoleBtn.style.display = cleanRole === "admin" ? "inline-flex" : "none";
+    if (isPrimaryAdmin) {
+      if (cleanRole === "admin") {
+        if (openModalBtn) openModalBtn.classList.remove("hidden");
+        if (returnAdminBtn) returnAdminBtn.classList.add("hidden");
+      } else {
+        if (openModalBtn) openModalBtn.classList.add("hidden");
+        if (returnAdminBtn) returnAdminBtn.classList.remove("hidden");
+      }
     }
 
     const deleteBtn = document.getElementById("btn-catalog-edit-delete");
@@ -217,19 +274,70 @@
       deleteBtn.style.display = cleanRole === "admin" ? "inline-flex" : "none";
     }
 
+    const userManagementCard = document.getElementById("admin-user-management-card");
+    if (userManagementCard) {
+      userManagementCard.style.display = cleanRole === "admin" ? "block" : "none";
+    }
+
+    const toggleMyPwdBtn = document.getElementById("btn-toggle-my-pwd-view");
+    if (toggleMyPwdBtn) {
+      toggleMyPwdBtn.style.display = cleanRole === "admin" ? "inline-block" : "none";
+    }
+
+    const myPwdText = document.getElementById("my-profile-password");
+    if (myPwdText) {
+      myPwdText.textContent = "••••••••";
+      if (cleanRole !== "admin") {
+        myPwdText.removeAttribute("data-pwd");
+      }
+    }
+
+    if (cleanRole === "admin") {
+      fetchUserManagementList();
+      renderActivityHistoryLogs();
+    }
+
     if (state.catalog && state.catalog.length > 0) {
       renderCatalog(state.catalog);
     }
   }
 
+  window.switchToEmployeeAccount = function (u) {
+    if (!u) return;
+    state.viewingEmployeeUser = u;
+    applyActiveRole("employee");
+
+    const nameEl = document.getElementById("my-profile-name");
+    const userEl = document.getElementById("my-profile-username");
+    const pwdEl = document.getElementById("my-profile-password");
+    if (nameEl) nameEl.textContent = u.full_name || u.username;
+    if (userEl) userEl.textContent = `@${u.username}`;
+    if (pwdEl) {
+      pwdEl.removeAttribute("data-pwd");
+      pwdEl.textContent = "••••••••";
+    }
+
+    const userDisplayName = document.getElementById("admin-user-display-name");
+    if (userDisplayName) {
+      userDisplayName.textContent = `Viewing Account: ${u.full_name || u.username}`;
+    }
+  };
+
   function toggleAccountRole() {
     const current = getActiveRole();
-    const nextRole = current === "admin" ? "employee" : "admin";
-    applyActiveRole(nextRole);
+    if (current === "admin") {
+      applyActiveRole("employee");
+    } else {
+      state.viewingEmployeeUser = null;
+      applyActiveRole("admin");
+      if (state.user) {
+        updateUserRoleBadge(state.user);
+      }
+    }
 
     addActivityLog({
       action: "Account Role Switched",
-      details: `Active user role switched to ${nextRole === "admin" ? "Admin" : "Employee"}.`,
+      details: `Active user role switched to ${getActiveRole() === "admin" ? "Admin" : "Employee"}.`,
       type: "role_switch"
     });
   }
@@ -243,30 +351,36 @@
     const token = window.getAuthToken();
     if (!token) {
       showModal("auth-modal");
-      return;
+      return false;
     }
 
     try {
       const res = await window.authenticatedFetch(window.getApiUrl("/api/auth/me"));
-      if (res.status === 401) {
+      if (!res.ok || res.status === 401) {
         window.setAuthToken("");
         showModal("auth-modal");
-        return;
+        return false;
       }
 
-      if (res.ok) {
-        const data = await res.json();
-        const userObj = data.user || data;
-        state.user = userObj;
-        hideModal("auth-modal");
-        hideModal("password-reset-modal");
-        updateUserRoleBadge(userObj);
-      } else {
+      const data = await res.json();
+      if (!data || !data.authenticated || !data.user) {
+        window.setAuthToken("");
         showModal("auth-modal");
+        return false;
       }
+
+      const userObj = data.user;
+      state.user = userObj;
+      state.isPrimaryAdmin = (userObj.role === "admin");
+      hideModal("auth-modal");
+      hideModal("password-reset-modal");
+      updateUserRoleBadge(userObj);
+      return true;
     } catch (err) {
       console.warn("Auth status check warning:", err);
+      window.setAuthToken("");
       showModal("auth-modal");
+      return false;
     }
   }
 
@@ -282,9 +396,13 @@
     if (nameEl) nameEl.textContent = user.full_name || user.username;
     if (userEl) userEl.textContent = `@${user.username}`;
     if (pwdEl) {
-      const userPwd = user.plain_password || (user.username === "admin" ? "admin123" : user.username === "employee" ? "emp123" : "******");
-      pwdEl.setAttribute("data-pwd", userPwd);
       pwdEl.textContent = "••••••••";
+      if (cleanRole === "admin") {
+        const userPwd = user.plain_password || (user.username === "admin" ? "admin123" : user.username === "employee" ? "emp123" : "admin123");
+        pwdEl.setAttribute("data-pwd", userPwd);
+      } else {
+        pwdEl.removeAttribute("data-pwd");
+      }
     }
   }
 
@@ -325,7 +443,7 @@
 
     if (!u || !p) {
       if (loginErr) {
-        loginErr.textContent = "❌ Please enter both username and password to log in.";
+        loginErr.textContent = "❌ Incorrect username or password. Access Denied.";
       }
       return false;
     }
@@ -340,7 +458,7 @@
       });
 
       if (!res.ok) {
-        let errMsg = "❌ Incorrect password or username. Access Denied.";
+        let errMsg = "❌ Incorrect username or password. Access Denied.";
         try {
           const errData = await res.json();
           if (errData && (errData.detail || errData.message)) {
@@ -359,7 +477,7 @@
       const data = await res.json();
       const token = data.token || data.access_token || "";
       if (!token) {
-        if (loginErr) loginErr.textContent = "❌ Authentication failed: No access token returned.";
+        if (loginErr) loginErr.textContent = "❌ Incorrect username or password. Access Denied.";
         return false;
       }
 
@@ -940,11 +1058,16 @@
     formData.append("season", drawerVal);
     formData.append("materials", materialsInput ? materialsInput.value : "");
 
-    if (submitBtn) submitBtn.disabled = true;
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      const span = submitBtn.querySelector("span");
+      if (span) span.textContent = "Adding in process...";
+    }
     if (loadingRow) loadingRow.style.display = "flex";
     if (statusText) {
-      statusText.style.color = "var(--md-sys-color-on-surface-variant)";
-      statusText.textContent = "Adding to catalogue — processing DINOv2 feature vectors...";
+      statusText.style.color = "var(--md-sys-color-primary)";
+      statusText.style.fontWeight = "700";
+      statusText.textContent = "⏳ Adding in process... Please wait";
     }
 
     try {
@@ -997,7 +1120,11 @@
         statusText.textContent = "Network error while adding design.";
       }
     } finally {
-      if (submitBtn) submitBtn.disabled = false;
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        const span = submitBtn.querySelector("span");
+        if (span) span.textContent = "Add to Catalogue";
+      }
     }
   }
 
@@ -1092,9 +1219,9 @@
   function getActivityLogs() {
     try {
       const stored = localStorage.getItem("shoematch_activity_logs");
-      if (stored) return JSON.parse(stored);
+      if (stored !== null) return JSON.parse(stored);
     } catch(e) {}
-    return [
+    const defaults = [
       {
         action: "AI Visual Shoe Search",
         details: "Matched Top #1 Design: \"Sports Sneaker\" (Confidence: 96.4%) • Total Matches: 5",
@@ -1117,11 +1244,79 @@
         type: "catalog_add"
       }
     ];
+    try {
+      localStorage.setItem("shoematch_activity_logs", JSON.stringify(defaults));
+    } catch(e) {}
+    return defaults;
+  }
+
+  function refreshActivityHistoryLogs() {
+    const listContainer = document.getElementById("admin-activity-history-list");
+    if (listContainer) {
+      listContainer.innerHTML = `<div style="font-size: 0.82rem; color: var(--md-sys-color-primary); text-align: center; padding: 12px 0; font-weight: 600;">🔄 Refreshing activity logs...</div>`;
+    }
+    setTimeout(() => {
+      renderActivityHistoryLogs();
+    }, 250);
+  }
+
+  window.clearActivityHistoryLogs = function() {
+    try {
+      localStorage.setItem("shoematch_activity_logs", JSON.stringify([]));
+    } catch(e) {}
+    renderActivityHistoryLogs();
+  };
+
+  function renderActivityHistoryLogs() {
+    const listContainer = document.getElementById("admin-activity-history-list");
+    if (!listContainer) return;
+
+    const logs = getActivityLogs();
+    if (!logs || logs.length === 0) {
+      listContainer.innerHTML = `<div style="font-size: 0.82rem; color: var(--md-sys-color-outline); text-align: center; padding: 12px 0;">No activity history recorded yet.</div>`;
+      return;
+    }
+
+    listContainer.innerHTML = "";
+    logs.forEach(item => {
+      const row = document.createElement("div");
+      row.style.cssText = "background: var(--md-sys-color-background); border: 1px solid var(--md-sys-color-surface-variant); border-radius: 10px; padding: 10px 12px;";
+
+      let badgeBg = "var(--md-sys-color-primary-container)";
+      let badgeFg = "var(--md-sys-color-on-primary-container)";
+      let badgeIcon = "📝";
+
+      if (item.type === "ai_search") {
+        badgeBg = "var(--md-sys-color-tertiary-container, #E8DEF8)";
+        badgeFg = "var(--md-sys-color-on-tertiary-container, #1D192B)";
+        badgeIcon = "🔍";
+      } else if (item.type === "catalog_add" || item.type === "catalog_edit") {
+        badgeBg = "var(--md-sys-color-secondary-container)";
+        badgeFg = "var(--md-sys-color-on-secondary-container)";
+        badgeIcon = "👟";
+      } else if (item.type === "user_action" || item.type === "role_switch") {
+        badgeBg = "var(--md-sys-color-surface-variant)";
+        badgeFg = "var(--md-sys-color-on-surface-variant)";
+        badgeIcon = "👤";
+      }
+
+      row.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; flex-wrap: wrap; gap: 4px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 0.72rem; font-weight: 700; background: ${badgeBg}; color: ${badgeFg}; padding: 2px 8px; border-radius: 6px;">${badgeIcon} ${escapeHtml(item.action)}</span>
+          </div>
+          <span style="font-size: 0.72rem; font-weight: 600; color: var(--md-sys-color-outline);">${escapeHtml(item.timestamp || "")}</span>
+        </div>
+        <div style="font-size: 0.82rem; font-weight: 600; color: var(--md-sys-color-on-surface); margin-bottom: 2px;">${escapeHtml(item.details)}</div>
+        <div style="font-size: 0.74rem; color: var(--md-sys-color-on-surface-variant);">User: <strong>${escapeHtml(item.user || "Active Account")}</strong></div>
+      `;
+      listContainer.appendChild(row);
+    });
   }
 
   function addActivityLog(logItem) {
     const logs = getActivityLogs();
-    const currentUser = state.currentUser ? (state.currentUser.name || state.currentUser.username || state.currentUser.role || "Active Account") : "Active Account";
+    const currentUser = (state.user && (state.user.full_name || state.user.username)) ? (state.user.full_name || `@${state.user.username}`) : "Active Account";
     
     const newEntry = {
       action: logItem.action || "Catalogue Operation",
@@ -1137,6 +1332,8 @@
     try {
       localStorage.setItem("shoematch_activity_logs", JSON.stringify(logs));
     } catch(e) {}
+
+    renderActivityHistoryLogs();
   }
 
   function renderMatchResults(data) {
@@ -1320,7 +1517,15 @@
     if (farmaShelfInput) farmaShelfInput.value = design.farma_shelf || "";
     if (locationInput) locationInput.value = design.shelf_location || "";
     if (drawerInput) drawerInput.value = design.drawer || design.season || "";
-    if (materialsInput) materialsInput.value = design.materials || "";
+    if (materialsInput) {
+      let rawMat = String(design.materials || "").trim();
+      let matchDigit = rawMat.match(/\b(6|7|8|9|10|11|12)\b/);
+      if (matchDigit) {
+        materialsInput.value = matchDigit[1];
+      } else {
+        materialsInput.value = (["6","7","8","9","10","11","12"].includes(rawMat)) ? rawMat : "";
+      }
+    }
     if (statusText) statusText.textContent = "";
     if (loadingRow) loadingRow.style.display = "none";
 
@@ -1988,6 +2193,8 @@
 
       const data = await res.json();
       const users = data.users || [];
+      state.allUsers = users;
+      updateEmployeeSwitchDropdown(users);
 
       if (users.length === 0) {
         listContainer.innerHTML = `<div style="font-size: 0.82rem; color: var(--md-sys-color-outline); text-align: center; padding: 8px 0;">No user accounts found.</div>`;
@@ -2002,7 +2209,7 @@
         const roleBadgeBg = u.role === "admin" ? "var(--md-sys-color-primary-container)" : "var(--md-sys-color-secondary-container)";
         const roleBadgeFg = u.role === "admin" ? "var(--md-sys-color-on-primary-container)" : "var(--md-sys-color-on-secondary-container)";
         const roleLabel = u.role === "admin" ? "Admin" : "Employee";
-        const plainPwd = u.plain_password || (u.username === "admin" ? "admin123" : u.username === "employee" ? "emp123" : "******");
+        const plainPwd = u.plain_password || "••••••••";
 
         item.innerHTML = `
           <div style="flex: 1; min-width: 160px;">
@@ -2020,17 +2227,29 @@
             </div>
           </div>
 
-          <div style="display: flex; align-items: center; gap: 6px;">
+          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+            ${u.role === "employee" ? `
+            <button class="md-btn btn-view-user-acc" data-id="${u.user_id}" style="padding: 4px 8px; font-size: 0.72rem; min-height: 30px; background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); width: auto;" title="View app as this employee">
+              <span>👁️ View Account</span>
+            </button>
+            ` : ''}
             <button class="md-btn btn-edit-user-pwd" data-id="${u.user_id}" data-user="${escapeHtml(u.username)}" data-name="${escapeHtml(u.full_name)}" data-role="${u.role}" style="padding: 4px 8px; font-size: 0.72rem; min-height: 30px; background-color: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); width: auto;" title="Change Password / Account Details">
               <span>🔑 Change Password</span>
             </button>
-            ${(u.username !== "admin" && u.username !== "employee") ? `
+            ${u.username !== "admin" ? `
             <button class="md-btn btn-delete-user" data-id="${u.user_id}" data-user="${escapeHtml(u.username)}" style="padding: 4px 8px; font-size: 0.72rem; min-height: 30px; background-color: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container); width: auto;" title="Delete User Account">
               <span>🗑️ Delete</span>
             </button>
             ` : ''}
           </div>
         `;
+
+        const viewAccBtn = item.querySelector(".btn-view-user-acc");
+        if (viewAccBtn) {
+          viewAccBtn.addEventListener("click", () => {
+            window.switchToEmployeeAccount(u);
+          });
+        }
 
         const pwdToggleBtn = item.querySelector(".btn-toggle-pwd-view");
         const pwdTextSpan = item.querySelector(".user-pwd-text");
@@ -2051,7 +2270,8 @@
               user_id: u.user_id,
               username: u.username,
               full_name: u.full_name,
-              role: u.role
+              role: u.role,
+              plain_password: u.plain_password || plainPwd
             });
           });
         }
@@ -2112,7 +2332,9 @@
       usernameInput.value = user.username || "";
       usernameInput.disabled = true;
     }
-    if (pwdInput) pwdInput.value = "";
+    if (pwdInput) {
+      pwdInput.value = user.plain_password || (user.username === "admin" ? "admin123" : user.username === "employee" ? "emp123" : "");
+    }
     if (roleSelect) roleSelect.value = user.role || "employee";
     if (statusText) statusText.textContent = "";
 
@@ -2200,6 +2422,13 @@
         type: "user_management"
       });
 
+      if (state.user && (String(state.user.user_id) === String(userId) || state.user.username === username)) {
+        if (fullName) state.user.full_name = fullName;
+        if (role) state.user.role = role;
+        if (password) state.user.plain_password = password;
+        updateUserRoleBadge(state.user);
+      }
+
       fetchUserManagementList();
 
       setTimeout(() => {
@@ -2222,13 +2451,21 @@
     }
 
     try {
-      const res = await window.authenticatedFetch(window.getApiUrl(`/api/admin/users/${userId}`), {
+      let res = await window.authenticatedFetch(window.getApiUrl(`/api/admin/users/${userId}`), {
         method: "DELETE"
       });
+
+      if (res.status === 405) {
+        res = await window.authenticatedFetch(window.getApiUrl(`/api/admin/users/${userId}/delete`), {
+          method: "POST"
+        });
+      }
+
       const data = await res.json();
 
       if (!res.ok || data.success === false) {
         alert(data.detail || data.message || "Could not delete user account.");
+        fetchUserManagementList();
         return;
       }
 
@@ -2241,6 +2478,7 @@
       fetchUserManagementList();
     } catch (err) {
       alert("Network error deleting user account.");
+      fetchUserManagementList();
     }
   }
 
@@ -2268,6 +2506,62 @@
         }
       });
     }
+
+    const refreshLogsBtn = document.getElementById("btn-refresh-activity-logs");
+    if (refreshLogsBtn) {
+      refreshLogsBtn.addEventListener("click", (e) => {
+        if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        refreshActivityHistoryLogs();
+      });
+    }
+
+    const clearLogsBtn = document.getElementById("btn-clear-activity-logs");
+    if (clearLogsBtn) {
+      clearLogsBtn.addEventListener("click", (e) => {
+        if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        if (confirm("Are you sure you want to clear all activity history logs?")) {
+          window.clearActivityHistoryLogs();
+        }
+      });
+    }
+
+    const openSwitchModalBtn = document.getElementById("btn-open-switch-employee-modal");
+    if (openSwitchModalBtn) {
+      openSwitchModalBtn.addEventListener("click", () => {
+        window.openSwitchEmployeeModal();
+      });
+    }
+
+    const returnAdminBtn = document.getElementById("btn-return-to-admin");
+    if (returnAdminBtn) {
+      returnAdminBtn.addEventListener("click", () => {
+        state.viewingEmployeeUser = null;
+        applyActiveRole("admin");
+        if (state.user) {
+          updateUserRoleBadge(state.user);
+        }
+      });
+    }
+  }
+
+  function updateEmployeeSwitchDropdown(users) {
+    const selectSwitch = document.getElementById("select-switch-employee-view");
+    if (!selectSwitch) return;
+
+    selectSwitch.innerHTML = `<option value="">-- Switch to Employee View --</option>`;
+    const employees = (users || []).filter(u => u.role === "employee");
+    employees.forEach(emp => {
+      const opt = document.createElement("option");
+      opt.value = emp.user_id;
+      opt.textContent = `${emp.full_name || emp.username} (@${emp.username})`;
+      selectSwitch.appendChild(opt);
+    });
   }
 
   async function fetchAuditLogs() {
