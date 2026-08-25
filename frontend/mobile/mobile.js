@@ -1091,7 +1091,31 @@
       return;
     }
 
-    const matches = data.matches || [];
+    const rawMatches = data.matches || [];
+    const seenDesignIds = new Set();
+    const seenImagePaths = new Set();
+    const matches = [];
+
+    rawMatches.forEach(m => {
+      const designId = (m.design_id || m.id || "").toString().trim().toUpperCase();
+      let rawImg = m.best_matching_image_url || m.image_path || (m.all_angles && m.all_angles[0] ? m.all_angles[0].image_path : '');
+      if (!rawImg && designId) {
+        rawImg = `/catalog_images/${designId}/photo_1.jpg`;
+      }
+      const imgKey = rawImg ? rawImg.toString().trim().toLowerCase() : "";
+
+      if (designId && seenDesignIds.has(designId)) {
+        return;
+      }
+      if (imgKey && seenImagePaths.has(imgKey)) {
+        return;
+      }
+
+      if (designId) seenDesignIds.add(designId);
+      if (imgKey) seenImagePaths.add(imgKey);
+      matches.push(m);
+    });
+
     if (matches.length === 0) {
       resultsContainer.innerHTML = `<div class="md-card">No matching footwear designs found in catalog.</div>`;
       addActivityLog({
@@ -1582,12 +1606,33 @@
     const grid = document.getElementById("catalog-grid");
     grid.innerHTML = "";
 
-    if (items.length === 0) {
+    const seenDesignIds = new Set();
+    const seenImagePaths = new Set();
+    const uniqueItems = [];
+
+    (items || []).forEach(item => {
+      const designId = (item.design_id || "").toString().trim().toUpperCase();
+      const rawImg = item.thumbnail_path || (item.reference_images && item.reference_images[0] ? item.reference_images[0].image_path : '');
+      const imgKey = rawImg ? rawImg.toString().trim().toLowerCase() : "";
+
+      if (designId && seenDesignIds.has(designId)) {
+        return;
+      }
+      if (imgKey && seenImagePaths.has(imgKey)) {
+        return;
+      }
+
+      if (designId) seenDesignIds.add(designId);
+      if (imgKey) seenImagePaths.add(imgKey);
+      uniqueItems.push(item);
+    });
+
+    if (uniqueItems.length === 0) {
       grid.innerHTML = `<div class="md-card" style="grid-column: 1 / -1;">No designs found.</div>`;
       return;
     }
 
-    items.forEach(item => {
+    uniqueItems.forEach(item => {
       const imgPath = window.getApiUrl(item.thumbnail_path || (item.reference_images && item.reference_images[0] ? item.reference_images[0].image_path : ''));
       const card = document.createElement("div");
       card.className = "md-card catalog-card";
