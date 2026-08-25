@@ -211,6 +211,15 @@
     if (switchRoleBtnText) {
       switchRoleBtnText.textContent = cleanRole === "admin" ? "Switch to Employee Account" : "Switch to Admin Account";
     }
+
+    const deleteBtn = document.getElementById("btn-catalog-edit-delete");
+    if (deleteBtn) {
+      deleteBtn.style.display = cleanRole === "admin" ? "inline-flex" : "none";
+    }
+
+    if (state.catalog && state.catalog.length > 0) {
+      renderCatalog(state.catalog);
+    }
   }
 
   function toggleAccountRole() {
@@ -1227,6 +1236,11 @@
   let currentEditingDesignId = null;
 
   window.openCatalogEditModal = function(designId) {
+    if (getActiveRole() === "employee") {
+      alert("Access Restricted: Only Admin accounts can edit or delete catalog items.");
+      return;
+    }
+
     const design = (state.catalog || []).find(d => d.design_id === designId);
     if (!design) return;
 
@@ -1254,6 +1268,11 @@
     if (statusText) statusText.textContent = "";
     if (loadingRow) loadingRow.style.display = "none";
 
+    const deleteBtn = document.getElementById("btn-catalog-edit-delete");
+    if (deleteBtn) {
+      deleteBtn.style.display = getActiveRole() === "admin" ? "inline-flex" : "none";
+    }
+
     const modal = document.getElementById("catalog-edit-modal");
     if (modal) modal.classList.remove("hidden");
   };
@@ -1266,6 +1285,11 @@
 
   async function submitCatalogEdit() {
     if (!currentEditingDesignId) return;
+
+    if (getActiveRole() === "employee") {
+      alert("Access Restricted: Only Admin accounts can edit catalog items.");
+      return;
+    }
 
     const skuInput = document.getElementById("catalog-edit-sku-input");
     const nameInput = document.getElementById("catalog-edit-name-input");
@@ -1380,6 +1404,11 @@
 
   async function submitCatalogDelete() {
     if (!currentEditingDesignId) return;
+
+    if (getActiveRole() === "employee") {
+      alert("Access Restricted: Only Admin accounts can delete catalog items.");
+      return;
+    }
     const targetId = currentEditingDesignId;
     
     const targetDesign = (state.catalog || []).find(d => d.design_id === targetId);
@@ -1673,10 +1702,15 @@
 
       const editBtn = card.querySelector(".catalog-edit-btn");
       if (editBtn) {
-        editBtn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          openCatalogEditModal(item.design_id);
-        });
+        if (getActiveRole() === "employee") {
+          editBtn.style.display = "none";
+        } else {
+          editBtn.style.display = "inline-flex";
+          editBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            openCatalogEditModal(item.design_id);
+          });
+        }
       }
 
       grid.appendChild(card);
