@@ -297,52 +297,62 @@
     if (el) el.classList.add("hidden");
   }
 
+  window.handleMobileLogin = async function (e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const loginErr = document.getElementById("login-error-text");
+    const uInput = document.getElementById("login-username");
+    const pInput = document.getElementById("login-password");
+
+    if (loginErr) loginErr.textContent = "";
+
+    const u = uInput ? uInput.value.trim() : "";
+    const p = pInput ? pInput.value.trim() : "";
+
+    if (!u || !p) {
+      if (loginErr) loginErr.textContent = "Please enter both username and password to log in.";
+      return false;
+    }
+
+    try {
+      const res = await fetch(window.getApiUrl("/api/auth/login"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: u, password: p })
+      });
+
+      if (!res.ok) {
+        if (loginErr) loginErr.textContent = "Invalid username or password. Access Denied.";
+        return false;
+      }
+
+      const data = await res.json();
+      const token = data.token || data.access_token || "";
+      if (!token) {
+        if (loginErr) loginErr.textContent = "Authentication failed: No access token returned.";
+        return false;
+      }
+
+      window.setAuthToken(token);
+      await checkAuthStatus();
+    } catch (err) {
+      if (loginErr) loginErr.textContent = window.extractErrorMessage(err, "Network error connecting to API server");
+    }
+    return false;
+  };
+
   function initAuthEvents() {
     const loginForm = document.getElementById("login-form");
-    const loginErr = document.getElementById("login-error-text");
+    if (loginForm) {
+      loginForm.addEventListener("submit", (e) => window.handleMobileLogin(e));
+    }
 
-    loginForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      loginErr.textContent = "";
-      let u = document.getElementById("login-username").value.trim();
-      let p = document.getElementById("login-password").value.trim();
-
-      if (!u || !p) {
-        loginErr.textContent = "Please enter both username and password to log in.";
-        return;
-      }
-
-      try {
-        const res = await fetch(window.getApiUrl("/api/auth/login"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: u, password: p })
-        });
-
-        if (!res.ok) {
-          let errData;
-          try {
-            errData = await res.json();
-          } catch (e) {
-            errData = { detail: `Server error (Status ${res.status})` };
-          }
-          loginErr.textContent = "Invalid username or password. Access Denied.";
-          return;
-        }
-
-        const data = await res.json();
-        const token = data.token || data.access_token || "";
-        if (!token) {
-          loginErr.textContent = "Authentication failed: No access token returned.";
-          return;
-        }
-
-        window.setAuthToken(token);
-        await checkAuthStatus();
-      } catch (err) {
-        loginErr.textContent = window.extractErrorMessage(err, "Network error connecting to API server");
-      }
-    });
+    const loginBtn = document.getElementById("btn-login-submit");
+    if (loginBtn) {
+      loginBtn.addEventListener("click", (e) => window.handleMobileLogin(e));
+    }
 
     const logoutBtn = document.getElementById("btn-logout");
     if (logoutBtn) {
