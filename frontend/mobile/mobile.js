@@ -5,11 +5,6 @@
 (function () {
   'use strict';
 
-  // ==========================================================================
-  // ⚠️ DEV BYPASS — SET TO false BEFORE SHARING BUILD OR DEPLOYING TO PRODUCTION
-  // ==========================================================================
-  const DEV_SKIP_LOGIN = true;
-
   // State Management
   const state = {
     user: null,

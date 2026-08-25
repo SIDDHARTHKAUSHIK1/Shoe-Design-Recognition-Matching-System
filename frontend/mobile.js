@@ -5,11 +5,6 @@
 (function () {
   'use strict';
 
-  // ==========================================================================
-  // ⚠️ DEV BYPASS — SET TO false BEFORE SHARING BUILD OR DEPLOYING TO PRODUCTION
-  // ==========================================================================
-  const DEV_SKIP_LOGIN = true;
-
   // State Management
   const state = {
     user: null,
@@ -211,6 +206,15 @@
     if (switchRoleBtnText) {
       switchRoleBtnText.textContent = cleanRole === "admin" ? "Switch to Employee Account" : "Switch to Admin Account";
     }
+
+    const deleteBtn = document.getElementById("btn-catalog-edit-delete");
+    if (deleteBtn) {
+      deleteBtn.style.display = cleanRole === "admin" ? "inline-flex" : "none";
+    }
+
+    if (state.catalog && state.catalog.length > 0) {
+      renderCatalog(state.catalog);
+    }
   }
 
   function toggleAccountRole() {
@@ -228,41 +232,9 @@
   // ==========================================
   // Auth & Session Management
   // ==========================================
+  const DEV_SKIP_LOGIN = false;
+
   async function checkAuthStatus() {
-    // ⚠️ Temporary Dev-Only Testing Bypass
-    if (DEV_SKIP_LOGIN) {
-      hideModal("auth-modal");
-      hideModal("password-reset-modal");
-
-      // Auto-authenticate in background with default admin credentials if no token exists
-      if (!window.getAuthToken()) {
-        try {
-          const autoRes = await fetch(window.getApiUrl("/api/auth/login"), {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username: "admin", password: "admin123" })
-          });
-          if (autoRes.ok) {
-            const autoData = await autoRes.json();
-            const t = autoData.token || autoData.access_token;
-            if (t) window.setAuthToken(t);
-          }
-        } catch (e) {
-          console.warn("Dev bypass background auto-login attempt failed:", e);
-        }
-      }
-
-      state.user = {
-        user_id: 1,
-        username: "dev_tester",
-        role: "admin",
-        full_name: "Development Test User"
-      };
-      updateUserRoleBadge(state.user);
-      return;
-    }
-
-    // Production Auth Flow
     const token = window.getAuthToken();
     if (!token) {
       showModal("auth-modal");
@@ -284,81 +256,169 @@
         hideModal("auth-modal");
         hideModal("password-reset-modal");
         updateUserRoleBadge(userObj);
+      } else {
+        showModal("auth-modal");
       }
     } catch (err) {
       console.warn("Auth status check warning:", err);
+      showModal("auth-modal");
     }
   }
 
   function updateUserRoleBadge(user) {
-    applyActiveRole(getActiveRole());
+    if (!user) return;
+    const cleanRole = user.role === "admin" ? "admin" : "employee";
+    applyActiveRole(cleanRole);
+
+    const nameEl = document.getElementById("my-profile-name");
+    const userEl = document.getElementById("my-profile-username");
+    const pwdEl = document.getElementById("my-profile-password");
+
+    if (nameEl) nameEl.textContent = user.full_name || user.username;
+    if (userEl) userEl.textContent = `@${user.username}`;
+    if (pwdEl) {
+      const userPwd = user.plain_password || (user.username === "admin" ? "admin123" : user.username === "employee" ? "emp123" : "******");
+      pwdEl.setAttribute("data-pwd", userPwd);
+      pwdEl.textContent = "••••••••";
+    }
   }
 
   function showModal(id) {
     const el = document.getElementById(id);
-    if (el) el.classList.remove("hidden");
+    if (el) {
+      el.classList.remove("hidden");
+      el.style.display = "flex";
+    }
   }
   function hideModal(id) {
     const el = document.getElementById(id);
-    if (el) el.classList.add("hidden");
+    if (el) {
+      el.classList.add("hidden");
+      el.style.display = "none";
+    }
   }
+
+  window.handleMobileLogin = async function (e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const loginErr = document.getElementById("login-error-text");
+    const uInput = document.getElementById("login-username");
+    const pInput = document.getElementById("login-password");
+    const submitBtn = document.getElementById("btn-login-submit");
+
+    if (loginErr) {
+      loginErr.textContent = "";
+      loginErr.style.color = "var(--md-sys-color-error, #BA1A1A)";
+      loginErr.style.fontWeight = "700";
+      loginErr.style.display = "block";
+    }
+
+    const u = uInput ? uInput.value.trim() : "";
+    const p = pInput ? pInput.value.trim() : "";
+
+    if (!u || !p) {
+      if (loginErr) {
+        loginErr.textContent = "❌ Please enter both username and password to log in.";
+      }
+      return false;
+    }
+
+    if (submitBtn) submitBtn.disabled = true;
+
+    try {
+      const res = await fetch(window.getApiUrl("/api/auth/login"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: u, password: p })
+      });
+
+      if (!res.ok) {
+        let errMsg = "❌ Incorrect password or username. Access Denied.";
+        try {
+          const errData = await res.json();
+          if (errData && (errData.detail || errData.message)) {
+            errMsg = `❌ ${errData.detail || errData.message}`;
+          }
+        } catch (ignore) {}
+
+        if (loginErr) {
+          loginErr.textContent = errMsg;
+          loginErr.style.color = "var(--md-sys-color-error, #BA1A1A)";
+          loginErr.style.fontWeight = "700";
+        }
+        return false;
+      }
+
+      const data = await res.json();
+      const token = data.token || data.access_token || "";
+      if (!token) {
+        if (loginErr) loginErr.textContent = "❌ Authentication failed: No access token returned.";
+        return false;
+      }
+
+      window.setAuthToken(token);
+      hideModal("auth-modal");
+      hideModal("password-reset-modal");
+      await checkAuthStatus();
+    } catch (err) {
+      if (loginErr) {
+        loginErr.textContent = "❌ Network error connecting to server. Please check your connection.";
+      }
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+    return false;
+  };
 
   function initAuthEvents() {
     const loginForm = document.getElementById("login-form");
-    const loginErr = document.getElementById("login-error-text");
+    if (loginForm) {
+      loginForm.addEventListener("submit", (e) => window.handleMobileLogin(e));
+    }
 
-    loginForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      loginErr.textContent = "";
-      let u = document.getElementById("login-username").value.trim();
-      let p = document.getElementById("login-password").value.trim();
-
-      if (u.toLowerCase() === "admin" && !p) p = "admin123";
-      if (u.toLowerCase() === "employee" && !p) p = "emp123";
-
-      if (!u) {
-        loginErr.textContent = "Please enter a username (e.g. admin or employee)";
-        return;
-      }
-
-      try {
-        const res = await fetch(window.getApiUrl("/api/auth/login"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: u, password: p })
-        });
-
-        if (!res.ok) {
-          let errData;
-          try {
-            errData = await res.json();
-          } catch (e) {
-            errData = { detail: `Server error (Status ${res.status})` };
-          }
-          loginErr.textContent = window.extractErrorMessage(errData, "Invalid username or password");
-          return;
-        }
-
-        const data = await res.json();
-        const token = data.token || data.access_token || "";
-        if (!token) {
-          loginErr.textContent = "Authentication succeeded but no token was returned";
-          return;
-        }
-
-        window.setAuthToken(token);
-        await checkAuthStatus();
-      } catch (err) {
-        loginErr.textContent = window.extractErrorMessage(err, "Network error connecting to API server");
-      }
-    });
+    const loginBtn = document.getElementById("btn-login-submit");
+    if (loginBtn) {
+      loginBtn.addEventListener("click", (e) => window.handleMobileLogin(e));
+    }
 
     const logoutBtn = document.getElementById("btn-logout");
-    logoutBtn.addEventListener("click", () => {
-      window.setAuthToken("");
-      state.user = null;
-      showModal("auth-modal");
-    });
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", () => {
+        window.setAuthToken("");
+        state.user = null;
+        showModal("auth-modal");
+      });
+    }
+
+    const toggleMyPwdBtn = document.getElementById("btn-toggle-my-pwd-view");
+    const myPwdSpan = document.getElementById("my-profile-password");
+    if (toggleMyPwdBtn && myPwdSpan) {
+      toggleMyPwdBtn.addEventListener("click", () => {
+        if (myPwdSpan.textContent === "••••••••") {
+          myPwdSpan.textContent = myPwdSpan.getAttribute("data-pwd") || "••••••••";
+        } else {
+          myPwdSpan.textContent = "••••••••";
+        }
+      });
+    }
+
+    const changeMyPwdBtn = document.getElementById("btn-change-my-pwd");
+    if (changeMyPwdBtn) {
+      changeMyPwdBtn.addEventListener("click", () => {
+        if (state.user && state.user.user_id) {
+          openEditUserModal({
+            user_id: state.user.user_id,
+            username: state.user.username,
+            full_name: state.user.full_name,
+            role: state.user.role
+          });
+        } else {
+          alert("Account session active. Please use password reset form.");
+        }
+      });
+    }
   }
 
   // ==========================================
@@ -535,6 +595,7 @@
           e.preventDefault();
           const val = el.getAttribute("data-value");
           input.value = val;
+          input.dispatchEvent(new Event("input", { bubbles: true }));
           dropdown.classList.add("hidden");
         });
       });
@@ -614,7 +675,160 @@
         updateAdminDashboard();
       }
     });
+
+    // 4. Drawer Combobox
+    setupCombobox({
+      inputId: "catalog-add-drawer-input",
+      dropdownId: "add-drawer-dropdown",
+      getSuggestions: () => {
+        const deleted = state.customDeletedDrawers || [];
+        const defaults = ["Drawer 01", "Drawer A-04", "Top Drawer", "Drawer B-02"];
+        const fromCatalog = (state.catalog || []).map(d => d.drawer || d.season).filter(Boolean);
+        return Array.from(new Set([...defaults, ...fromCatalog])).filter(d => !deleted.includes(d));
+      },
+      newItemPrefix: "Add new drawer",
+      onDeleteItem: (val) => {
+        state.customDeletedDrawers = state.customDeletedDrawers || [];
+        state.customDeletedDrawers.push(val);
+        addActivityLog({
+          action: "Drawer Option Deleted",
+          details: `Removed "${val}" from Drawer selection options.`,
+          type: "catalog_edit"
+        });
+      }
+    });
+
+    // 5. Warehouse Location Combobox
+    setupCombobox({
+      inputId: "catalog-add-location-input",
+      dropdownId: "add-location-dropdown",
+      getSuggestions: () => {
+        const deleted = state.customDeletedLocations || [];
+        const defaults = ["Warehouse A - Rack 01 - Shelf A-01", "Warehouse A - Rack 03 - Shelf B-02", "Warehouse B - Rack 05 - Shelf C-01"];
+        const fromCatalog = (state.catalog || []).map(d => d.shelf_location).filter(Boolean);
+        return Array.from(new Set([...defaults, ...fromCatalog])).filter(l => !deleted.includes(l));
+      },
+      newItemPrefix: "Add new location",
+      onDeleteItem: (val) => {
+        state.customDeletedLocations = state.customDeletedLocations || [];
+        state.customDeletedLocations.push(val);
+        addActivityLog({
+          action: "Warehouse Location Option Deleted",
+          details: `Removed "${val}" from Warehouse Location selection options.`,
+          type: "catalog_edit"
+        });
+      }
+    });
+
+    // 6. Size Combobox (6-12 dropdown)
+    setupCombobox({
+      inputId: "catalog-add-materials-input",
+      dropdownId: "add-materials-dropdown",
+      getSuggestions: () => {
+        const deleted = state.customDeletedMaterials || [];
+        const defaults = ["Size 6", "Size 7", "Size 8", "Size 9", "Size 10", "Size 11", "Size 12"];
+        const fromCatalog = (state.catalog || []).map(d => d.materials).filter(Boolean);
+        return Array.from(new Set([...defaults, ...fromCatalog])).filter(m => !deleted.includes(m));
+      },
+      newItemPrefix: "Add custom size",
+      onDeleteItem: (val) => {
+        state.customDeletedMaterials = state.customDeletedMaterials || [];
+        state.customDeletedMaterials.push(val);
+        addActivityLog({
+          action: "Size Option Deleted",
+          details: `Removed "${val}" from Size selection options.`,
+          type: "catalog_edit"
+        });
+      }
+    });
+
+    // 7. Season Combobox
+    setupCombobox({
+      inputId: "catalog-add-season-input",
+      dropdownId: "add-season-dropdown",
+      getSuggestions: () => {
+        const deleted = state.customDeletedSeasons || [];
+        const defaults = ["Collection 2026", "Summer 2026", "Winter 2025", "Autumn Archive"];
+        const fromCatalog = (state.catalog || []).map(d => d.season).filter(Boolean);
+        return Array.from(new Set([...defaults, ...fromCatalog])).filter(s => !deleted.includes(s));
+      },
+      newItemPrefix: "Add new season",
+      onDeleteItem: (val) => {
+        state.customDeletedSeasons = state.customDeletedSeasons || [];
+        state.customDeletedSeasons.push(val);
+        addActivityLog({
+          action: "Season Option Deleted",
+          details: `Removed "${val}" from Season selection options.`,
+          type: "catalog_edit"
+        });
+      }
+    });
   }
+
+  window.computeDynamicSkuFromDetails = function(details) {
+    const fields = [
+      details.category,
+      details.name,
+      details.farma_shelf,
+      details.drawer,
+      details.shelf_location,
+      details.materials
+    ];
+
+    const parts = [];
+    fields.forEach(val => {
+      if (val && typeof val === 'string') {
+        const clean = val.trim().replace(/[^a-zA-Z0-9]/g, '');
+        if (clean.length > 0) {
+          parts.push(clean.substring(0, 2).toUpperCase());
+        }
+      }
+    });
+
+    return parts.length > 0 ? parts.join("-") : "SKU";
+  };
+
+  window.updateAddModalLiveSku = function() {
+    const cat = document.getElementById("catalog-add-category-input")?.value || "";
+    const name = document.getElementById("catalog-add-name-input")?.value || "";
+    const shelf = document.getElementById("catalog-add-farma-shelf-input")?.value || "";
+    const drawer = document.getElementById("catalog-add-drawer-input")?.value || "";
+    const loc = document.getElementById("catalog-add-location-input")?.value || "";
+    const mat = document.getElementById("catalog-add-materials-input")?.value || "";
+
+    const sku = window.computeDynamicSkuFromDetails({
+      category: cat,
+      name: name,
+      farma_shelf: shelf,
+      drawer: drawer,
+      shelf_location: loc,
+      materials: mat
+    });
+
+    const badge = document.getElementById("catalog-add-sku-badge");
+    if (badge) badge.textContent = sku;
+  };
+
+  window.updateEditModalLiveSku = function() {
+    const cat = document.getElementById("catalog-edit-category-input")?.value || "";
+    const name = document.getElementById("catalog-edit-name-input")?.value || "";
+    const shelf = document.getElementById("catalog-edit-farma-shelf-input")?.value || "";
+    const drawer = document.getElementById("catalog-edit-drawer-input")?.value || "";
+    const loc = document.getElementById("catalog-edit-location-input")?.value || "";
+    const mat = document.getElementById("catalog-edit-materials-input")?.value || "";
+
+    const sku = window.computeDynamicSkuFromDetails({
+      category: cat,
+      name: name,
+      farma_shelf: shelf,
+      drawer: drawer,
+      shelf_location: loc,
+      materials: mat
+    });
+
+    const skuInput = document.getElementById("catalog-edit-sku-input");
+    if (skuInput) skuInput.value = sku;
+  };
 
   function initCatalogAddEvents() {
     const cameraBtn = document.getElementById("btn-catalog-add-camera");
@@ -624,27 +838,46 @@
 
     initCatalogAddComboboxes();
 
-    async function handleCatalogCameraCapture() {
-      if (window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins && window.Capacitor.Plugins.Camera) {
-        try {
-          const camera = window.Capacitor.Plugins.Camera;
-          const image = await camera.getPhoto({ quality: 90, allowEditing: false, resultType: 'uri', source: 'CAMERA' });
-          if (image && image.webPath) {
-            const res = await fetch(image.webPath);
-            const blob = await res.blob();
-            const file = new File([blob], `catalogue_photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
-            setCatalogAddFile(file);
-            return;
-          }
-        } catch (err) {
-          console.warn("Capacitor camera error/cancel:", err);
-        }
+    ["catalog-add-category-input", "catalog-add-name-input", "catalog-add-farma-shelf-input", "catalog-add-drawer-input", "catalog-add-location-input", "catalog-add-materials-input"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener("input", window.updateAddModalLiveSku);
+        el.addEventListener("change", window.updateAddModalLiveSku);
       }
-      if (filePicker) filePicker.click();
+    });
+    window.updateAddModalLiveSku();
+
+    if (cameraBtn) {
+      cameraBtn.addEventListener("click", async () => {
+        if (window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins && window.Capacitor.Plugins.Camera) {
+          try {
+            const camera = window.Capacitor.Plugins.Camera;
+            const image = await camera.getPhoto({
+              quality: 90,
+              allowEditing: false,
+              resultType: 'uri',
+              source: 'CAMERA'
+            });
+
+            if (image && image.webPath) {
+              const res = await fetch(image.webPath);
+              const blob = await res.blob();
+              const file = new File([blob], `catalog_photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
+              setCatalogAddFile(file);
+              return;
+            }
+          } catch (err) {
+            console.warn("Capacitor add camera notice:", err);
+          }
+        }
+        if (filePicker) filePicker.click();
+      });
     }
 
-    if (cameraBtn) cameraBtn.addEventListener("click", handleCatalogCameraCapture);
-    if (galleryBtn) galleryBtn.addEventListener("click", () => filePicker && filePicker.click());
+    if (galleryBtn) {
+      galleryBtn.addEventListener("click", () => filePicker && filePicker.click());
+    }
+
     if (filePicker) {
       filePicker.addEventListener("change", (e) => {
         if (e.target.files && e.target.files[0]) {
@@ -653,7 +886,9 @@
       });
     }
 
-    if (submitBtn) submitBtn.addEventListener("click", submitCatalogAdd);
+    if (submitBtn) {
+      submitBtn.addEventListener("click", submitCatalogAdd);
+    }
   }
 
   function setCatalogAddFile(file) {
@@ -672,26 +907,39 @@
   }
 
   async function submitCatalogAdd() {
+    if (!state.selectedCatalogAddFile) {
+      alert("Please select or capture a shoe photo first.");
+      return;
+    }
+
     const statusText = document.getElementById("catalog-add-status-text");
     const loadingRow = document.getElementById("catalog-add-loading-row");
     const submitBtn = document.getElementById("btn-catalog-add-submit");
-    if (!state.selectedCatalogAddFile) return;
 
     const nameInput = document.getElementById("catalog-add-name-input");
     const categoryInput = document.getElementById("catalog-add-category-input");
     const farmaShelfInput = document.getElementById("catalog-add-farma-shelf-input");
+    const locationInput = document.getElementById("catalog-add-location-input");
+    const drawerInput = document.getElementById("catalog-add-drawer-input");
+    const materialsInput = document.getElementById("catalog-add-materials-input");
+
+    const drawerVal = drawerInput ? drawerInput.value : "";
 
     const formData = new FormData();
     formData.append("file", state.selectedCatalogAddFile);
     formData.append("name", nameInput ? nameInput.value : "");
     formData.append("category", categoryInput ? categoryInput.value : "");
     formData.append("farma_shelf", farmaShelfInput ? farmaShelfInput.value : "");
+    formData.append("shelf_location", locationInput ? locationInput.value : "");
+    formData.append("drawer", drawerVal);
+    formData.append("season", drawerVal);
+    formData.append("materials", materialsInput ? materialsInput.value : "");
 
     if (submitBtn) submitBtn.disabled = true;
     if (loadingRow) loadingRow.style.display = "flex";
     if (statusText) {
       statusText.style.color = "var(--md-sys-color-on-surface-variant)";
-      statusText.textContent = "Adding to catalogue — this can take up to a minute while the AI re-indexes...";
+      statusText.textContent = "Adding to catalogue — processing DINOv2 feature vectors...";
     }
 
     try {
@@ -718,7 +966,7 @@
 
       addActivityLog({
         action: "Catalogue Design Added",
-        details: `Added "${data.name || nameInput.value || 'New Design'}" (SKU: ${data.design_id || 'SKU'})${categoryInput && categoryInput.value ? ' • Category: ' + categoryInput.value : ''}${farmaShelfInput && farmaShelfInput.value ? ' • Farma Shelf: ' + farmaShelfInput.value : ''}`,
+        details: `Added "${data.name || (nameInput ? nameInput.value : '') || 'New Design'}" (SKU: ${data.design_id || 'SKU'})`,
         type: "catalog_add"
       });
 
@@ -727,9 +975,12 @@
       if (nameInput) nameInput.value = "";
       if (categoryInput) categoryInput.value = "";
       if (farmaShelfInput) farmaShelfInput.value = "";
+      if (locationInput) locationInput.value = "";
+      if (drawerInput) drawerInput.value = "";
+      if (materialsInput) materialsInput.value = "";
       const previewContainer = document.getElementById("catalog-add-preview-container");
       if (previewContainer) previewContainer.classList.add("hidden");
-      fetchCatalog();
+      fetchCatalog({ silent: true });
       fetchFarmaShelves();
       updateAdminDashboard();
       const modal = document.getElementById("catalog-add-modal");
@@ -900,7 +1151,37 @@
       return;
     }
 
-    const matches = data.matches || [];
+    const rawMatches = data.matches || [];
+    const seenDesignIds = new Set();
+    const seenImagePaths = new Set();
+    const seenNames = new Set();
+    const matches = [];
+
+    rawMatches.forEach(m => {
+      const designId = (m.design_id || m.id || "").toString().trim().toUpperCase();
+      let rawImg = m.best_matching_image_url || m.image_path || (m.all_angles && m.all_angles[0] ? m.all_angles[0].image_path : '');
+      if (!rawImg && designId) {
+        rawImg = `/catalog_images/${designId}/photo_1.jpg`;
+      }
+      const imgKey = rawImg ? rawImg.toString().trim().toLowerCase() : "";
+      const rawName = (m.design_name || m.name || "").toString().trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+
+      if (designId && seenDesignIds.has(designId)) {
+        return;
+      }
+      if (imgKey && seenImagePaths.has(imgKey)) {
+        return;
+      }
+      if (rawName && seenNames.has(rawName)) {
+        return;
+      }
+
+      if (designId) seenDesignIds.add(designId);
+      if (imgKey) seenImagePaths.add(imgKey);
+      if (rawName) seenNames.add(rawName);
+      matches.push(m);
+    });
+
     if (matches.length === 0) {
       resultsContainer.innerHTML = `<div class="md-card">No matching footwear designs found in catalog.</div>`;
       addActivityLog({
@@ -957,7 +1238,7 @@
         </div>
         
         <div style="font-size: 0.82rem; color: var(--md-sys-color-on-surface-variant); margin-bottom: 8px;">
-          Materials: <strong>${materialsText}</strong>
+          Size: <strong>${materialsText}</strong>
         </div>
 
         ${farmaShelfText ? `
@@ -1006,30 +1287,42 @@
   let currentEditingDesignId = null;
 
   window.openCatalogEditModal = function(designId) {
+    if (getActiveRole() === "employee") {
+      alert("Access Restricted: Only Admin accounts can edit or delete catalog items.");
+      return;
+    }
+
     const design = (state.catalog || []).find(d => d.design_id === designId);
     if (!design) return;
 
     currentEditingDesignId = designId;
 
+    const skuInput = document.getElementById("catalog-edit-sku-input");
     const skuText = document.getElementById("catalog-edit-sku-text");
     const nameInput = document.getElementById("catalog-edit-name-input");
     const categoryInput = document.getElementById("catalog-edit-category-input");
     const farmaShelfInput = document.getElementById("catalog-edit-farma-shelf-input");
     const locationInput = document.getElementById("catalog-edit-location-input");
+    const drawerInput = document.getElementById("catalog-edit-drawer-input");
     const materialsInput = document.getElementById("catalog-edit-materials-input");
-    const seasonInput = document.getElementById("catalog-edit-season-input");
     const statusText = document.getElementById("catalog-edit-status-text");
     const loadingRow = document.getElementById("catalog-edit-loading-row");
 
+    if (skuInput) skuInput.value = design.design_id || "";
     if (skuText) skuText.textContent = `SKU: ${design.design_id}`;
     if (nameInput) nameInput.value = design.name || "";
     if (categoryInput) categoryInput.value = design.category || "";
     if (farmaShelfInput) farmaShelfInput.value = design.farma_shelf || "";
     if (locationInput) locationInput.value = design.shelf_location || "";
+    if (drawerInput) drawerInput.value = design.drawer || design.season || "";
     if (materialsInput) materialsInput.value = design.materials || "";
-    if (seasonInput) seasonInput.value = design.season || "";
     if (statusText) statusText.textContent = "";
     if (loadingRow) loadingRow.style.display = "none";
+
+    const deleteBtn = document.getElementById("btn-catalog-edit-delete");
+    if (deleteBtn) {
+      deleteBtn.style.display = getActiveRole() === "admin" ? "inline-flex" : "none";
+    }
 
     const modal = document.getElementById("catalog-edit-modal");
     if (modal) modal.classList.remove("hidden");
@@ -1044,23 +1337,34 @@
   async function submitCatalogEdit() {
     if (!currentEditingDesignId) return;
 
+    if (getActiveRole() === "employee") {
+      alert("Access Restricted: Only Admin accounts can edit catalog items.");
+      return;
+    }
+
+    const skuInput = document.getElementById("catalog-edit-sku-input");
     const nameInput = document.getElementById("catalog-edit-name-input");
     const categoryInput = document.getElementById("catalog-edit-category-input");
     const farmaShelfInput = document.getElementById("catalog-edit-farma-shelf-input");
     const locationInput = document.getElementById("catalog-edit-location-input");
+    const drawerInput = document.getElementById("catalog-edit-drawer-input");
     const materialsInput = document.getElementById("catalog-edit-materials-input");
-    const seasonInput = document.getElementById("catalog-edit-season-input");
     const statusText = document.getElementById("catalog-edit-status-text");
     const loadingRow = document.getElementById("catalog-edit-loading-row");
     const submitBtn = document.getElementById("btn-catalog-edit-submit");
 
+    const drawerVal = drawerInput ? drawerInput.value.trim() : "";
+    const newSku = skuInput && skuInput.value.trim() ? skuInput.value.trim().toUpperCase() : currentEditingDesignId;
+
     const payload = {
+      new_sku: newSku,
       name: nameInput ? nameInput.value.trim() : "",
       category: categoryInput ? categoryInput.value.trim() : "",
       farma_shelf: farmaShelfInput ? farmaShelfInput.value.trim() : "",
       shelf_location: locationInput ? locationInput.value.trim() : "",
-      materials: materialsInput ? materialsInput.value.trim() : "",
-      season: seasonInput ? seasonInput.value.trim() : ""
+      drawer: drawerVal,
+      season: drawerVal,
+      materials: materialsInput ? materialsInput.value.trim() : ""
     };
 
     if (submitBtn) submitBtn.disabled = true;
@@ -1087,31 +1391,36 @@
         return;
       }
 
+      const updatedSku = data.design_id || newSku;
+
       // Update local state design object immediately
       const targetDesign = (state.catalog || []).find(d => d.design_id === currentEditingDesignId);
       if (targetDesign) {
+        targetDesign.design_id = updatedSku;
         targetDesign.name = payload.name;
         targetDesign.category = payload.category;
         targetDesign.farma_shelf = payload.farma_shelf;
         targetDesign.shelf_location = payload.shelf_location;
+        targetDesign.drawer = payload.drawer;
         targetDesign.materials = payload.materials;
-        targetDesign.season = payload.season;
       }
 
       // Live update preview modal elements if currently open
+      const pSku = document.getElementById("preview-design-sku");
       const pName = document.getElementById("preview-design-name");
       const pCat = document.getElementById("preview-design-category");
       const pFarma = document.getElementById("preview-farma-shelf");
       const pLoc = document.getElementById("preview-shelf-location");
       const pMat = document.getElementById("preview-materials");
-      const pSeason = document.getElementById("preview-season");
+      const pDrawer = document.getElementById("preview-drawer");
 
+      if (pSku) pSku.textContent = updatedSku;
       if (pName && payload.name) pName.textContent = payload.name;
       if (pCat && payload.category) pCat.textContent = payload.category;
       if (pFarma && payload.farma_shelf) pFarma.textContent = payload.farma_shelf;
       if (pLoc && payload.shelf_location) pLoc.textContent = payload.shelf_location;
       if (pMat && payload.materials) pMat.textContent = payload.materials;
-      if (pSeason && payload.season) pSeason.textContent = payload.season;
+      if (pDrawer && payload.drawer) pDrawer.textContent = payload.drawer;
 
       if (loadingRow) loadingRow.style.display = "none";
       if (statusText) {
@@ -1121,7 +1430,7 @@
 
       addActivityLog({
         action: "Catalogue Design Updated",
-        details: `Updated SKU: ${currentEditingDesignId}${payload.name ? ' • Name: "' + payload.name + '"' : ''}${payload.category ? ' • Category: ' + payload.category : ''}${payload.farma_shelf ? ' • Farma Shelf: ' + payload.farma_shelf : ''}`,
+        details: `Updated SKU: ${updatedSku}${payload.name ? ' • Name: "' + payload.name + '"' : ''}`,
         type: "catalog_edit"
       });
 
@@ -1146,6 +1455,11 @@
 
   async function submitCatalogDelete() {
     if (!currentEditingDesignId) return;
+
+    if (getActiveRole() === "employee") {
+      alert("Access Restricted: Only Admin accounts can delete catalog items.");
+      return;
+    }
     const targetId = currentEditingDesignId;
     
     const targetDesign = (state.catalog || []).find(d => d.design_id === targetId);
@@ -1253,6 +1567,77 @@
         updateAdminDashboard();
       }
     });
+
+    setupCombobox({
+      inputId: "catalog-edit-drawer-input",
+      dropdownId: "edit-drawer-dropdown",
+      getSuggestions: () => {
+        const deleted = state.customDeletedDrawers || [];
+        const defaults = ["Drawer 01", "Drawer A-04", "Top Drawer", "Drawer B-02"];
+        const fromCatalog = (state.catalog || []).map(d => d.drawer || d.season).filter(Boolean);
+        return Array.from(new Set([...defaults, ...fromCatalog])).filter(d => !deleted.includes(d));
+      },
+      newItemPrefix: "Use custom drawer",
+      onDeleteItem: (val) => {
+        state.customDeletedDrawers = state.customDeletedDrawers || [];
+        state.customDeletedDrawers.push(val);
+        addActivityLog({
+          action: "Drawer Option Deleted",
+          details: `Removed "${val}" from Drawer selection options.`,
+          type: "catalog_edit"
+        });
+      }
+    });
+
+    setupCombobox({
+      inputId: "catalog-edit-location-input",
+      dropdownId: "edit-location-dropdown",
+      getSuggestions: () => {
+        const deleted = state.customDeletedLocations || [];
+        const defaults = ["Warehouse A - Rack 01 - Shelf A-01", "Warehouse A - Rack 03 - Shelf B-02", "Warehouse B - Rack 05 - Shelf C-01"];
+        const fromCatalog = (state.catalog || []).map(d => d.shelf_location).filter(Boolean);
+        return Array.from(new Set([...defaults, ...fromCatalog])).filter(l => !deleted.includes(l));
+      },
+      newItemPrefix: "Use custom location",
+      onDeleteItem: (val) => {
+        state.customDeletedLocations = state.customDeletedLocations || [];
+        state.customDeletedLocations.push(val);
+        addActivityLog({
+          action: "Warehouse Location Option Deleted",
+          details: `Removed "${val}" from Warehouse Location selection options.`,
+          type: "catalog_edit"
+        });
+      }
+    });
+
+    setupCombobox({
+      inputId: "catalog-edit-materials-input",
+      dropdownId: "edit-materials-dropdown",
+      getSuggestions: () => {
+        const deleted = state.customDeletedMaterials || [];
+        const defaults = ["Size 6", "Size 7", "Size 8", "Size 9", "Size 10", "Size 11", "Size 12"];
+        const fromCatalog = (state.catalog || []).map(d => d.materials).filter(Boolean);
+        return Array.from(new Set([...defaults, ...fromCatalog])).filter(m => !deleted.includes(m));
+      },
+      newItemPrefix: "Use custom size",
+      onDeleteItem: (val) => {
+        state.customDeletedMaterials = state.customDeletedMaterials || [];
+        state.customDeletedMaterials.push(val);
+        addActivityLog({
+          action: "Size Option Deleted",
+          details: `Removed "${val}" from Size selection options.`,
+          type: "catalog_edit"
+        });
+      }
+    });
+
+    ["catalog-edit-category-input", "catalog-edit-name-input", "catalog-edit-farma-shelf-input", "catalog-edit-drawer-input", "catalog-edit-location-input", "catalog-edit-materials-input"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener("input", window.updateEditModalLiveSku);
+        el.addEventListener("change", window.updateEditModalLiveSku);
+      }
+    });
   }
 
   let currentPreviewDesignId = null;
@@ -1307,12 +1692,33 @@
     const grid = document.getElementById("catalog-grid");
     grid.innerHTML = "";
 
-    if (items.length === 0) {
+    const seenDesignIds = new Set();
+    const seenImagePaths = new Set();
+    const uniqueItems = [];
+
+    (items || []).forEach(item => {
+      const designId = (item.design_id || "").toString().trim().toUpperCase();
+      const rawImg = item.thumbnail_path || (item.reference_images && item.reference_images[0] ? item.reference_images[0].image_path : '');
+      const imgKey = rawImg ? rawImg.toString().trim().toLowerCase() : "";
+
+      if (designId && seenDesignIds.has(designId)) {
+        return;
+      }
+      if (imgKey && seenImagePaths.has(imgKey)) {
+        return;
+      }
+
+      if (designId) seenDesignIds.add(designId);
+      if (imgKey) seenImagePaths.add(imgKey);
+      uniqueItems.push(item);
+    });
+
+    if (uniqueItems.length === 0) {
       grid.innerHTML = `<div class="md-card" style="grid-column: 1 / -1;">No designs found.</div>`;
       return;
     }
 
-    items.forEach(item => {
+    uniqueItems.forEach(item => {
       const imgPath = window.getApiUrl(item.thumbnail_path || (item.reference_images && item.reference_images[0] ? item.reference_images[0].image_path : ''));
       const card = document.createElement("div");
       card.className = "md-card catalog-card";
@@ -1347,10 +1753,15 @@
 
       const editBtn = card.querySelector(".catalog-edit-btn");
       if (editBtn) {
-        editBtn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          openCatalogEditModal(item.design_id);
-        });
+        if (getActiveRole() === "employee") {
+          editBtn.style.display = "none";
+        } else {
+          editBtn.style.display = "inline-flex";
+          editBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            openCatalogEditModal(item.design_id);
+          });
+        }
       }
 
       grid.appendChild(card);
@@ -1544,6 +1955,314 @@
     }
 
     applyActiveRole(getActiveRole());
+    fetchUserManagementList();
+  }
+
+  // ==========================================
+  // User Management (Admin Only)
+  // ==========================================
+  async function fetchUserManagementList() {
+    const listContainer = document.getElementById("admin-users-list");
+    if (!listContainer) return;
+
+    if (getActiveRole() !== "admin") {
+      const card = document.getElementById("admin-user-management-card");
+      if (card) card.style.display = "none";
+      return;
+    } else {
+      const card = document.getElementById("admin-user-management-card");
+      if (card) card.style.display = "block";
+    }
+
+    try {
+      const res = await window.authenticatedFetch(window.getApiUrl("/api/admin/users"));
+      if (!res.ok) {
+        listContainer.innerHTML = `<div style="font-size: 0.82rem; color: var(--md-sys-color-error); text-align: center; padding: 8px 0;">Could not load user accounts.</div>`;
+        return;
+      }
+
+      const data = await res.json();
+      const users = data.users || [];
+
+      if (users.length === 0) {
+        listContainer.innerHTML = `<div style="font-size: 0.82rem; color: var(--md-sys-color-outline); text-align: center; padding: 8px 0;">No user accounts found.</div>`;
+        return;
+      }
+
+      listContainer.innerHTML = "";
+      users.forEach(u => {
+        const item = document.createElement("div");
+        item.style.cssText = "display: flex; align-items: center; justify-content: space-between; background: var(--md-sys-color-background); padding: 10px 12px; border-radius: 10px; border: 1px solid var(--md-sys-color-surface-variant); flex-wrap: wrap; gap: 8px;";
+
+        const roleBadgeBg = u.role === "admin" ? "var(--md-sys-color-primary-container)" : "var(--md-sys-color-secondary-container)";
+        const roleBadgeFg = u.role === "admin" ? "var(--md-sys-color-on-primary-container)" : "var(--md-sys-color-on-secondary-container)";
+        const roleLabel = u.role === "admin" ? "Admin" : "Employee";
+        const plainPwd = u.plain_password || (u.username === "admin" ? "admin123" : u.username === "employee" ? "emp123" : "******");
+
+        item.innerHTML = `
+          <div style="flex: 1; min-width: 160px;">
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+              <span style="font-size: 0.88rem; font-weight: 700; color: var(--md-sys-color-on-surface);">${escapeHtml(u.full_name || u.username)}</span>
+              <span style="font-size: 0.68rem; font-weight: 700; background: ${roleBadgeBg}; color: ${roleBadgeFg}; padding: 2px 8px; border-radius: 6px;">${roleLabel}</span>
+            </div>
+            <div style="font-size: 0.76rem; color: var(--md-sys-color-on-surface-variant); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span>@${escapeHtml(u.username)}</span>
+              <span style="display: inline-flex; align-items: center; gap: 4px; background: var(--md-sys-color-surface-variant); padding: 2px 6px; border-radius: 4px;">
+                <span>Password:</span>
+                <span class="user-pwd-text" data-pwd="${escapeHtml(plainPwd)}" style="font-family: monospace; font-weight: 700;">••••••••</span>
+                <button class="btn-toggle-pwd-view" style="background: none; border: none; cursor: pointer; padding: 0 2px; color: var(--md-sys-color-primary);" title="Reveal/Hide Password">👁️</button>
+              </span>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <button class="md-btn btn-edit-user-pwd" data-id="${u.user_id}" data-user="${escapeHtml(u.username)}" data-name="${escapeHtml(u.full_name)}" data-role="${u.role}" style="padding: 4px 8px; font-size: 0.72rem; min-height: 30px; background-color: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); width: auto;" title="Change Password / Account Details">
+              <span>🔑 Change Password</span>
+            </button>
+            ${(u.username !== "admin" && u.username !== "employee") ? `
+            <button class="md-btn btn-delete-user" data-id="${u.user_id}" data-user="${escapeHtml(u.username)}" style="padding: 4px 8px; font-size: 0.72rem; min-height: 30px; background-color: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container); width: auto;" title="Delete User Account">
+              <span>🗑️ Delete</span>
+            </button>
+            ` : ''}
+          </div>
+        `;
+
+        const pwdToggleBtn = item.querySelector(".btn-toggle-pwd-view");
+        const pwdTextSpan = item.querySelector(".user-pwd-text");
+        if (pwdToggleBtn && pwdTextSpan) {
+          pwdToggleBtn.addEventListener("click", () => {
+            if (pwdTextSpan.textContent === "••••••••") {
+              pwdTextSpan.textContent = pwdTextSpan.getAttribute("data-pwd");
+            } else {
+              pwdTextSpan.textContent = "••••••••";
+            }
+          });
+        }
+
+        const editBtn = item.querySelector(".btn-edit-user-pwd");
+        if (editBtn) {
+          editBtn.addEventListener("click", () => {
+            openEditUserModal({
+              user_id: u.user_id,
+              username: u.username,
+              full_name: u.full_name,
+              role: u.role
+            });
+          });
+        }
+
+        const delBtn = item.querySelector(".btn-delete-user");
+        if (delBtn) {
+          delBtn.addEventListener("click", () => {
+            deleteUserAccount(u.user_id, u.username);
+          });
+        }
+
+        listContainer.appendChild(item);
+      });
+
+    } catch (err) {
+      listContainer.innerHTML = `<div style="font-size: 0.82rem; color: var(--md-sys-color-error); text-align: center; padding: 8px 0;">Error fetching user accounts.</div>`;
+    }
+  }
+
+  window.openCreateUserModal = function() {
+    const modal = document.getElementById("user-modal");
+    const title = document.getElementById("user-modal-title");
+    const editIdInput = document.getElementById("user-modal-edit-id");
+    const fullnameInput = document.getElementById("user-modal-fullname-input");
+    const usernameInput = document.getElementById("user-modal-username-input");
+    const pwdInput = document.getElementById("user-modal-password-input");
+    const roleSelect = document.getElementById("user-modal-role-select");
+    const statusText = document.getElementById("user-modal-status-text");
+
+    if (title) title.textContent = "Create New User";
+    if (editIdInput) editIdInput.value = "";
+    if (fullnameInput) fullnameInput.value = "";
+    if (usernameInput) {
+      usernameInput.value = "";
+      usernameInput.disabled = false;
+    }
+    if (pwdInput) pwdInput.value = "";
+    if (roleSelect) roleSelect.value = "employee";
+    if (statusText) statusText.textContent = "";
+
+    if (modal) modal.classList.remove("hidden");
+  };
+
+  function openEditUserModal(user) {
+    const modal = document.getElementById("user-modal");
+    const title = document.getElementById("user-modal-title");
+    const editIdInput = document.getElementById("user-modal-edit-id");
+    const fullnameInput = document.getElementById("user-modal-fullname-input");
+    const usernameInput = document.getElementById("user-modal-username-input");
+    const pwdInput = document.getElementById("user-modal-password-input");
+    const roleSelect = document.getElementById("user-modal-role-select");
+    const statusText = document.getElementById("user-modal-status-text");
+
+    if (title) title.textContent = `Edit Account @${user.username}`;
+    if (editIdInput) editIdInput.value = user.user_id;
+    if (fullnameInput) fullnameInput.value = user.full_name || "";
+    if (usernameInput) {
+      usernameInput.value = user.username || "";
+      usernameInput.disabled = true;
+    }
+    if (pwdInput) pwdInput.value = "";
+    if (roleSelect) roleSelect.value = user.role || "employee";
+    if (statusText) statusText.textContent = "";
+
+    if (modal) modal.classList.remove("hidden");
+  }
+
+  window.closeUserModal = function() {
+    const modal = document.getElementById("user-modal");
+    if (modal) modal.classList.add("hidden");
+  };
+
+  async function submitUserForm() {
+    const editIdInput = document.getElementById("user-modal-edit-id");
+    const fullnameInput = document.getElementById("user-modal-fullname-input");
+    const usernameInput = document.getElementById("user-modal-username-input");
+    const pwdInput = document.getElementById("user-modal-password-input");
+    const roleSelect = document.getElementById("user-modal-role-select");
+    const statusText = document.getElementById("user-modal-status-text");
+    const submitBtn = document.getElementById("btn-submit-user-form");
+
+    const userId = editIdInput ? editIdInput.value : "";
+    const fullName = fullnameInput ? fullnameInput.value.trim() : "";
+    const username = usernameInput ? usernameInput.value.trim() : "";
+    const password = pwdInput ? pwdInput.value.trim() : "";
+    const role = roleSelect ? roleSelect.value : "employee";
+
+    if (!userId && (!username || !password || !fullName)) {
+      if (statusText) {
+        statusText.style.color = "var(--md-sys-color-error)";
+        statusText.textContent = "Please fill in all required user fields.";
+      }
+      return;
+    }
+
+    if (submitBtn) submitBtn.disabled = true;
+    if (statusText) {
+      statusText.style.color = "var(--md-sys-color-on-surface-variant)";
+      statusText.textContent = "Saving user account...";
+    }
+
+    try {
+      let res;
+      if (userId) {
+        // Edit existing user
+        res = await window.authenticatedFetch(window.getApiUrl(`/api/admin/users/${userId}`), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            full_name: fullName,
+            role: role,
+            password: password || undefined
+          })
+        });
+      } else {
+        // Create new user
+        res = await window.authenticatedFetch(window.getApiUrl("/api/admin/users"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: username,
+            password: password,
+            full_name: fullName,
+            role: role
+          })
+        });
+      }
+
+      const data = await res.json();
+      if (!res.ok || data.success === false) {
+        if (statusText) {
+          statusText.style.color = "var(--md-sys-color-error)";
+          statusText.textContent = data.detail || data.message || "Failed to save user account.";
+        }
+        return;
+      }
+
+      if (statusText) {
+        statusText.style.color = "var(--md-sys-color-secondary)";
+        statusText.textContent = "User account saved successfully!";
+      }
+
+      addActivityLog({
+        action: userId ? "User Account Updated" : "New User Created",
+        details: `${userId ? 'Updated' : 'Created'} @${username} (${role === 'admin' ? 'Admin' : 'Employee'})`,
+        type: "user_management"
+      });
+
+      fetchUserManagementList();
+
+      setTimeout(() => {
+        closeUserModal();
+      }, 500);
+
+    } catch (err) {
+      if (statusText) {
+        statusText.style.color = "var(--md-sys-color-error)";
+        statusText.textContent = "Network error saving user account.";
+      }
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  }
+
+  async function deleteUserAccount(userId, username) {
+    if (!confirm(`Are you sure you want to delete user account '@${username}'?`)) {
+      return;
+    }
+
+    try {
+      const res = await window.authenticatedFetch(window.getApiUrl(`/api/admin/users/${userId}`), {
+        method: "DELETE"
+      });
+      const data = await res.json();
+
+      if (!res.ok || data.success === false) {
+        alert(data.detail || data.message || "Could not delete user account.");
+        return;
+      }
+
+      addActivityLog({
+        action: "User Account Deleted",
+        details: `Deleted user account @${username} (ID #${userId})`,
+        type: "user_management"
+      });
+
+      fetchUserManagementList();
+    } catch (err) {
+      alert("Network error deleting user account.");
+    }
+  }
+
+  function initUserManagementEvents() {
+    const openBtn = document.getElementById("btn-open-create-user");
+    if (openBtn) {
+      openBtn.addEventListener("click", () => {
+        openCreateUserModal();
+      });
+    }
+
+    const submitBtn = document.getElementById("btn-submit-user-form");
+    if (submitBtn) {
+      submitBtn.addEventListener("click", () => {
+        submitUserForm();
+      });
+    }
+
+    const togglePwdBtn = document.getElementById("btn-toggle-user-modal-password");
+    if (togglePwdBtn) {
+      togglePwdBtn.addEventListener("click", () => {
+        const pwdInput = document.getElementById("user-modal-password-input");
+        if (pwdInput) {
+          pwdInput.type = pwdInput.type === "password" ? "text" : "password";
+        }
+      });
+    }
   }
 
   async function fetchAuditLogs() {
@@ -1631,6 +2350,7 @@
     initCatalogAddModalToggle();
     initCatalogEditEvents();
     initCatalogSearch();
+    initUserManagementEvents();
 
     const hostIndicator = document.getElementById("target-host-indicator");
     if (hostIndicator) {
