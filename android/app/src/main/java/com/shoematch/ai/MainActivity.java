@@ -1,4 +1,4 @@
-package com.shoematch.ai;
+package in.co.aflix.shoematchai;
 
 import com.getcapacitor.BridgeActivity;
 

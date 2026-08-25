@@ -1,5 +1,5 @@
 {
-  "appId": "com.shoematch.ai",
+  "appId": "in.co.aflix.shoematchai",
   "appName": "ShoeMatch AI",
   "webDir": "dist",
   "bundledWebRuntime": false,

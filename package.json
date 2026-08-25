@@ -8,7 +8,7 @@
     "build": "node -e \"const fs=require('fs');fs.rmSync('dist',{recursive:true,force:true});fs.cpSync('frontend/mobile','dist',{recursive:true})\" && cap sync android",
     "build:tailwind": "npx @tailwindcss/cli -i frontend/index.css -o frontend/tailwind.min.css",
     "run:backend": "python3 run_server.py",
-    "run:mobile": "npm run build && cap run android",
+    "build:mobile": "npm run build && cap sync android",
     "cap:sync": "cap sync android",
     "cap:open:android": "cap open android",
     "cap:run:android": "cap run android",
