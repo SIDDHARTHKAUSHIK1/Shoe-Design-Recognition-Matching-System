@@ -108,6 +108,11 @@ def init_db():
         except sqlite3.OperationalError:
             pass
 
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN plain_password TEXT DEFAULT '';")
+        except sqlite3.OperationalError:
+            pass
+
         # Seed initial accounts securely if missing or enforce password change if default
         try:
             from backend.auth import seed_initial_users

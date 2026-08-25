@@ -143,6 +143,25 @@
           </div>
         </div>
 
+        <!-- Create and Manage User Section (Admin Only) -->
+        <div class="md-card" id="admin-user-management-card" style="margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <div class="card-title" style="margin-bottom: 2px;">Create and Manage User</div>
+              <div style="font-size: 0.78rem; color: var(--md-sys-color-on-surface-variant);">Create Admin/Employee accounts, view/change passwords, or delete accounts</div>
+            </div>
+            <button class="md-btn" id="btn-open-create-user" style="padding: 6px 12px; font-size: 0.8rem; background-color: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); width: auto;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+              <span>+ Create User</span>
+            </button>
+          </div>
+
+          <!-- Users List Table Container -->
+          <div id="admin-users-list" style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="font-size: 0.82rem; color: var(--md-sys-color-outline); text-align: center; padding: 8px 0;">Loading system users...</div>
+          </div>
+        </div>
+
         <!-- Activity History Card -->
         <div class="md-card">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
@@ -441,6 +460,51 @@
           </button>
           <button class="md-btn" onclick="closeCatalogPreviewModal()" style="flex: 1; background-color: var(--md-sys-color-surface-variant); color: var(--md-sys-color-on-surface-variant);">
             <span>Close</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create and Manage User Modal (Admin Only) -->
+    <div id="user-modal" class="scanner-overlay hidden">
+      <div class="md-card" style="width: 100%; max-width: 380px; padding: 20px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+          <div class="card-title" id="user-modal-title" style="margin-bottom: 0;">Create New User</div>
+          <button class="icon-btn" onclick="closeUserModal()" title="Close" style="min-width: 32px; min-height: 32px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <input type="hidden" id="user-modal-edit-id" value="">
+
+        <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Account Role</label>
+        <select id="user-modal-role-select" class="md-input" style="margin-bottom: 12px; background-color: var(--md-sys-color-surface); font-weight: 600;">
+          <option value="employee">Employee Account</option>
+          <option value="admin">Administrator Account</option>
+        </select>
+
+        <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Full Name</label>
+        <input type="text" id="user-modal-fullname-input" class="md-input" placeholder="Full Name (e.g. John Doe)" style="margin-bottom: 12px;">
+
+        <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Username</label>
+        <input type="text" id="user-modal-username-input" class="md-input" placeholder="Username (e.g. employee2)" style="margin-bottom: 12px;">
+
+        <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Password</label>
+        <div style="position: relative; margin-bottom: 16px;">
+          <input type="password" id="user-modal-password-input" class="md-input" placeholder="Password (min 4 chars)" style="margin-bottom: 0; padding-right: 40px;">
+          <button type="button" id="btn-toggle-user-modal-password" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--md-sys-color-on-surface-variant);" title="Show/Hide Password">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+
+        <div id="user-modal-status-text" style="font-size: 0.8rem; margin-bottom: 10px; text-align: center;"></div>
+
+        <div style="display: flex; gap: 10px;">
+          <button class="md-btn" id="btn-submit-user-form" style="flex: 1; background-color: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary);">
+            <span>Save Account</span>
+          </button>
+          <button class="md-btn" onclick="closeUserModal()" style="flex: 1; background-color: var(--md-sys-color-surface-variant); color: var(--md-sys-color-on-surface-variant);">
+            <span>Cancel</span>
           </button>
         </div>
       </div>

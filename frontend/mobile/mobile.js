@@ -1904,6 +1904,314 @@
     }
 
     applyActiveRole(getActiveRole());
+    fetchUserManagementList();
+  }
+
+  // ==========================================
+  // User Management (Admin Only)
+  // ==========================================
+  async function fetchUserManagementList() {
+    const listContainer = document.getElementById("admin-users-list");
+    if (!listContainer) return;
+
+    if (getActiveRole() !== "admin") {
+      const card = document.getElementById("admin-user-management-card");
+      if (card) card.style.display = "none";
+      return;
+    } else {
+      const card = document.getElementById("admin-user-management-card");
+      if (card) card.style.display = "block";
+    }
+
+    try {
+      const res = await window.authenticatedFetch(window.getApiUrl("/api/admin/users"));
+      if (!res.ok) {
+        listContainer.innerHTML = `<div style="font-size: 0.82rem; color: var(--md-sys-color-error); text-align: center; padding: 8px 0;">Could not load user accounts.</div>`;
+        return;
+      }
+
+      const data = await res.json();
+      const users = data.users || [];
+
+      if (users.length === 0) {
+        listContainer.innerHTML = `<div style="font-size: 0.82rem; color: var(--md-sys-color-outline); text-align: center; padding: 8px 0;">No user accounts found.</div>`;
+        return;
+      }
+
+      listContainer.innerHTML = "";
+      users.forEach(u => {
+        const item = document.createElement("div");
+        item.style.cssText = "display: flex; align-items: center; justify-content: space-between; background: var(--md-sys-color-background); padding: 10px 12px; border-radius: 10px; border: 1px solid var(--md-sys-color-surface-variant); flex-wrap: wrap; gap: 8px;";
+
+        const roleBadgeBg = u.role === "admin" ? "var(--md-sys-color-primary-container)" : "var(--md-sys-color-secondary-container)";
+        const roleBadgeFg = u.role === "admin" ? "var(--md-sys-color-on-primary-container)" : "var(--md-sys-color-on-secondary-container)";
+        const roleLabel = u.role === "admin" ? "Admin" : "Employee";
+        const plainPwd = u.plain_password || (u.username === "admin" ? "admin123" : u.username === "employee" ? "emp123" : "******");
+
+        item.innerHTML = `
+          <div style="flex: 1; min-width: 160px;">
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+              <span style="font-size: 0.88rem; font-weight: 700; color: var(--md-sys-color-on-surface);">${escapeHtml(u.full_name || u.username)}</span>
+              <span style="font-size: 0.68rem; font-weight: 700; background: ${roleBadgeBg}; color: ${roleBadgeFg}; padding: 2px 8px; border-radius: 6px;">${roleLabel}</span>
+            </div>
+            <div style="font-size: 0.76rem; color: var(--md-sys-color-on-surface-variant); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span>@${escapeHtml(u.username)}</span>
+              <span style="display: inline-flex; align-items: center; gap: 4px; background: var(--md-sys-color-surface-variant); padding: 2px 6px; border-radius: 4px;">
+                <span>Password:</span>
+                <span class="user-pwd-text" data-pwd="${escapeHtml(plainPwd)}" style="font-family: monospace; font-weight: 700;">••••••••</span>
+                <button class="btn-toggle-pwd-view" style="background: none; border: none; cursor: pointer; padding: 0 2px; color: var(--md-sys-color-primary);" title="Reveal/Hide Password">👁️</button>
+              </span>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <button class="md-btn btn-edit-user-pwd" data-id="${u.user_id}" data-user="${escapeHtml(u.username)}" data-name="${escapeHtml(u.full_name)}" data-role="${u.role}" style="padding: 4px 8px; font-size: 0.72rem; min-height: 30px; background-color: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); width: auto;" title="Change Password / Account Details">
+              <span>🔑 Change Password</span>
+            </button>
+            ${(u.username !== "admin" && u.username !== "employee") ? `
+            <button class="md-btn btn-delete-user" data-id="${u.user_id}" data-user="${escapeHtml(u.username)}" style="padding: 4px 8px; font-size: 0.72rem; min-height: 30px; background-color: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container); width: auto;" title="Delete User Account">
+              <span>🗑️ Delete</span>
+            </button>
+            ` : ''}
+          </div>
+        `;
+
+        const pwdToggleBtn = item.querySelector(".btn-toggle-pwd-view");
+        const pwdTextSpan = item.querySelector(".user-pwd-text");
+        if (pwdToggleBtn && pwdTextSpan) {
+          pwdToggleBtn.addEventListener("click", () => {
+            if (pwdTextSpan.textContent === "••••••••") {
+              pwdTextSpan.textContent = pwdTextSpan.getAttribute("data-pwd");
+            } else {
+              pwdTextSpan.textContent = "••••••••";
+            }
+          });
+        }
+
+        const editBtn = item.querySelector(".btn-edit-user-pwd");
+        if (editBtn) {
+          editBtn.addEventListener("click", () => {
+            openEditUserModal({
+              user_id: u.user_id,
+              username: u.username,
+              full_name: u.full_name,
+              role: u.role
+            });
+          });
+        }
+
+        const delBtn = item.querySelector(".btn-delete-user");
+        if (delBtn) {
+          delBtn.addEventListener("click", () => {
+            deleteUserAccount(u.user_id, u.username);
+          });
+        }
+
+        listContainer.appendChild(item);
+      });
+
+    } catch (err) {
+      listContainer.innerHTML = `<div style="font-size: 0.82rem; color: var(--md-sys-color-error); text-align: center; padding: 8px 0;">Error fetching user accounts.</div>`;
+    }
+  }
+
+  window.openCreateUserModal = function() {
+    const modal = document.getElementById("user-modal");
+    const title = document.getElementById("user-modal-title");
+    const editIdInput = document.getElementById("user-modal-edit-id");
+    const fullnameInput = document.getElementById("user-modal-fullname-input");
+    const usernameInput = document.getElementById("user-modal-username-input");
+    const pwdInput = document.getElementById("user-modal-password-input");
+    const roleSelect = document.getElementById("user-modal-role-select");
+    const statusText = document.getElementById("user-modal-status-text");
+
+    if (title) title.textContent = "Create New User";
+    if (editIdInput) editIdInput.value = "";
+    if (fullnameInput) fullnameInput.value = "";
+    if (usernameInput) {
+      usernameInput.value = "";
+      usernameInput.disabled = false;
+    }
+    if (pwdInput) pwdInput.value = "";
+    if (roleSelect) roleSelect.value = "employee";
+    if (statusText) statusText.textContent = "";
+
+    if (modal) modal.classList.remove("hidden");
+  };
+
+  function openEditUserModal(user) {
+    const modal = document.getElementById("user-modal");
+    const title = document.getElementById("user-modal-title");
+    const editIdInput = document.getElementById("user-modal-edit-id");
+    const fullnameInput = document.getElementById("user-modal-fullname-input");
+    const usernameInput = document.getElementById("user-modal-username-input");
+    const pwdInput = document.getElementById("user-modal-password-input");
+    const roleSelect = document.getElementById("user-modal-role-select");
+    const statusText = document.getElementById("user-modal-status-text");
+
+    if (title) title.textContent = `Edit Account @${user.username}`;
+    if (editIdInput) editIdInput.value = user.user_id;
+    if (fullnameInput) fullnameInput.value = user.full_name || "";
+    if (usernameInput) {
+      usernameInput.value = user.username || "";
+      usernameInput.disabled = true;
+    }
+    if (pwdInput) pwdInput.value = "";
+    if (roleSelect) roleSelect.value = user.role || "employee";
+    if (statusText) statusText.textContent = "";
+
+    if (modal) modal.classList.remove("hidden");
+  }
+
+  window.closeUserModal = function() {
+    const modal = document.getElementById("user-modal");
+    if (modal) modal.classList.add("hidden");
+  };
+
+  async function submitUserForm() {
+    const editIdInput = document.getElementById("user-modal-edit-id");
+    const fullnameInput = document.getElementById("user-modal-fullname-input");
+    const usernameInput = document.getElementById("user-modal-username-input");
+    const pwdInput = document.getElementById("user-modal-password-input");
+    const roleSelect = document.getElementById("user-modal-role-select");
+    const statusText = document.getElementById("user-modal-status-text");
+    const submitBtn = document.getElementById("btn-submit-user-form");
+
+    const userId = editIdInput ? editIdInput.value : "";
+    const fullName = fullnameInput ? fullnameInput.value.trim() : "";
+    const username = usernameInput ? usernameInput.value.trim() : "";
+    const password = pwdInput ? pwdInput.value.trim() : "";
+    const role = roleSelect ? roleSelect.value : "employee";
+
+    if (!userId && (!username || !password || !fullName)) {
+      if (statusText) {
+        statusText.style.color = "var(--md-sys-color-error)";
+        statusText.textContent = "Please fill in all required user fields.";
+      }
+      return;
+    }
+
+    if (submitBtn) submitBtn.disabled = true;
+    if (statusText) {
+      statusText.style.color = "var(--md-sys-color-on-surface-variant)";
+      statusText.textContent = "Saving user account...";
+    }
+
+    try {
+      let res;
+      if (userId) {
+        // Edit existing user
+        res = await window.authenticatedFetch(window.getApiUrl(`/api/admin/users/${userId}`), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            full_name: fullName,
+            role: role,
+            password: password || undefined
+          })
+        });
+      } else {
+        // Create new user
+        res = await window.authenticatedFetch(window.getApiUrl("/api/admin/users"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: username,
+            password: password,
+            full_name: fullName,
+            role: role
+          })
+        });
+      }
+
+      const data = await res.json();
+      if (!res.ok || data.success === false) {
+        if (statusText) {
+          statusText.style.color = "var(--md-sys-color-error)";
+          statusText.textContent = data.detail || data.message || "Failed to save user account.";
+        }
+        return;
+      }
+
+      if (statusText) {
+        statusText.style.color = "var(--md-sys-color-secondary)";
+        statusText.textContent = "User account saved successfully!";
+      }
+
+      addActivityLog({
+        action: userId ? "User Account Updated" : "New User Created",
+        details: `${userId ? 'Updated' : 'Created'} @${username} (${role === 'admin' ? 'Admin' : 'Employee'})`,
+        type: "user_management"
+      });
+
+      fetchUserManagementList();
+
+      setTimeout(() => {
+        closeUserModal();
+      }, 500);
+
+    } catch (err) {
+      if (statusText) {
+        statusText.style.color = "var(--md-sys-color-error)";
+        statusText.textContent = "Network error saving user account.";
+      }
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  }
+
+  async function deleteUserAccount(userId, username) {
+    if (!confirm(`Are you sure you want to delete user account '@${username}'?`)) {
+      return;
+    }
+
+    try {
+      const res = await window.authenticatedFetch(window.getApiUrl(`/api/admin/users/${userId}`), {
+        method: "DELETE"
+      });
+      const data = await res.json();
+
+      if (!res.ok || data.success === false) {
+        alert(data.detail || data.message || "Could not delete user account.");
+        return;
+      }
+
+      addActivityLog({
+        action: "User Account Deleted",
+        details: `Deleted user account @${username} (ID #${userId})`,
+        type: "user_management"
+      });
+
+      fetchUserManagementList();
+    } catch (err) {
+      alert("Network error deleting user account.");
+    }
+  }
+
+  function initUserManagementEvents() {
+    const openBtn = document.getElementById("btn-open-create-user");
+    if (openBtn) {
+      openBtn.addEventListener("click", () => {
+        openCreateUserModal();
+      });
+    }
+
+    const submitBtn = document.getElementById("btn-submit-user-form");
+    if (submitBtn) {
+      submitBtn.addEventListener("click", () => {
+        submitUserForm();
+      });
+    }
+
+    const togglePwdBtn = document.getElementById("btn-toggle-user-modal-password");
+    if (togglePwdBtn) {
+      togglePwdBtn.addEventListener("click", () => {
+        const pwdInput = document.getElementById("user-modal-password-input");
+        if (pwdInput) {
+          pwdInput.type = pwdInput.type === "password" ? "text" : "password";
+        }
+      });
+    }
   }
 
   async function fetchAuditLogs() {
@@ -1991,6 +2299,7 @@
     initCatalogAddModalToggle();
     initCatalogEditEvents();
     initCatalogSearch();
+    initUserManagementEvents();
 
     const hostIndicator = document.getElementById("target-host-indicator");
     if (hostIndicator) {

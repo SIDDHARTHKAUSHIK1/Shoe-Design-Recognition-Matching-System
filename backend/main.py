@@ -857,6 +857,18 @@ async def update_admin_user(user_id: int, payload: dict, request: Request):
     return JSONResponse(content={"success": True, "message": f"User ID {user_id} updated successfully."})
 
 
+@app.delete("/api/admin/users/{user_id}")
+async def delete_admin_user(user_id: int, request: Request):
+    """Delete a user account (Admin only)."""
+    _ = await require_admin_user(request)
+    if user_id in (1, 2):
+        raise HTTPException(status_code=400, detail="Cannot delete core system accounts (Admin/Employee defaults).")
+    success = auth.delete_user(user_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="User not found or could not be deleted.")
+    return JSONResponse(content={"success": True, "message": f"User ID {user_id} deleted successfully."})
+
+
 @app.get("/api/admin/stats")
 async def get_admin_system_stats(request: Request):
     """Retrieve system analytics and match distribution stats (Admin only)."""

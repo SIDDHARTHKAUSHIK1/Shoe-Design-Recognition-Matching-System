@@ -155,7 +155,10 @@ def list_users() -> list:
         from backend.database import get_db_connection
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT user_id, username, role, full_name, is_active, must_change_password, created_at, last_login FROM users ORDER BY user_id ASC")
+            try:
+                cursor.execute("SELECT user_id, username, role, full_name, plain_password, is_active, must_change_password, created_at, last_login FROM users ORDER BY user_id ASC")
+            except sqlite3.OperationalError:
+                cursor.execute("SELECT user_id, username, role, full_name, is_active, must_change_password, created_at, last_login FROM users ORDER BY user_id ASC")
             return [dict(r) for r in cursor.fetchall()]
     except Exception as e:
         logger.warning(f"Error listing users: {e}")
@@ -174,7 +177,10 @@ def change_user_password(user_id: int, old_password: str, new_password: str) -> 
                 return False
                 
             new_hash = hash_password(new_password)
-            cursor.execute("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE user_id = ?", (new_hash, user_id))
+            try:
+                cursor.execute("UPDATE users SET password_hash = ?, plain_password = ?, must_change_password = 0 WHERE user_id = ?", (new_hash, new_password, user_id))
+            except sqlite3.OperationalError:
+                cursor.execute("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE user_id = ?", (new_hash, user_id))
             conn.commit()
             return True
     except Exception:
@@ -188,10 +194,16 @@ def create_user(username: str, password: str, role: str, full_name: str) -> Opti
         from backend.database import get_db_connection
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
-                INSERT INTO users (username, password_hash, role, full_name)
-                VALUES (?, ?, ?, ?)
-            """, (username, pwd_hash, role, full_name))
+            try:
+                cursor.execute("""
+                    INSERT INTO users (username, password_hash, plain_password, role, full_name)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (username, pwd_hash, password, role, full_name))
+            except sqlite3.OperationalError:
+                cursor.execute("""
+                    INSERT INTO users (username, password_hash, role, full_name)
+                    VALUES (?, ?, ?, ?)
+                """, (username, pwd_hash, role, full_name))
             conn.commit()
             return cursor.lastrowid
     except Exception as e:
@@ -219,6 +231,10 @@ def update_user(user_id: int, role: Optional[str] = None, full_name: Optional[st
             if password is not None and len(password) > 0:
                 updates.append("password_hash = ?")
                 params.append(hash_password(password))
+                try:
+                    cursor.execute("UPDATE users SET plain_password = ? WHERE user_id = ?", (password, user_id))
+                except sqlite3.OperationalError:
+                    pass
                 
             if not updates:
                 return False
@@ -229,6 +245,20 @@ def update_user(user_id: int, role: Optional[str] = None, full_name: Optional[st
             return cursor.rowcount > 0
     except Exception as e:
         logger.warning(f"Error updating user {user_id}: {e}")
+        return False
+
+
+def delete_user(user_id: int) -> bool:
+    """Delete a user account by user_id."""
+    try:
+        from backend.database import get_db_connection
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+    except Exception as e:
+        logger.warning(f"Error deleting user {user_id}: {e}")
         return False
 
 
@@ -251,8 +281,8 @@ def seed_initial_users() -> Dict[str, str]:
             if not admin_row:
                 try:
                     cursor.execute(
-                        "INSERT INTO users (username, password_hash, role, full_name, must_change_password) VALUES ('admin', ?, 'admin', 'Admin', 0)",
-                        (hash_password(admin_pwd),)
+                        "INSERT INTO users (username, password_hash, plain_password, role, full_name, must_change_password) VALUES ('admin', ?, ?, 'admin', 'Admin', 0)",
+                        (hash_password(admin_pwd), admin_pwd)
                     )
                 except sqlite3.OperationalError:
                     cursor.execute(
@@ -260,7 +290,10 @@ def seed_initial_users() -> Dict[str, str]:
                         (hash_password(admin_pwd),)
                     )
             else:
-                cursor.execute("UPDATE users SET password_hash = ? WHERE username = 'admin'", (hash_password(admin_pwd),))
+                try:
+                    cursor.execute("UPDATE users SET password_hash = ?, plain_password = ? WHERE username = 'admin'", (hash_password(admin_pwd), admin_pwd))
+                except sqlite3.OperationalError:
+                    cursor.execute("UPDATE users SET password_hash = ? WHERE username = 'admin'", (hash_password(admin_pwd),))
 
             # Seed or check Employee
             cursor.execute("SELECT user_id FROM users WHERE username = 'employee'")
@@ -268,8 +301,8 @@ def seed_initial_users() -> Dict[str, str]:
             if not emp_row:
                 try:
                     cursor.execute(
-                        "INSERT INTO users (username, password_hash, role, full_name, must_change_password) VALUES ('employee', ?, 'employee', 'Inventory Specialist', 0)",
-                        (hash_password(emp_pwd),)
+                        "INSERT INTO users (username, password_hash, plain_password, role, full_name, must_change_password) VALUES ('employee', ?, ?, 'employee', 'Inventory Specialist', 0)",
+                        (hash_password(emp_pwd), emp_pwd)
                     )
                 except sqlite3.OperationalError:
                     cursor.execute(
@@ -277,7 +310,10 @@ def seed_initial_users() -> Dict[str, str]:
                         (hash_password(emp_pwd),)
                     )
             else:
-                cursor.execute("UPDATE users SET password_hash = ? WHERE username = 'employee'", (hash_password(emp_pwd),))
+                try:
+                    cursor.execute("UPDATE users SET password_hash = ?, plain_password = ? WHERE username = 'employee'", (hash_password(emp_pwd), emp_pwd))
+                except sqlite3.OperationalError:
+                    cursor.execute("UPDATE users SET password_hash = ? WHERE username = 'employee'", (hash_password(emp_pwd),))
 
             conn.commit()
     except Exception as e:
