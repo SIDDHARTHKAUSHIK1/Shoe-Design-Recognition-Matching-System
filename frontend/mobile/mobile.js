@@ -290,11 +290,17 @@
 
   function showModal(id) {
     const el = document.getElementById(id);
-    if (el) el.classList.remove("hidden");
+    if (el) {
+      el.classList.remove("hidden");
+      el.style.display = "flex";
+    }
   }
   function hideModal(id) {
     const el = document.getElementById(id);
-    if (el) el.classList.add("hidden");
+    if (el) {
+      el.classList.add("hidden");
+      el.style.display = "none";
+    }
   }
 
   window.handleMobileLogin = async function (e) {
@@ -305,16 +311,26 @@
     const loginErr = document.getElementById("login-error-text");
     const uInput = document.getElementById("login-username");
     const pInput = document.getElementById("login-password");
+    const submitBtn = document.getElementById("btn-login-submit");
 
-    if (loginErr) loginErr.textContent = "";
+    if (loginErr) {
+      loginErr.textContent = "";
+      loginErr.style.color = "var(--md-sys-color-error, #BA1A1A)";
+      loginErr.style.fontWeight = "700";
+      loginErr.style.display = "block";
+    }
 
     const u = uInput ? uInput.value.trim() : "";
     const p = pInput ? pInput.value.trim() : "";
 
     if (!u || !p) {
-      if (loginErr) loginErr.textContent = "Please enter both username and password to log in.";
+      if (loginErr) {
+        loginErr.textContent = "❌ Please enter both username and password to log in.";
+      }
       return false;
     }
+
+    if (submitBtn) submitBtn.disabled = true;
 
     try {
       const res = await fetch(window.getApiUrl("/api/auth/login"), {
@@ -324,21 +340,39 @@
       });
 
       if (!res.ok) {
-        if (loginErr) loginErr.textContent = "Invalid username or password. Access Denied.";
+        let errMsg = "❌ Incorrect password or username. Access Denied.";
+        try {
+          const errData = await res.json();
+          if (errData && (errData.detail || errData.message)) {
+            errMsg = `❌ ${errData.detail || errData.message}`;
+          }
+        } catch (ignore) {}
+
+        if (loginErr) {
+          loginErr.textContent = errMsg;
+          loginErr.style.color = "var(--md-sys-color-error, #BA1A1A)";
+          loginErr.style.fontWeight = "700";
+        }
         return false;
       }
 
       const data = await res.json();
       const token = data.token || data.access_token || "";
       if (!token) {
-        if (loginErr) loginErr.textContent = "Authentication failed: No access token returned.";
+        if (loginErr) loginErr.textContent = "❌ Authentication failed: No access token returned.";
         return false;
       }
 
       window.setAuthToken(token);
+      hideModal("auth-modal");
+      hideModal("password-reset-modal");
       await checkAuthStatus();
     } catch (err) {
-      if (loginErr) loginErr.textContent = window.extractErrorMessage(err, "Network error connecting to API server");
+      if (loginErr) {
+        loginErr.textContent = "❌ Network error connecting to server. Please check your connection.";
+      }
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
     }
     return false;
   };
