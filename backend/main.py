@@ -359,60 +359,33 @@ async def list_farma_shelves(request: Request):
     return JSONResponse(content={"farma_shelves": shelves})
 
 
-def generate_user_based_sku(category: str, name: str, farma_shelf: str = "", drawer: str = "") -> str:
+def generate_user_based_sku(
+    category: str = "",
+    name: str = "",
+    farma_shelf: str = "",
+    drawer: str = "",
+    shelf_location: str = "",
+    materials: str = ""
+) -> str:
     """
-    Generate meaningful SKU code derived ONLY from user input details.
-    NO artificial random hex codes or UUID suffixes!
+    Generate SKU taking first 2 alphanumeric characters of each provided user detail field.
+    No artificial text added for empty fields!
     Examples:
-    - category='Formal', name='Shes24' -> 'F-SHES24'
-    - category='Formal', drawer='Drawer 01' -> 'F-DRAWER01'
-    - category='Formal' only -> 'FORMAL'
+    - category='Formal', name='Oxford' -> 'FO-OX'
+    - category='Formal', drawer='Drawer 01', materials='Leather' -> 'FO-DR-LE'
     """
-    cat_str = (category or "").strip().upper()
-    name_str = (name or "").strip().upper()
-    shelf_str = (farma_shelf or "").strip().upper()
-    drawer_str = (drawer or "").strip().upper()
+    fields = [category, name, farma_shelf, drawer, shelf_location, materials]
+    parts = []
+    for val in fields:
+        if val and isinstance(val, str):
+            clean = "".join(c for c in val.strip() if c.isalnum())
+            if clean:
+                parts.append(clean[:2].upper())
 
-    if cat_str.startswith("FORMAL"):
-        prefix = "F"
-    elif cat_str.startswith("SNEAKER"):
-        prefix = "SNK"
-    elif cat_str.startswith("SPORT"):
-        prefix = "SPT"
-    elif cat_str.startswith("CASUAL"):
-        prefix = "CSL"
-    elif cat_str.startswith("SLIPPER") or cat_str.startswith("SANDAL"):
-        prefix = "SLP"
-    elif cat_str.startswith("BOOT"):
-        prefix = "BT"
-    elif cat_str.startswith("LOAFER"):
-        prefix = "LF"
-    elif cat_str:
-        clean_cat = "".join(c for c in cat_str if c.isalnum())
-        prefix = clean_cat[:4] if len(clean_cat) >= 4 else (clean_cat or "SKU")
+    if not parts:
+        candidate_sku = "SKU"
     else:
-        prefix = "SKU"
-
-    user_parts = []
-    if name_str and not name_str.startswith("FIELD ADDED"):
-        clean_name = "".join(c for c in name_str if c.isalnum() or c == '-')
-        if clean_name:
-            user_parts.append(clean_name[:12])
-
-    if drawer_str:
-        clean_drawer = "".join(c for c in drawer_str if c.isalnum())
-        if clean_drawer and not any(clean_drawer in p for p in user_parts):
-            user_parts.append(clean_drawer[:8])
-
-    if shelf_str and len(user_parts) < 2:
-        clean_shelf = "".join(c for c in shelf_str if c.isalnum())
-        if clean_shelf and not any(clean_shelf in p for p in user_parts):
-            user_parts.append(clean_shelf[:8])
-
-    if user_parts:
-        candidate_sku = f"{prefix}-" + "-".join(user_parts)
-    else:
-        candidate_sku = cat_str if cat_str else "SKU"
+        candidate_sku = "-".join(parts)
 
     final_sku = candidate_sku
     counter = 1
@@ -450,13 +423,21 @@ async def create_design_mobile(
     clean_bytes, clean_name = validate_and_sanitize_image(file.filename, content)
 
     design_category = category.strip() if category and category.strip() else "Sneaker"
+    raw_name = name.strip() if name and name.strip() else ""
     clean_farma_shelf = farma_shelf.strip() if farma_shelf else ""
     clean_drawer = drawer.strip() if drawer and drawer.strip() else (season.strip() if season and season.strip() else "")
     clean_location = shelf_location.strip() if shelf_location and shelf_location.strip() else ""
     clean_materials = materials.strip() if materials and materials.strip() else ""
 
-    # Generate SKU derived strictly from user details (no artificial hex)
-    design_id = generate_user_based_sku(design_category, raw_name, clean_farma_shelf, clean_drawer)
+    # Generate SKU derived strictly from first 2 characters of non-empty user details
+    design_id = generate_user_based_sku(
+        category=design_category,
+        name=raw_name,
+        farma_shelf=clean_farma_shelf,
+        drawer=clean_drawer,
+        shelf_location=clean_location,
+        materials=clean_materials
+    )
     design_name = raw_name if raw_name else f"Field Added Design {design_id}"
 
     try:

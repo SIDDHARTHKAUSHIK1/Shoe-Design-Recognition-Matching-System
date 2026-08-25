@@ -535,6 +535,7 @@
           e.preventDefault();
           const val = el.getAttribute("data-value");
           input.value = val;
+          input.dispatchEvent(new Event("input", { bubbles: true }));
           dropdown.classList.add("hidden");
         });
       });
@@ -704,6 +705,71 @@
     });
   }
 
+  window.computeDynamicSkuFromDetails = function(details) {
+    const fields = [
+      details.category,
+      details.name,
+      details.farma_shelf,
+      details.drawer,
+      details.shelf_location,
+      details.materials
+    ];
+
+    const parts = [];
+    fields.forEach(val => {
+      if (val && typeof val === 'string') {
+        const clean = val.trim().replace(/[^a-zA-Z0-9]/g, '');
+        if (clean.length > 0) {
+          parts.push(clean.substring(0, 2).toUpperCase());
+        }
+      }
+    });
+
+    return parts.length > 0 ? parts.join("-") : "SKU";
+  };
+
+  window.updateAddModalLiveSku = function() {
+    const cat = document.getElementById("catalog-add-category-input")?.value || "";
+    const name = document.getElementById("catalog-add-name-input")?.value || "";
+    const shelf = document.getElementById("catalog-add-farma-shelf-input")?.value || "";
+    const drawer = document.getElementById("catalog-add-drawer-input")?.value || "";
+    const loc = document.getElementById("catalog-add-location-input")?.value || "";
+    const mat = document.getElementById("catalog-add-materials-input")?.value || "";
+
+    const sku = window.computeDynamicSkuFromDetails({
+      category: cat,
+      name: name,
+      farma_shelf: shelf,
+      drawer: drawer,
+      shelf_location: loc,
+      materials: mat
+    });
+
+    const badge = document.getElementById("catalog-add-sku-badge");
+    if (badge) badge.textContent = sku;
+  };
+
+  window.updateEditModalLiveSku = function() {
+    const cat = document.getElementById("catalog-edit-category-input")?.value || "";
+    const name = document.getElementById("catalog-edit-name-input")?.value || "";
+    const shelf = document.getElementById("catalog-edit-farma-shelf-input")?.value || "";
+    const drawer = document.getElementById("catalog-edit-drawer-input")?.value || "";
+    const loc = document.getElementById("catalog-edit-location-input")?.value || "";
+    const mat = document.getElementById("catalog-edit-materials-input")?.value || "";
+
+    const sku = window.computeDynamicSkuFromDetails({
+      category: cat,
+      name: name,
+      farma_shelf: shelf,
+      drawer: drawer,
+      shelf_location: loc,
+      materials: mat
+    });
+
+    const skuInput = document.getElementById("catalog-edit-sku-input");
+    if (skuInput) skuInput.value = sku;
+  };
+
   function initCatalogAddEvents() {
     const cameraBtn = document.getElementById("btn-catalog-add-camera");
     const galleryBtn = document.getElementById("btn-catalog-add-gallery");
@@ -711,6 +777,15 @@
     const submitBtn = document.getElementById("btn-catalog-add-submit");
 
     initCatalogAddComboboxes();
+
+    ["catalog-add-category-input", "catalog-add-name-input", "catalog-add-farma-shelf-input", "catalog-add-drawer-input", "catalog-add-location-input", "catalog-add-materials-input"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener("input", window.updateAddModalLiveSku);
+        el.addEventListener("change", window.updateAddModalLiveSku);
+      }
+    });
+    window.updateAddModalLiveSku();
 
     if (cameraBtn) {
       cameraBtn.addEventListener("click", async () => {
@@ -1443,6 +1518,14 @@
           details: `Removed "${val}" from Materials selection options.`,
           type: "catalog_edit"
         });
+      }
+    });
+
+    ["catalog-edit-category-input", "catalog-edit-name-input", "catalog-edit-farma-shelf-input", "catalog-edit-drawer-input", "catalog-edit-location-input", "catalog-edit-materials-input"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener("input", window.updateEditModalLiveSku);
+        el.addEventListener("change", window.updateEditModalLiveSku);
       }
     });
   }
