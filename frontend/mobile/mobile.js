@@ -669,23 +669,23 @@
       }
     });
 
-    // 6. Materials Combobox
+    // 6. Size Combobox (6-12 dropdown)
     setupCombobox({
       inputId: "catalog-add-materials-input",
       dropdownId: "add-materials-dropdown",
       getSuggestions: () => {
         const deleted = state.customDeletedMaterials || [];
-        const defaults = ["Full Grain Leather / Rubber Sole", "Knit Mesh / Foam Sole", "Suede Leather / Rubber Sole", "Canvas Upper / Vulcanized Sole"];
+        const defaults = ["Size 6", "Size 7", "Size 8", "Size 9", "Size 10", "Size 11", "Size 12"];
         const fromCatalog = (state.catalog || []).map(d => d.materials).filter(Boolean);
         return Array.from(new Set([...defaults, ...fromCatalog])).filter(m => !deleted.includes(m));
       },
-      newItemPrefix: "Add new material",
+      newItemPrefix: "Add custom size",
       onDeleteItem: (val) => {
         state.customDeletedMaterials = state.customDeletedMaterials || [];
         state.customDeletedMaterials.push(val);
         addActivityLog({
-          action: "Materials Option Deleted",
-          details: `Removed "${val}" from Materials selection options.`,
+          action: "Size Option Deleted",
+          details: `Removed "${val}" from Size selection options.`,
           type: "catalog_edit"
         });
       }
@@ -1187,7 +1187,7 @@
         </div>
         
         <div style="font-size: 0.82rem; color: var(--md-sys-color-on-surface-variant); margin-bottom: 8px;">
-          Materials: <strong>${materialsText}</strong>
+          Size: <strong>${materialsText}</strong>
         </div>
 
         ${farmaShelfText ? `
@@ -1564,17 +1564,17 @@
       dropdownId: "edit-materials-dropdown",
       getSuggestions: () => {
         const deleted = state.customDeletedMaterials || [];
-        const defaults = ["Full Grain Leather / Rubber Sole", "Knit Mesh / Foam Sole", "Suede Leather / Rubber Sole", "Canvas Upper / Vulcanized Sole"];
+        const defaults = ["Size 6", "Size 7", "Size 8", "Size 9", "Size 10", "Size 11", "Size 12"];
         const fromCatalog = (state.catalog || []).map(d => d.materials).filter(Boolean);
         return Array.from(new Set([...defaults, ...fromCatalog])).filter(m => !deleted.includes(m));
       },
-      newItemPrefix: "Use custom material",
+      newItemPrefix: "Use custom size",
       onDeleteItem: (val) => {
         state.customDeletedMaterials = state.customDeletedMaterials || [];
         state.customDeletedMaterials.push(val);
         addActivityLog({
-          action: "Materials Option Deleted",
-          details: `Removed "${val}" from Materials selection options.`,
+          action: "Size Option Deleted",
+          details: `Removed "${val}" from Size selection options.`,
           type: "catalog_edit"
         });
       }
