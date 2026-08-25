@@ -615,7 +615,29 @@
       }
     });
 
-    // 4. Warehouse Location Combobox
+    // 4. Drawer Combobox
+    setupCombobox({
+      inputId: "catalog-add-drawer-input",
+      dropdownId: "add-drawer-dropdown",
+      getSuggestions: () => {
+        const deleted = state.customDeletedDrawers || [];
+        const defaults = ["Drawer 01", "Drawer A-04", "Top Drawer", "Drawer B-02"];
+        const fromCatalog = (state.catalog || []).map(d => d.drawer || d.season).filter(Boolean);
+        return Array.from(new Set([...defaults, ...fromCatalog])).filter(d => !deleted.includes(d));
+      },
+      newItemPrefix: "Add new drawer",
+      onDeleteItem: (val) => {
+        state.customDeletedDrawers = state.customDeletedDrawers || [];
+        state.customDeletedDrawers.push(val);
+        addActivityLog({
+          action: "Drawer Option Deleted",
+          details: `Removed "${val}" from Drawer selection options.`,
+          type: "catalog_edit"
+        });
+      }
+    });
+
+    // 5. Warehouse Location Combobox
     setupCombobox({
       inputId: "catalog-add-location-input",
       dropdownId: "add-location-dropdown",
@@ -637,7 +659,7 @@
       }
     });
 
-    // 5. Materials Combobox
+    // 6. Materials Combobox
     setupCombobox({
       inputId: "catalog-add-materials-input",
       dropdownId: "add-materials-dropdown",
@@ -659,7 +681,7 @@
       }
     });
 
-    // 6. Season Combobox
+    // 7. Season Combobox
     setupCombobox({
       inputId: "catalog-add-season-input",
       dropdownId: "add-season-dropdown",
@@ -763,8 +785,10 @@
     const categoryInput = document.getElementById("catalog-add-category-input");
     const farmaShelfInput = document.getElementById("catalog-add-farma-shelf-input");
     const locationInput = document.getElementById("catalog-add-location-input");
+    const drawerInput = document.getElementById("catalog-add-drawer-input");
     const materialsInput = document.getElementById("catalog-add-materials-input");
-    const seasonInput = document.getElementById("catalog-add-season-input");
+
+    const drawerVal = drawerInput ? drawerInput.value : "";
 
     const formData = new FormData();
     formData.append("file", state.selectedCatalogAddFile);
@@ -772,8 +796,9 @@
     formData.append("category", categoryInput ? categoryInput.value : "");
     formData.append("farma_shelf", farmaShelfInput ? farmaShelfInput.value : "");
     formData.append("shelf_location", locationInput ? locationInput.value : "");
+    formData.append("drawer", drawerVal);
+    formData.append("season", drawerVal);
     formData.append("materials", materialsInput ? materialsInput.value : "");
-    formData.append("season", seasonInput ? seasonInput.value : "");
 
     if (submitBtn) submitBtn.disabled = true;
     if (loadingRow) loadingRow.style.display = "flex";
@@ -806,7 +831,7 @@
 
       addActivityLog({
         action: "Catalogue Design Added",
-        details: `Added "${data.name || nameInput.value || 'New Design'}" (SKU: ${data.design_id || 'SKU'})`,
+        details: `Added "${data.name || (nameInput ? nameInput.value : '') || 'New Design'}" (SKU: ${data.design_id || 'SKU'})`,
         type: "catalog_add"
       });
 
@@ -816,8 +841,8 @@
       if (categoryInput) categoryInput.value = "";
       if (farmaShelfInput) farmaShelfInput.value = "";
       if (locationInput) locationInput.value = "";
+      if (drawerInput) drawerInput.value = "";
       if (materialsInput) materialsInput.value = "";
-      if (seasonInput) seasonInput.value = "";
       const previewContainer = document.getElementById("catalog-add-preview-container");
       if (previewContainer) previewContainer.classList.add("hidden");
       fetchCatalog({ silent: true });

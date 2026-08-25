@@ -367,6 +367,7 @@ async def create_design_mobile(
     category: str = Form("Sneaker"),
     farma_shelf: str = Form(""),
     shelf_location: str = Form(""),
+    drawer: str = Form(""),
     materials: str = Form(""),
     season: str = Form(""),
     file: UploadFile = File(...),
@@ -387,8 +388,8 @@ async def create_design_mobile(
     design_category = category.strip() if category and category.strip() else "Sneaker"
     clean_farma_shelf = farma_shelf.strip() if farma_shelf else ""
     clean_location = shelf_location.strip() if shelf_location and shelf_location.strip() else "Warehouse A - Rack 03 - Shelf B-02"
+    clean_drawer = drawer.strip() if drawer and drawer.strip() else (season.strip() if season and season.strip() else "Drawer 01")
     clean_materials = materials.strip() if materials and materials.strip() else "Full Grain Leather / Rubber Sole"
-    clean_season = season.strip() if season and season.strip() else "Collection 2026"
 
     try:
         ingest_result = ingest_single_design(
@@ -398,10 +399,12 @@ async def create_design_mobile(
             farma_shelf=clean_farma_shelf,
             shelf_location=clean_location,
             materials=clean_materials,
-            season=clean_season,
+            season=clean_drawer,
             image_files=[{"filename": clean_name, "content": clean_bytes}],
             background_tasks=background_tasks
         )
+        # Update drawer attribute explicitly
+        db.update_design_metadata(design_id, drawer=clean_drawer)
     except Exception as e:
         logger.error(f"Mobile catalogue add failed for {design_id}: {e}")
         raise HTTPException(status_code=500, detail="Could not add this design to the catalogue. Please try again.")
@@ -422,7 +425,11 @@ async def update_shoe_shelf_location(
     if not design:
         raise HTTPException(status_code=404, detail=f"Design '{design_id}' not found.")
         
-    db.update_design_location(design_id, shelf_location, production_status)
+    update_kwargs = {"shelf_location": shelf_location.strip()}
+    if production_status:
+        update_kwargs["production_status"] = production_status.strip()
+
+    db.update_design_metadata(design_id, **update_kwargs)
     return JSONResponse(content={
         "success": True, 
         "design_id": design_id, 
