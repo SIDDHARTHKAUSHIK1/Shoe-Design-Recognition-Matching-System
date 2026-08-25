@@ -319,12 +319,14 @@
 
     <!-- Edit Catalog Item Modal -->
     <div id="catalog-edit-modal" class="scanner-overlay hidden">
-      <div class="md-card" id="catalog-edit-card" style="width: 100%; max-width: 400px; max-height: 85vh; overflow-y: auto;">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+      <div class="md-card" id="catalog-edit-card" style="width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; overflow-x: hidden;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
           <div class="card-title" style="margin-bottom: 0;">Edit Catalog Design</div>
           <button class="icon-btn" id="btn-close-catalog-edit" title="Close" style="min-width: 36px; min-height: 36px;" onclick="closeCatalogEditModal()">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
           </button>
+        </div>
+
         <label style="font-size: 0.78rem; font-weight: 700; color: var(--md-sys-color-secondary); margin-bottom: 4px; display: block;">SKU Code (Editable)</label>
         <div style="margin-bottom: 12px;">
           <input type="text" id="catalog-edit-sku-input" class="md-input" placeholder="SKU Details (e.g. F-SHES24)" style="margin-bottom: 0; font-weight: 700; color: var(--md-sys-color-secondary); border-color: var(--md-sys-color-secondary);">

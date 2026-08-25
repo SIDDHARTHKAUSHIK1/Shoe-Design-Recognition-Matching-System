@@ -655,9 +655,12 @@ mark.highlight {
 
 .scanner-overlay .md-card {
   width: 100%;
-  max-width: 480px;
+  max-width: 460px;
   max-height: 90vh;
   overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
   border-radius: 20px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   padding: 20px;
