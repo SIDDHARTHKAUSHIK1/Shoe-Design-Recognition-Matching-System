@@ -357,13 +357,15 @@
         </div>
 
         <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Warehouse Location</label>
-        <div style="margin-bottom: 12px;">
-          <input type="text" id="catalog-edit-location-input" class="md-input" placeholder="Warehouse Location (e.g. Warehouse A - Rack 03)" style="margin-bottom: 0;">
+        <div class="combobox-wrap" style="position: relative; margin-bottom: 12px;">
+          <input type="text" id="catalog-edit-location-input" class="md-input" placeholder="Warehouse Location (e.g. Warehouse A - Rack 03)" autocomplete="off" style="margin-bottom: 0;">
+          <div id="edit-location-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1298; max-height: 140px;"></div>
         </div>
 
         <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Materials</label>
-        <div style="margin-bottom: 16px;">
-          <input type="text" id="catalog-edit-materials-input" class="md-input" placeholder="Materials (e.g. Leather Upper / Rubber Sole)" style="margin-bottom: 0;">
+        <div class="combobox-wrap" style="position: relative; margin-bottom: 16px;">
+          <input type="text" id="catalog-edit-materials-input" class="md-input" placeholder="Materials (e.g. Leather Upper / Rubber Sole)" autocomplete="off" style="margin-bottom: 0;">
+          <div id="edit-materials-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1297; max-height: 140px;"></div>
         </div>
 
         <div style="display: flex; gap: 8px; margin-top: 14px;">

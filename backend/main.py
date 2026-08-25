@@ -450,11 +450,10 @@ async def create_design_mobile(
     clean_bytes, clean_name = validate_and_sanitize_image(file.filename, content)
 
     design_category = category.strip() if category and category.strip() else "Sneaker"
-    raw_name = name.strip() if name and name.strip() else ""
     clean_farma_shelf = farma_shelf.strip() if farma_shelf else ""
-    clean_drawer = drawer.strip() if drawer and drawer.strip() else (season.strip() if season and season.strip() else "Drawer 01")
-    clean_location = shelf_location.strip() if shelf_location and shelf_location.strip() else "Warehouse A - Rack 03 - Shelf B-02"
-    clean_materials = materials.strip() if materials and materials.strip() else "Full Grain Leather / Rubber Sole"
+    clean_drawer = drawer.strip() if drawer and drawer.strip() else (season.strip() if season and season.strip() else "")
+    clean_location = shelf_location.strip() if shelf_location and shelf_location.strip() else ""
+    clean_materials = materials.strip() if materials and materials.strip() else ""
 
     # Generate SKU derived strictly from user details (no artificial hex)
     design_id = generate_user_based_sku(design_category, raw_name, clean_farma_shelf, clean_drawer)

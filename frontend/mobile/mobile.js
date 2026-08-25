@@ -1382,6 +1382,69 @@
         updateAdminDashboard();
       }
     });
+
+    setupCombobox({
+      inputId: "catalog-edit-drawer-input",
+      dropdownId: "edit-drawer-dropdown",
+      getSuggestions: () => {
+        const deleted = state.customDeletedDrawers || [];
+        const defaults = ["Drawer 01", "Drawer A-04", "Top Drawer", "Drawer B-02"];
+        const fromCatalog = (state.catalog || []).map(d => d.drawer || d.season).filter(Boolean);
+        return Array.from(new Set([...defaults, ...fromCatalog])).filter(d => !deleted.includes(d));
+      },
+      newItemPrefix: "Use custom drawer",
+      onDeleteItem: (val) => {
+        state.customDeletedDrawers = state.customDeletedDrawers || [];
+        state.customDeletedDrawers.push(val);
+        addActivityLog({
+          action: "Drawer Option Deleted",
+          details: `Removed "${val}" from Drawer selection options.`,
+          type: "catalog_edit"
+        });
+      }
+    });
+
+    setupCombobox({
+      inputId: "catalog-edit-location-input",
+      dropdownId: "edit-location-dropdown",
+      getSuggestions: () => {
+        const deleted = state.customDeletedLocations || [];
+        const defaults = ["Warehouse A - Rack 01 - Shelf A-01", "Warehouse A - Rack 03 - Shelf B-02", "Warehouse B - Rack 05 - Shelf C-01"];
+        const fromCatalog = (state.catalog || []).map(d => d.shelf_location).filter(Boolean);
+        return Array.from(new Set([...defaults, ...fromCatalog])).filter(l => !deleted.includes(l));
+      },
+      newItemPrefix: "Use custom location",
+      onDeleteItem: (val) => {
+        state.customDeletedLocations = state.customDeletedLocations || [];
+        state.customDeletedLocations.push(val);
+        addActivityLog({
+          action: "Warehouse Location Option Deleted",
+          details: `Removed "${val}" from Warehouse Location selection options.`,
+          type: "catalog_edit"
+        });
+      }
+    });
+
+    setupCombobox({
+      inputId: "catalog-edit-materials-input",
+      dropdownId: "edit-materials-dropdown",
+      getSuggestions: () => {
+        const deleted = state.customDeletedMaterials || [];
+        const defaults = ["Full Grain Leather / Rubber Sole", "Knit Mesh / Foam Sole", "Suede Leather / Rubber Sole", "Canvas Upper / Vulcanized Sole"];
+        const fromCatalog = (state.catalog || []).map(d => d.materials).filter(Boolean);
+        return Array.from(new Set([...defaults, ...fromCatalog])).filter(m => !deleted.includes(m));
+      },
+      newItemPrefix: "Use custom material",
+      onDeleteItem: (val) => {
+        state.customDeletedMaterials = state.customDeletedMaterials || [];
+        state.customDeletedMaterials.push(val);
+        addActivityLog({
+          action: "Materials Option Deleted",
+          details: `Removed "${val}" from Materials selection options.`,
+          type: "catalog_edit"
+        });
+      }
+    });
   }
 
   let currentPreviewDesignId = null;
