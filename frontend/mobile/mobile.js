@@ -237,41 +237,9 @@
   // ==========================================
   // Auth & Session Management
   // ==========================================
+  const DEV_SKIP_LOGIN = false;
+
   async function checkAuthStatus() {
-    // ⚠️ Temporary Dev-Only Testing Bypass
-    if (DEV_SKIP_LOGIN) {
-      hideModal("auth-modal");
-      hideModal("password-reset-modal");
-
-      // Auto-authenticate in background with default admin credentials if no token exists
-      if (!window.getAuthToken()) {
-        try {
-          const autoRes = await fetch(window.getApiUrl("/api/auth/login"), {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username: "admin", password: "admin123" })
-          });
-          if (autoRes.ok) {
-            const autoData = await autoRes.json();
-            const t = autoData.token || autoData.access_token;
-            if (t) window.setAuthToken(t);
-          }
-        } catch (e) {
-          console.warn("Dev bypass background auto-login attempt failed:", e);
-        }
-      }
-
-      state.user = {
-        user_id: 1,
-        username: "dev_tester",
-        role: "admin",
-        full_name: "Development Test User"
-      };
-      updateUserRoleBadge(state.user);
-      return;
-    }
-
-    // Production Auth Flow
     const token = window.getAuthToken();
     if (!token) {
       showModal("auth-modal");
@@ -293,14 +261,31 @@
         hideModal("auth-modal");
         hideModal("password-reset-modal");
         updateUserRoleBadge(userObj);
+      } else {
+        showModal("auth-modal");
       }
     } catch (err) {
       console.warn("Auth status check warning:", err);
+      showModal("auth-modal");
     }
   }
 
   function updateUserRoleBadge(user) {
-    applyActiveRole(getActiveRole());
+    if (!user) return;
+    const cleanRole = user.role === "admin" ? "admin" : "employee";
+    applyActiveRole(cleanRole);
+
+    const nameEl = document.getElementById("my-profile-name");
+    const userEl = document.getElementById("my-profile-username");
+    const pwdEl = document.getElementById("my-profile-password");
+
+    if (nameEl) nameEl.textContent = user.full_name || user.username;
+    if (userEl) userEl.textContent = `@${user.username}`;
+    if (pwdEl) {
+      const userPwd = user.plain_password || (user.username === "admin" ? "admin123" : user.username === "employee" ? "emp123" : "******");
+      pwdEl.setAttribute("data-pwd", userPwd);
+      pwdEl.textContent = "••••••••";
+    }
   }
 
   function showModal(id) {
@@ -322,11 +307,8 @@
       let u = document.getElementById("login-username").value.trim();
       let p = document.getElementById("login-password").value.trim();
 
-      if (u.toLowerCase() === "admin" && !p) p = "admin123";
-      if (u.toLowerCase() === "employee" && !p) p = "emp123";
-
-      if (!u) {
-        loginErr.textContent = "Please enter a username (e.g. admin or employee)";
+      if (!u || !p) {
+        loginErr.textContent = "Please enter both username and password to log in.";
         return;
       }
 
@@ -344,14 +326,14 @@
           } catch (e) {
             errData = { detail: `Server error (Status ${res.status})` };
           }
-          loginErr.textContent = window.extractErrorMessage(errData, "Invalid username or password");
+          loginErr.textContent = "Invalid username or password. Access Denied.";
           return;
         }
 
         const data = await res.json();
         const token = data.token || data.access_token || "";
         if (!token) {
-          loginErr.textContent = "Authentication succeeded but no token was returned";
+          loginErr.textContent = "Authentication failed: No access token returned.";
           return;
         }
 
@@ -363,11 +345,41 @@
     });
 
     const logoutBtn = document.getElementById("btn-logout");
-    logoutBtn.addEventListener("click", () => {
-      window.setAuthToken("");
-      state.user = null;
-      showModal("auth-modal");
-    });
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", () => {
+        window.setAuthToken("");
+        state.user = null;
+        showModal("auth-modal");
+      });
+    }
+
+    const toggleMyPwdBtn = document.getElementById("btn-toggle-my-pwd-view");
+    const myPwdSpan = document.getElementById("my-profile-password");
+    if (toggleMyPwdBtn && myPwdSpan) {
+      toggleMyPwdBtn.addEventListener("click", () => {
+        if (myPwdSpan.textContent === "••••••••") {
+          myPwdSpan.textContent = myPwdSpan.getAttribute("data-pwd") || "••••••••";
+        } else {
+          myPwdSpan.textContent = "••••••••";
+        }
+      });
+    }
+
+    const changeMyPwdBtn = document.getElementById("btn-change-my-pwd");
+    if (changeMyPwdBtn) {
+      changeMyPwdBtn.addEventListener("click", () => {
+        if (state.user && state.user.user_id) {
+          openEditUserModal({
+            user_id: state.user.user_id,
+            username: state.user.username,
+            full_name: state.user.full_name,
+            role: state.user.role
+          });
+        } else {
+          alert("Account session active. Please use password reset form.");
+        }
+      });
+    }
   }
 
   // ==========================================
