@@ -629,6 +629,7 @@ def delete_design(design_id: str) -> bool:
     """Delete a design and its associated reference images."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
+        cursor.execute("DELETE FROM reference_images WHERE design_id = ?;", (design_id,))
         cursor.execute("DELETE FROM designs WHERE design_id = ?;", (design_id,))
         conn.commit()
         return cursor.rowcount > 0

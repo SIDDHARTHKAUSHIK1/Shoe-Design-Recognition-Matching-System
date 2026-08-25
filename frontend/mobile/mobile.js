@@ -1094,6 +1094,7 @@
     const rawMatches = data.matches || [];
     const seenDesignIds = new Set();
     const seenImagePaths = new Set();
+    const seenNames = new Set();
     const matches = [];
 
     rawMatches.forEach(m => {
@@ -1103,6 +1104,7 @@
         rawImg = `/catalog_images/${designId}/photo_1.jpg`;
       }
       const imgKey = rawImg ? rawImg.toString().trim().toLowerCase() : "";
+      const rawName = (m.design_name || m.name || "").toString().trim().toLowerCase().replace(/[^a-z0-9]/g, '');
 
       if (designId && seenDesignIds.has(designId)) {
         return;
@@ -1110,9 +1112,13 @@
       if (imgKey && seenImagePaths.has(imgKey)) {
         return;
       }
+      if (rawName && seenNames.has(rawName)) {
+        return;
+      }
 
       if (designId) seenDesignIds.add(designId);
       if (imgKey) seenImagePaths.add(imgKey);
+      if (rawName) seenNames.add(rawName);
       matches.push(m);
     });
 
