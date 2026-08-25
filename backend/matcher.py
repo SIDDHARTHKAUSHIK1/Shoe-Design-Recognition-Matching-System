@@ -184,12 +184,6 @@ class ShoeMatcher:
                 "message": "Slippers are not supported by this catalog. Please upload a shoe image."
             }
 
-
-
-
-
-
-        
         # 4. Check if catalog has vectors
         if self.vector_store.total_vectors == 0:
             latency_ms = (time.time() - t0) * 1000
@@ -216,6 +210,8 @@ class ShoeMatcher:
         
         # 5. Filter candidates strictly to the detected category and apply color-aware ranking
         seen_designs = {}
+        seen_image_hashes = set()
+
         for score, faiss_id in zip(raw_scores, raw_ids):
             if faiss_id < 0:
                 continue
@@ -223,6 +219,13 @@ class ShoeMatcher:
             ref_meta = db.get_reference_image_by_faiss_id(int(faiss_id))
             if not ref_meta:
                 continue
+            
+            # Deduplicate by image file content
+            img_path = ref_meta.get("image_path", "")
+            img_hash = _get_image_file_hash(img_path)
+            if img_hash and img_hash in seen_image_hashes:
+                continue
+            seen_image_hashes.add(img_hash)
 
             ref_category = ref_meta.get("category", "")
             cat_bonus = 0.05 if db.normalize_category(ref_category) == detected_category else 0.00
