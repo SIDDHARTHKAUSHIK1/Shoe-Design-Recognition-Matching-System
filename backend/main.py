@@ -544,8 +544,8 @@ async def list_designs(
 
 @app.put("/api/designs/{design_id}")
 async def update_design(design_id: str, payload: dict, request: Request):
-    """Update design attributes (name, category, materials, shelf_location, etc.) (Admin only)."""
-    _ = await require_admin_user(request)
+    """Update design attributes (name, category, materials, shelf_location, etc.) (Authenticated Users)."""
+    _ = await require_authenticated_user(request)
     design = db.get_design(design_id)
     if not design:
         raise HTTPException(status_code=404, detail=f"Design '{design_id}' not found.")
@@ -831,7 +831,7 @@ async def list_admin_users(request: Request):
 async def create_admin_user(payload: dict, request: Request):
     """Create a new user account (Admin only)."""
     _ = await require_admin_user(request)
-    username = payload.get("username", "").strip()
+    username = payload.get("username", "").strip().lstrip("@")
     password = payload.get("password", "").strip()
     role = payload.get("role", "employee").strip()
     full_name = payload.get("full_name", "").strip()
