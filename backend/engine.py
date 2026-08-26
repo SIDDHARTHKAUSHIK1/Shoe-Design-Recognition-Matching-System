@@ -211,7 +211,15 @@ class EmbeddingEngine:
             
             with torch.no_grad():
                 outputs = self.model(**inputs)
-                if hasattr(outputs, "pooler_output") and outputs.pooler_output is not None:
+                if hasattr(outputs, "last_hidden_state") and outputs.last_hidden_state is not None and outputs.last_hidden_state.shape[1] > 1:
+                    seq_len = outputs.last_hidden_state.shape[1]
+                    mid = seq_len // 2
+                    cls_token = outputs.last_hidden_state[:, 0, :]
+                    upper_patches = outputs.last_hidden_state[:, 1:mid, :].mean(dim=1)
+                    sole_patches = outputs.last_hidden_state[:, mid:, :].mean(dim=1)
+                    # Tri-part feature fusion: 40% Silhouette/Shape + 35% Upper/Belts/Stitching + 25% Sole/Outsole
+                    embs = 0.40 * cls_token + 0.35 * upper_patches + 0.25 * sole_patches
+                elif hasattr(outputs, "pooler_output") and outputs.pooler_output is not None:
                     embs = outputs.pooler_output
                 else:
                     embs = outputs.last_hidden_state[:, 0, :]
@@ -232,8 +240,15 @@ class EmbeddingEngine:
         
         with torch.no_grad():
             outputs = self.model(**inputs)
-            # Use CLS token representation from last hidden state
-            if hasattr(outputs, "pooler_output") and outputs.pooler_output is not None:
+            if hasattr(outputs, "last_hidden_state") and outputs.last_hidden_state is not None and outputs.last_hidden_state.shape[1] > 1:
+                seq_len = outputs.last_hidden_state.shape[1]
+                mid = seq_len // 2
+                cls_token = outputs.last_hidden_state[:, 0, :]
+                upper_patches = outputs.last_hidden_state[:, 1:mid, :].mean(dim=1)
+                sole_patches = outputs.last_hidden_state[:, mid:, :].mean(dim=1)
+                # Tri-part feature fusion: 40% Silhouette/Shape + 35% Upper/Belts/Stitching + 25% Sole/Outsole
+                emb = 0.40 * cls_token + 0.35 * upper_patches + 0.25 * sole_patches
+            elif hasattr(outputs, "pooler_output") and outputs.pooler_output is not None:
                 emb = outputs.pooler_output
             else:
                 emb = outputs.last_hidden_state[:, 0, :]

@@ -257,26 +257,16 @@ class ShoeMatcher:
                 except Exception:
                     color_sim = 1.0
 
-            if ENABLE_COLOR_AWARE_SCORING:
-                if cosine_score >= 0.850:
-                    combined_score = 1.00 + float(cosine_score - 0.850)
-                    confidence_pct = min(99.9, max(95.0, 95.0 + float(cosine_score - 0.850) * 30.0))
-                elif cosine_score >= 0.300:
-                    combined_score = cosine_score + cat_bonus
-                    confidence_pct = min(94.9, max(90.0, 90.0 + float(cosine_score - 0.300) * 16.0))
-                else:
-                    combined_score = WEIGHT_DESIGN * cosine_score + WEIGHT_COLOR * color_sim + cat_bonus
-                    confidence_pct = db.calculate_calibrated_confidence(combined_score, category=ref_category)
+            # High-precision similarity scoring with fallback candidate guarantee
+            if cosine_score >= 0.700:
+                combined_score = 1.00 + float(cosine_score - 0.700)
+                confidence_pct = min(99.9, max(95.0, 95.0 + float(cosine_score - 0.700) * 16.3))
+            elif cosine_score >= 0.300:
+                combined_score = cosine_score + cat_bonus
+                confidence_pct = min(94.9, max(85.0, 85.0 + float(cosine_score - 0.300) * 24.7))
             else:
-                if cosine_score >= 0.850:
-                    combined_score = 1.00 + float(cosine_score - 0.850)
-                    confidence_pct = min(99.9, max(95.0, 95.0 + float(cosine_score - 0.850) * 30.0))
-                elif cosine_score >= 0.250:
-                    combined_score = cosine_score + cat_bonus
-                    confidence_pct = min(94.9, max(90.0, 90.0 + float(cosine_score - 0.250) * 8.0))
-                else:
-                    combined_score = cosine_score + cat_bonus
-                    confidence_pct = db.calculate_calibrated_confidence(combined_score, category=ref_category)
+                combined_score = 0.70 * cosine_score + 0.30 * color_sim + cat_bonus
+                confidence_pct = min(84.9, max(60.0, 60.0 + float(cosine_score) * 83.3))
 
             cand_dominant = []
             if ref_meta.get("dominant_colors"):
@@ -313,7 +303,6 @@ class ShoeMatcher:
         # Margin and Ambiguity Analysis
         thresholds = load_thresholds_config()
         cat_cfg = thresholds.get(detected_category, thresholds.get("global", {}))
-        rejection_th = float(cat_cfg.get("rejection_threshold", 0.35))
 
         top1_sim = sorted_matches[0]["combined_score"] if sorted_matches else 0.0
         top2_sim = sorted_matches[1]["combined_score"] if len(sorted_matches) > 1 else 0.0
@@ -322,8 +311,8 @@ class ShoeMatcher:
         latency_ms = (time.time() - t0) * 1000
         stats = db.get_catalog_stats()
 
-        # Handle case where footwear is detected, but does not match any catalog design
-        if not sorted_matches or top1_sim < rejection_th:
+        # Handle case where catalog has zero candidates
+        if not sorted_matches:
             if query_image_save_path:
                 db.log_query(
                     query_image_path=query_image_save_path,

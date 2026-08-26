@@ -119,8 +119,43 @@ def get_matcher():
     return _matcher_instance
 
 
+# Smart Fallback Image Router
+@app.get("/catalog_images/{design_id}/{filename}")
+async def serve_catalog_image_smart_fallback(design_id: str, filename: str):
+    """
+    Serve requested catalog image with smart fallback to any available photo if exact file is missing.
+    Guarantees zero broken images on landing page and app cards.
+    """
+    target_path = CATALOG_IMAGES_DIR / design_id / filename
+    if target_path.exists() and target_path.is_file():
+        return FileResponse(str(target_path), headers={"Cache-Control": "public, max-age=86400"})
+    
+    # Smart Fallback: Check if design_id folder exists and pick first valid image
+    design_dir = CATALOG_IMAGES_DIR / design_id
+    if design_dir.exists() and design_dir.is_dir():
+        image_files = [f for f in design_dir.iterdir() if f.is_file() and f.suffix.lower() in ('.jpg', '.jpeg', '.png', '.webp')]
+        if image_files:
+            image_files.sort(key=lambda x: 0 if x.name.startswith("photo") else 1)
+            return FileResponse(str(image_files[0]), headers={"Cache-Control": "public, max-age=86400"})
+
+    # Fallback to DB item lookup
+    item = db.get_catalog_item_by_id(design_id)
+    if item:
+        ref_path = item.get("thumbnail_path") or (item.get("reference_images") and item["reference_images"][0].get("image_path"))
+        if ref_path:
+            clean_path = ref_path.lstrip("/\\")
+            full_ref = BASE_DIR / clean_path
+            if full_ref.exists():
+                return FileResponse(str(full_ref), headers={"Cache-Control": "public, max-age=86400"})
+
+    placeholder = FRONTEND_DIR / "placeholder.png"
+    if placeholder.exists():
+        return FileResponse(str(placeholder), headers={"Cache-Control": "no-cache"})
+    
+    raise HTTPException(status_code=404, detail="Image not found")
+
+
 # Static file mounts
-app.mount("/catalog_images", StaticFiles(directory=str(CATALOG_IMAGES_DIR)), name="catalog_images")
 app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
 

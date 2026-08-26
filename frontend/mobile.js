@@ -652,6 +652,63 @@
     if (mainContent) mainContent.scrollTop = 0;
   }
 
+  // Fast Client-Side Image Downsampling / Compression Helper (800px max dimension, 0.85 quality)
+  function compressImageBeforeUpload(file, maxDimension = 800, quality = 0.85) {
+    return new Promise((resolve) => {
+      if (!file || !file.type || !file.type.startsWith('image/')) {
+        return resolve(file);
+      }
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        let width = img.width;
+        let height = img.height;
+
+        if (width <= maxDimension && height <= maxDimension && file.size < 300000) {
+          return resolve(file);
+        }
+
+        if (width > height) {
+          if (width > maxDimension) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          }
+        } else {
+          if (height > maxDimension) {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const compressedFile = new File([blob], file.name || "query.jpg", {
+              type: "image/jpeg",
+              lastModified: Date.now()
+            });
+            resolve(compressedFile);
+          } else {
+            resolve(file);
+          }
+        }, 'image/jpeg', quality);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(file);
+      };
+      img.src = url;
+    });
+  }
+
   function setQueryFile(file, autoRun = true) {
     state.selectedQueryFile = file;
     const previewContainer = document.getElementById("query-preview-container");
@@ -660,17 +717,19 @@
     // Instantly switch & redirect to Studio tab
     switchTab("tab-studio");
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (previewImg) previewImg.src = e.target.result;
-      if (previewContainer) previewContainer.classList.remove("hidden");
-      
-      // Automatically & instantly run AI search upon photo capture
-      if (autoRun) {
-        runVisualMatch();
+    if (previewImg) {
+      if (previewImg.src && previewImg.src.startsWith('blob:')) {
+        try { URL.revokeObjectURL(previewImg.src); } catch(e) {}
       }
-    };
-    reader.readAsDataURL(file);
+      previewImg.src = URL.createObjectURL(file);
+      previewImg.decoding = 'async';
+    }
+    if (previewContainer) previewContainer.classList.remove("hidden");
+
+    // Automatically & instantly run AI search upon photo capture
+    if (autoRun) {
+      runVisualMatch();
+    }
   }
 
   async function fetchFarmaShelves() {
@@ -1214,32 +1273,17 @@
     overlay.classList.remove("hidden");
     [stepExif, stepU2Net, stepDINO, stepFAISS].forEach(s => s.className = "scan-step");
 
-    // Staged Feedback Animation Sequence
-    statusText.textContent = "Checking Image Orientation...";
-    stepExif.classList.add("active");
-
-    setTimeout(() => {
-      stepExif.classList.replace("active", "done");
-      stepU2Net.classList.add("active");
-      statusText.textContent = "Isolating Shoe Image...";
-    }, 400);
-
-    setTimeout(() => {
-      stepU2Net.classList.replace("active", "done");
-      stepDINO.classList.add("active");
-      statusText.textContent = "Analyzing Design Features...";
-    }, 1000);
-
-    setTimeout(() => {
-      stepDINO.classList.replace("active", "done");
-      stepFAISS.classList.add("active");
-      statusText.textContent = "Searching Catalog Database...";
-    }, 1800);
-
-    const formData = new FormData();
-    formData.append("file", state.selectedQueryFile);
+    statusText.textContent = "Analyzing Features & Matching Catalog...";
+    stepExif.classList.add("done");
+    stepU2Net.classList.add("done");
+    stepDINO.classList.add("active");
+    stepFAISS.classList.add("active");
 
     try {
+      // Send original full-resolution image file to AI match server
+      const formData = new FormData();
+      formData.append("file", state.selectedQueryFile);
+
       const res = await window.authenticatedFetch(window.getApiUrl("/api/match"), {
         method: "POST",
         body: formData
@@ -1490,9 +1534,10 @@
         <div class="card-title" style="margin-top: 8px;">${escapeHtml(designName)}</div>
         <div style="font-size: 0.8rem; color: var(--md-sys-color-outline); margin-bottom: 10px;">SKU: ${escapeHtml(designId)} • Category: ${escapeHtml(category)}</div>
         
-        <div style="position: relative; text-align: center; margin-bottom: 12px; background-color: var(--md-sys-color-background); border-radius: 12px; padding: 8px; border: 1px solid var(--md-sys-color-surface-variant);">
+        <div style="position: relative; text-align: center; margin-bottom: 12px; background-color: var(--md-sys-color-background); border-radius: 12px; padding: 8px; border: 1px solid var(--md-sys-color-surface-variant); min-height: 140px; display: flex; align-items: center; justify-content: center;">
           <img src="${imgPath}" alt="${escapeHtml(designName)}" 
-               style="width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px; transition: transform 0.2s ease;"
+               loading="${rank <= 2 ? 'eager' : 'lazy'}" decoding="async"
+               style="width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px; transition: opacity 0.15s ease;"
                onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23D97706\' stroke-width=\'2\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\'/><path d=\'M2 17l10 4 10-4\'/><path d=\'M12 3L2 8l10 5 10-5-10-5z\'/></svg>';" />
         </div>
         
