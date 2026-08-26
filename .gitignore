@@ -66,3 +66,4 @@ deploy/hostinger/.ftp.env
 # Frontend build output
 dist/
 deploy/hostinger/*.zip
+shoematch_frontend_20260822_180200.zip
