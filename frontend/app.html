@@ -1230,7 +1230,10 @@
 
           <div class="form-group" style="margin-bottom: 18px;">
             <label for="login-password" style="display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Password</label>
-            <input type="password" id="login-password" placeholder="Enter your password" required style="width: 100%; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-strong); background: var(--bg-surface); color: var(--text-primary); font-size: 0.88rem;">
+            <div style="position: relative;">
+              <input type="password" id="login-password" placeholder="Enter your password" required style="width: 100%; padding: 10px 42px 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-strong); background: var(--bg-surface); color: var(--text-primary); font-size: 0.88rem;">
+              <button type="button" id="btn-toggle-app-login-pwd" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 6px; color: var(--text-secondary); font-size: 1.1rem; display: flex; align-items: center; justify-content: center; z-index: 10;" title="View/Hide Password">👁️</button>
+            </div>
           </div>
 
           <div style="background: var(--bg-surface-subtle); padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); font-size: 0.75rem; color: var(--text-muted);">

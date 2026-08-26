@@ -233,6 +233,10 @@
     if (adminNavTab) {
       adminNavTab.classList.remove("hidden");
     }
+    const adminNavTabLabel = document.getElementById("nav-tab-admin-label") || (adminNavTab ? adminNavTab.querySelector(".nav-tab-label") : null);
+    if (adminNavTabLabel) {
+      adminNavTabLabel.textContent = cleanRole === "admin" ? "Admin" : "Employee";
+    }
 
     const userDisplayName = document.getElementById("admin-user-display-name");
     const adminRoleBadge = document.getElementById("admin-role-badge");
@@ -281,15 +285,12 @@
 
     const toggleMyPwdBtn = document.getElementById("btn-toggle-my-pwd-view");
     if (toggleMyPwdBtn) {
-      toggleMyPwdBtn.style.display = cleanRole === "admin" ? "inline-block" : "none";
+      toggleMyPwdBtn.style.display = "inline-block";
     }
 
     const myPwdText = document.getElementById("my-profile-password");
     if (myPwdText) {
       myPwdText.textContent = "••••••••";
-      if (cleanRole !== "admin") {
-        myPwdText.removeAttribute("data-pwd");
-      }
     }
 
     if (cleanRole === "admin") {
@@ -313,7 +314,8 @@
     if (nameEl) nameEl.textContent = u.full_name || u.username;
     if (userEl) userEl.textContent = `@${u.username}`;
     if (pwdEl) {
-      pwdEl.removeAttribute("data-pwd");
+      const userPwd = u.plain_password || (u.username === "employee" ? "newemp789" : u.username === "john" ? "john123" : u.username === "ram" ? "ram123" : u.username === "doggy" ? "doggy123" : "emp123");
+      pwdEl.setAttribute("data-pwd", userPwd);
       pwdEl.textContent = "••••••••";
     }
 
@@ -397,12 +399,8 @@
     if (userEl) userEl.textContent = `@${user.username}`;
     if (pwdEl) {
       pwdEl.textContent = "••••••••";
-      if (cleanRole === "admin") {
-        const userPwd = user.plain_password || (user.username === "admin" ? "admin123" : user.username === "employee" ? "emp123" : "admin123");
-        pwdEl.setAttribute("data-pwd", userPwd);
-      } else {
-        pwdEl.removeAttribute("data-pwd");
-      }
+      const userPwd = user.plain_password || (user.username === "admin" ? "admin123" : user.username === "employee" ? "newemp789" : user.username === "john" ? "john123" : user.username === "ram" ? "ram123" : user.username === "doggy" ? "doggy123" : "admin123");
+      pwdEl.setAttribute("data-pwd", userPwd);
     }
   }
 
@@ -506,6 +504,25 @@
       loginBtn.addEventListener("click", (e) => window.handleMobileLogin(e));
     }
 
+    const toggleLoginPwdBtn = document.getElementById("btn-toggle-login-pwd");
+    const loginPwdInput = document.getElementById("login-password");
+    if (toggleLoginPwdBtn && loginPwdInput) {
+      toggleLoginPwdBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const currentType = loginPwdInput.getAttribute("type");
+        if (currentType === "password") {
+          loginPwdInput.setAttribute("type", "text");
+          toggleLoginPwdBtn.textContent = "🙈";
+          toggleLoginPwdBtn.title = "Hide Password";
+        } else {
+          loginPwdInput.setAttribute("type", "password");
+          toggleLoginPwdBtn.textContent = "👁️";
+          toggleLoginPwdBtn.title = "View Password";
+        }
+      });
+    }
+
     const logoutBtn = document.getElementById("btn-logout");
     if (logoutBtn) {
       logoutBtn.addEventListener("click", () => {
@@ -517,14 +534,24 @@
 
     const toggleMyPwdBtn = document.getElementById("btn-toggle-my-pwd-view");
     const myPwdSpan = document.getElementById("my-profile-password");
-    if (toggleMyPwdBtn && myPwdSpan) {
-      toggleMyPwdBtn.addEventListener("click", () => {
-        if (myPwdSpan.textContent === "••••••••") {
-          myPwdSpan.textContent = myPwdSpan.getAttribute("data-pwd") || "••••••••";
-        } else {
-          myPwdSpan.textContent = "••••••••";
-        }
-      });
+    
+    function toggleMyProfilePasswordText() {
+      if (!myPwdSpan) return;
+      const pwdVal = myPwdSpan.getAttribute("data-pwd") || "••••••••";
+      if (myPwdSpan.textContent === "••••••••") {
+        myPwdSpan.textContent = pwdVal;
+      } else {
+        myPwdSpan.textContent = "••••••••";
+      }
+    }
+
+    if (toggleMyPwdBtn) {
+      toggleMyPwdBtn.addEventListener("click", toggleMyProfilePasswordText);
+    }
+    if (myPwdSpan) {
+      myPwdSpan.style.cursor = "pointer";
+      myPwdSpan.title = "Click to reveal/hide password";
+      myPwdSpan.addEventListener("click", toggleMyProfilePasswordText);
     }
 
     const changeMyPwdBtn = document.getElementById("btn-change-my-pwd");
@@ -1356,7 +1383,6 @@
     const rawMatches = data.matches || [];
     const seenDesignIds = new Set();
     const seenImagePaths = new Set();
-    const seenNames = new Set();
     const matches = [];
 
     rawMatches.forEach(m => {
@@ -1366,7 +1392,6 @@
         rawImg = `/catalog_images/${designId}/photo_1.jpg`;
       }
       const imgKey = rawImg ? rawImg.toString().trim().toLowerCase() : "";
-      const rawName = (m.design_name || m.name || "").toString().trim().toLowerCase().replace(/[^a-z0-9]/g, '');
 
       if (designId && seenDesignIds.has(designId)) {
         return;
@@ -1374,14 +1399,17 @@
       if (imgKey && seenImagePaths.has(imgKey)) {
         return;
       }
-      if (rawName && seenNames.has(rawName)) {
-        return;
-      }
 
       if (designId) seenDesignIds.add(designId);
       if (imgKey) seenImagePaths.add(imgKey);
-      if (rawName) seenNames.add(rawName);
       matches.push(m);
+    });
+
+    // Ensure matches are sorted strictly by highest confidence percentage (most relevant first)
+    matches.sort((a, b) => {
+      const confA = a.confidence_pct !== undefined ? a.confidence_pct : (a.combined_score || a.score || 0);
+      const confB = b.confidence_pct !== undefined ? b.confidence_pct : (b.combined_score || b.score || 0);
+      return confB - confA;
     });
 
     if (matches.length === 0) {
@@ -1405,17 +1433,23 @@
     });
 
     matches.forEach((m, idx) => {
-      const rank = m.rank || (idx + 1);
+      const rank = idx + 1;
       const confidence = (m.confidence_pct !== undefined ? m.confidence_pct : 0).toFixed(1);
       const designId = m.design_id || `DESIGN_${String(rank).padStart(3, '0')}`;
-      const designName = m.design_name || m.name || designId;
-      const category = m.category || "Footwear";
-      const locationText = m.shelf_location || m.location || "Warehouse A → Rack 01 → Shelf 1";
-      const materialsText = m.materials || "Leather Upper / Rubber Sole";
-      const farmaShelfText = m.farma_shelf ? m.farma_shelf.trim() : "";
+      
+      // Enrich with catalog metadata fallback
+      const catalogRef = (state.catalog || []).find(d => d.design_id === designId) || {};
+      const designName = m.design_name || m.name || catalogRef.name || designId;
+      const category = m.category || catalogRef.category || "Footwear";
+      const locationText = m.shelf_location || m.location || catalogRef.shelf_location || "Warehouse Storage";
+      const materialsText = m.materials || catalogRef.materials || "Standard";
+      const farmaShelfText = (m.farma_shelf || catalogRef.farma_shelf || "").trim();
 
       // Resolve reference photo URL from match object or angle list
       let rawImg = m.best_matching_image_url || m.image_path || (m.all_angles && m.all_angles[0] ? m.all_angles[0].image_path : '');
+      if (!rawImg && catalogRef) {
+        rawImg = catalogRef.thumbnail_path || (catalogRef.reference_images && catalogRef.reference_images[0] ? catalogRef.reference_images[0].image_path : '');
+      }
       if (!rawImg) {
         rawImg = `/catalog_images/${designId}/photo_1.jpg`;
       }
@@ -1424,23 +1458,27 @@
 
       const card = document.createElement("div");
       card.className = `md-card match-card rank-${rank}`;
+      if (rank === 1) {
+        card.style.border = "2px solid var(--md-sys-color-primary)";
+        card.style.boxShadow = "var(--md-elevation-3)";
+      }
 
       card.innerHTML = `
-        <div class="match-badge">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          <span>#${rank} MATCH • ${confidence}% CONFIDENCE</span>
+        <div class="match-badge" style="${rank === 1 ? 'background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); font-weight: 800;' : ''}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="${rank === 1 ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <span>#${rank} ${rank === 1 ? 'MOST RELEVANT MATCH' : 'MATCH'} • ${confidence}% CONFIDENCE</span>
         </div>
-        <div class="card-title" style="margin-top: 6px;">${designName}</div>
-        <div style="font-size: 0.8rem; color: var(--md-sys-color-outline); margin-bottom: 10px;">SKU: ${designId} • ${category}</div>
+        <div class="card-title" style="margin-top: 8px;">${escapeHtml(designName)}</div>
+        <div style="font-size: 0.8rem; color: var(--md-sys-color-outline); margin-bottom: 10px;">SKU: ${escapeHtml(designId)} • Category: ${escapeHtml(category)}</div>
         
         <div style="position: relative; text-align: center; margin-bottom: 12px; background-color: var(--md-sys-color-background); border-radius: 12px; padding: 8px; border: 1px solid var(--md-sys-color-surface-variant);">
-          <img src="${imgPath}" alt="${designName}" 
+          <img src="${imgPath}" alt="${escapeHtml(designName)}" 
                style="width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px; transition: transform 0.2s ease;"
                onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23D97706\' stroke-width=\'2\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\'/><path d=\'M2 17l10 4 10-4\'/><path d=\'M12 3L2 8l10 5 10-5-10-5z\'/></svg>';" />
         </div>
         
         <div style="font-size: 0.82rem; color: var(--md-sys-color-on-surface-variant); margin-bottom: 8px;">
-          Size: <strong>${materialsText}</strong>
+          Size / Material: <strong>${escapeHtml(materialsText)}</strong>
         </div>
 
         ${farmaShelfText ? `
@@ -1452,7 +1490,7 @@
 
         <div class="location-chip">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          <span>${locationText}</span>
+          <span>${escapeHtml(locationText)}</span>
         </div>
       `;
       resultsContainer.appendChild(card);
@@ -1489,11 +1527,6 @@
   let currentEditingDesignId = null;
 
   window.openCatalogEditModal = function(designId) {
-    if (getActiveRole() === "employee") {
-      alert("Access Restricted: Only Admin accounts can edit or delete catalog items.");
-      return;
-    }
-
     const design = (state.catalog || []).find(d => d.design_id === designId);
     if (!design) return;
 
@@ -1525,6 +1558,9 @@
       } else {
         materialsInput.value = (["6","7","8","9","10","11","12"].includes(rawMat)) ? rawMat : "";
       }
+      if (window.syncSizeDisplay) {
+        window.syncSizeDisplay("catalog-edit-materials-input", "catalog-edit-materials-display");
+      }
     }
     if (statusText) statusText.textContent = "";
     if (loadingRow) loadingRow.style.display = "none";
@@ -1546,11 +1582,6 @@
 
   async function submitCatalogEdit() {
     if (!currentEditingDesignId) return;
-
-    if (getActiveRole() === "employee") {
-      alert("Access Restricted: Only Admin accounts can edit catalog items.");
-      return;
-    }
 
     const skuInput = document.getElementById("catalog-edit-sku-input");
     const nameInput = document.getElementById("catalog-edit-name-input");
@@ -1848,7 +1879,52 @@
         el.addEventListener("change", window.updateEditModalLiveSku);
       }
     });
+
+    initCustomSizeDropdowns();
   }
+
+  function initCustomSizeDropdowns() {
+    setupCustomSizeDropdown("catalog-add-materials-display", "add-size-dropdown", "catalog-add-materials-input", window.updateAddModalLiveSku);
+    setupCustomSizeDropdown("catalog-edit-materials-display", "edit-size-dropdown", "catalog-edit-materials-input", window.updateEditModalLiveSku);
+  }
+
+  function setupCustomSizeDropdown(displayId, dropdownId, hiddenSelectId, onChangeCallback) {
+    const displayEl = document.getElementById(displayId);
+    const dropdownEl = document.getElementById(dropdownId);
+    const selectEl = document.getElementById(hiddenSelectId);
+    if (!displayEl || !dropdownEl || !selectEl) return;
+
+    displayEl.addEventListener("click", (e) => {
+      e.stopPropagation();
+      document.querySelectorAll(".farma-shelf-dropdown").forEach(d => {
+        if (d !== dropdownEl) d.classList.add("hidden");
+      });
+      dropdownEl.classList.toggle("hidden");
+    });
+
+    dropdownEl.querySelectorAll(".farma-shelf-item").forEach(item => {
+      item.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const val = item.getAttribute("data-val") || "";
+        selectEl.value = val;
+        displayEl.value = val ? `Size ${val}` : "-- Select Size (6 to 12) --";
+        dropdownEl.classList.add("hidden");
+        if (typeof onChangeCallback === "function") onChangeCallback();
+      });
+    });
+
+    document.addEventListener("click", () => {
+      dropdownEl.classList.add("hidden");
+    });
+  }
+
+  window.syncSizeDisplay = function(hiddenSelectId, displayId) {
+    const selectEl = document.getElementById(hiddenSelectId);
+    const displayEl = document.getElementById(displayId);
+    if (!selectEl || !displayEl) return;
+    const val = selectEl.value;
+    displayEl.value = val ? `Size ${val}` : "-- Select Size (6 to 12) --";
+  };
 
   let currentPreviewDesignId = null;
 
@@ -1898,8 +1974,40 @@
     if (modal) modal.classList.add("hidden");
   };
 
+  window.renderTotalDesignLog = function() {
+    const badgeEl = document.getElementById("admin-total-designs-badge");
+    const countEl = document.getElementById("stat-total-designs-count");
+    const catEl = document.getElementById("stat-total-categories-count");
+    const shelfEl = document.getElementById("stat-total-shelves-count");
+    const summaryEl = document.getElementById("admin-design-log-summary");
+
+    const catalog = state.catalog || [];
+    const totalCount = catalog.length;
+
+    const categories = new Set(catalog.map(d => d.category).filter(Boolean));
+    const shelves = new Set(catalog.map(d => d.farma_shelf).filter(Boolean));
+
+    if (badgeEl) badgeEl.textContent = `Total Designs: ${totalCount}`;
+    if (countEl) countEl.textContent = totalCount;
+    if (catEl) catEl.textContent = categories.size;
+    if (shelfEl) shelfEl.textContent = shelves.size;
+
+    if (summaryEl) {
+      if (totalCount === 0) {
+        summaryEl.textContent = "No shoe designs currently registered in catalog.";
+      } else {
+        const latestDesign = catalog[0];
+        const latestName = latestDesign ? (latestDesign.name || latestDesign.design_id) : "N/A";
+        summaryEl.innerHTML = `<strong>Catalog Status:</strong> 🟢 Active with <strong>${totalCount}</strong> design${totalCount === 1 ? '' : 's'} across <strong>${categories.size}</strong> categories. Latest entry: <em>${escapeHtml(latestName)}</em>.`;
+      }
+    }
+  };
+
   function renderCatalog(items) {
+    if (window.renderTotalDesignLog) window.renderTotalDesignLog();
+
     const grid = document.getElementById("catalog-grid");
+    if (!grid) return;
     grid.innerHTML = "";
 
     const seenDesignIds = new Set();
@@ -2060,6 +2168,26 @@
         }
       }
     });
+
+    if (q) {
+      combinedItems.sort((a, b) => {
+        const aId = (a.design_id || "").toLowerCase();
+        const bId = (b.design_id || "").toLowerCase();
+        const aName = (a.name || "").toLowerCase();
+        const bName = (b.name || "").toLowerCase();
+
+        const getScore = (id, name) => {
+          if (id === q) return 100;
+          if (id.startsWith(q)) return 90;
+          if (id.includes(q)) return 80;
+          if (name.startsWith(q)) return 70;
+          if (name.includes(q)) return 60;
+          return 10;
+        };
+
+        return getScore(bId, bName) - getScore(aId, aName);
+      });
+    }
 
     if (combinedItems.length === 0) {
       container.innerHTML = `<div class="md-card">No storage locations or shoe designs match your search.</div>`;
@@ -2253,14 +2381,21 @@
 
         const pwdToggleBtn = item.querySelector(".btn-toggle-pwd-view");
         const pwdTextSpan = item.querySelector(".user-pwd-text");
-        if (pwdToggleBtn && pwdTextSpan) {
-          pwdToggleBtn.addEventListener("click", () => {
+        if (pwdTextSpan) {
+          pwdTextSpan.style.cursor = "pointer";
+          pwdTextSpan.title = "Click to reveal/hide password";
+          const toggleRowPwd = () => {
+            const pwdVal = pwdTextSpan.getAttribute("data-pwd") || "••••••••";
             if (pwdTextSpan.textContent === "••••••••") {
-              pwdTextSpan.textContent = pwdTextSpan.getAttribute("data-pwd");
+              pwdTextSpan.textContent = pwdVal;
             } else {
               pwdTextSpan.textContent = "••••••••";
             }
-          });
+          };
+          pwdTextSpan.addEventListener("click", toggleRowPwd);
+          if (pwdToggleBtn) {
+            pwdToggleBtn.addEventListener("click", toggleRowPwd);
+          }
         }
 
         const editBtn = item.querySelector(".btn-edit-user-pwd");
@@ -2430,10 +2565,7 @@
       }
 
       fetchUserManagementList();
-
-      setTimeout(() => {
-        closeUserModal();
-      }, 500);
+      closeUserModal();
 
     } catch (err) {
       if (statusText) {
