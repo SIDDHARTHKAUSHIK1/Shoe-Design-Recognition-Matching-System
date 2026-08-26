@@ -157,6 +157,38 @@
           </div>
         </div>
 
+        <!-- Total Design Log & Catalog Status Card (Positioned directly below Active User Account) -->
+        <div class="md-card" id="admin-total-design-log-card" style="margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <div class="card-title" style="margin-bottom: 2px;">📊 Total Design Status & Catalog Log</div>
+              <div style="font-size: 0.78rem; color: var(--md-sys-color-on-surface-variant);">Live counts and inventory status of registered shoe designs</div>
+            </div>
+            <span id="admin-total-designs-badge" style="font-size: 0.78rem; font-weight: 700; background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); padding: 4px 10px; border-radius: 20px;">
+              Total Designs: 0
+            </span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px;">
+            <div style="background: var(--md-sys-color-surface-variant); padding: 8px 6px; border-radius: 10px; text-align: center;">
+              <div style="font-size: 1.1rem; font-weight: 800; color: var(--md-sys-color-primary);" id="stat-total-designs-count">0</div>
+              <div style="font-size: 0.7rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant);">Total Designs</div>
+            </div>
+            <div style="background: var(--md-sys-color-surface-variant); padding: 8px 6px; border-radius: 10px; text-align: center;">
+              <div style="font-size: 1.1rem; font-weight: 800; color: var(--md-sys-color-secondary);" id="stat-total-categories-count">0</div>
+              <div style="font-size: 0.7rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant);">Categories</div>
+            </div>
+            <div style="background: var(--md-sys-color-surface-variant); padding: 8px 6px; border-radius: 10px; text-align: center;">
+              <div style="font-size: 1.1rem; font-weight: 800; color: var(--md-sys-color-tertiary, #7D5260);" id="stat-total-shelves-count">0</div>
+              <div style="font-size: 0.7rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant);">Farma Shelves</div>
+            </div>
+          </div>
+
+          <div id="admin-design-log-summary" style="font-size: 0.78rem; color: var(--md-sys-color-on-surface-variant); background: var(--md-sys-color-background); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--md-sys-color-surface-variant);">
+            Loading catalog status...
+          </div>
+        </div>
+
         <!-- Create and Manage User Section (Admin Only) -->
         <div class="md-card" id="admin-user-management-card" style="margin-bottom: 12px; display: none;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
@@ -170,8 +202,8 @@
             </button>
           </div>
 
-          <!-- Users List Table Container -->
-          <div id="admin-users-list" style="display: flex; flex-direction: column; gap: 8px;">
+          <!-- Users List Table Container (Roller Scroll Container) -->
+          <div id="admin-users-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; padding-right: 4px;">
             <div style="font-size: 0.82rem; color: var(--md-sys-color-outline); text-align: center; padding: 8px 0;">Loading system users...</div>
           </div>
         </div>
@@ -250,7 +282,7 @@
         <div class="nav-tab-pill">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         </div>
-        <span class="nav-tab-label">Admin</span>
+        <span class="nav-tab-label" id="nav-tab-admin-label">Admin</span>
       </button>
     </nav>
 
@@ -262,7 +294,10 @@
         
         <form id="login-form" onsubmit="event.preventDefault(); window.handleMobileLogin(event); return false;">
           <input type="text" id="login-username" class="md-input" placeholder="Username (e.g. admin or employee)" required autocomplete="username">
-          <input type="password" id="login-password" class="md-input" placeholder="Password" required autocomplete="current-password">
+          <div style="position: relative; margin-bottom: 16px;">
+            <input type="password" id="login-password" class="md-input" placeholder="Password" required autocomplete="current-password" style="margin-bottom: 0; padding-right: 42px;">
+            <button type="button" id="btn-toggle-login-pwd" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 6px; color: var(--md-sys-color-on-surface-variant); font-size: 1.1rem; display: flex; align-items: center; justify-content: center; z-index: 10;" title="View/Hide Password">👁️</button>
+          </div>
           
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; font-size: 0.82rem; color: var(--md-sys-color-on-surface-variant);">
             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
@@ -355,9 +390,23 @@
           <div id="add-location-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1198; max-height: 160px;"></div>
         </div>
 
-        <div style="margin-bottom: 14px;">
+        <div style="margin-bottom: 14px; position: relative;">
           <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Size</label>
-          <select id="catalog-add-materials-input" class="md-input" style="margin-bottom: 0; background-color: var(--md-sys-color-surface); font-weight: 600; cursor: pointer;">
+          <div style="position: relative;">
+            <input type="text" id="catalog-add-materials-display" class="md-input" placeholder="-- Select Size (6 to 12) --" readonly style="margin-bottom: 0; background-color: var(--md-sys-color-surface); font-weight: 600; cursor: pointer; padding-right: 32px;" />
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; opacity: 0.7;"><polyline points="6 9 12 15 18 9"/></svg>
+            <div id="add-size-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1200; max-height: 200px; width: 100%; box-sizing: border-box;">
+              <div class="farma-shelf-item" data-val="">-- Select Size (6 to 12) --</div>
+              <div class="farma-shelf-item" data-val="6">Size 6</div>
+              <div class="farma-shelf-item" data-val="7">Size 7</div>
+              <div class="farma-shelf-item" data-val="8">Size 8</div>
+              <div class="farma-shelf-item" data-val="9">Size 9</div>
+              <div class="farma-shelf-item" data-val="10">Size 10</div>
+              <div class="farma-shelf-item" data-val="11">Size 11</div>
+              <div class="farma-shelf-item" data-val="12">Size 12</div>
+            </div>
+          </div>
+          <select id="catalog-add-materials-input" style="display: none;">
             <option value="">-- Select Size (6 to 12) --</option>
             <option value="6">Size 6</option>
             <option value="7">Size 7</option>
@@ -441,7 +490,21 @@
         </div>
 
         <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Size</label>
-        <select id="catalog-edit-materials-input" class="md-input" style="margin-bottom: 16px; background-color: var(--md-sys-color-surface); font-weight: 600; cursor: pointer;">
+        <div style="position: relative; margin-bottom: 16px;">
+          <input type="text" id="catalog-edit-materials-display" class="md-input" placeholder="-- Select Size (6 to 12) --" readonly style="margin-bottom: 0; background-color: var(--md-sys-color-surface); font-weight: 600; cursor: pointer; padding-right: 32px;" />
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; opacity: 0.7;"><polyline points="6 9 12 15 18 9"/></svg>
+          <div id="edit-size-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1300; max-height: 200px; width: 100%; box-sizing: border-box;">
+            <div class="farma-shelf-item" data-val="">-- Select Size (6 to 12) --</div>
+            <div class="farma-shelf-item" data-val="6">Size 6</div>
+            <div class="farma-shelf-item" data-val="7">Size 7</div>
+            <div class="farma-shelf-item" data-val="8">Size 8</div>
+            <div class="farma-shelf-item" data-val="9">Size 9</div>
+            <div class="farma-shelf-item" data-val="10">Size 10</div>
+            <div class="farma-shelf-item" data-val="11">Size 11</div>
+            <div class="farma-shelf-item" data-val="12">Size 12</div>
+          </div>
+        </div>
+        <select id="catalog-edit-materials-input" style="display: none;">
           <option value="">-- Select Size (6 to 12) --</option>
           <option value="6">Size 6</option>
           <option value="7">Size 7</option>

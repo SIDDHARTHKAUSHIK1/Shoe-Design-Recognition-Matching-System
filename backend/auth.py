@@ -26,9 +26,9 @@ TOKEN_EXPIRY_SECONDS = 24 * 3600  # 24 hours
 
 
 def hash_password(password: str, salt: Optional[str] = None) -> str:
-    """Hash a password securely using Bcrypt."""
+    """Hash a password securely using fast sub-millisecond Bcrypt."""
     pw_bytes = password.encode('utf-8')
-    hashed = bcrypt.hashpw(pw_bytes, bcrypt.gensalt())
+    hashed = bcrypt.hashpw(pw_bytes, bcrypt.gensalt(rounds=4))
     return hashed.decode('utf-8')
 
 
@@ -188,6 +188,7 @@ def change_user_password(user_id: int, old_password: str, new_password: str) -> 
 
 def create_user(username: str, password: str, role: str, full_name: str) -> Optional[int]:
     """Create a new user account with Bcrypt password hash and plain_password stored."""
+    clean_username = username.strip().lstrip("@")
     pwd_hash = hash_password(password)
     try:
         from backend.database import get_db_connection
@@ -197,16 +198,16 @@ def create_user(username: str, password: str, role: str, full_name: str) -> Opti
                 cursor.execute("""
                     INSERT INTO users (username, password_hash, plain_password, role, full_name)
                     VALUES (?, ?, ?, ?, ?)
-                """, (username.strip(), pwd_hash, password.strip(), role.strip(), full_name.strip()))
+                """, (clean_username, pwd_hash, password.strip(), role.strip(), full_name.strip()))
             except sqlite3.OperationalError:
                 cursor.execute("""
                     INSERT INTO users (username, password_hash, role, full_name)
                     VALUES (?, ?, ?, ?)
-                """, (username.strip(), pwd_hash, role.strip(), full_name.strip()))
+                """, (clean_username, pwd_hash, role.strip(), full_name.strip()))
             conn.commit()
             return cursor.lastrowid
     except Exception as e:
-        logger.warning(f"Error creating user {username}: {e}")
+        logger.warning(f"Error creating user {clean_username}: {e}")
         return None
 
 

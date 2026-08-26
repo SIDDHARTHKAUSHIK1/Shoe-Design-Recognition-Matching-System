@@ -615,6 +615,25 @@ document.addEventListener("DOMContentLoaded", () => {
   // Sync Theme Toggle UI
   const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
   window.updateThemeToggleUI(currentTheme);
+
+  const toggleAppLoginPwdBtn = document.getElementById("btn-toggle-app-login-pwd");
+  const appLoginPwdInput = document.getElementById("login-password");
+  if (toggleAppLoginPwdBtn && appLoginPwdInput) {
+    toggleAppLoginPwdBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const currentType = appLoginPwdInput.getAttribute("type");
+      if (currentType === "password") {
+        appLoginPwdInput.setAttribute("type", "text");
+        toggleAppLoginPwdBtn.textContent = "🙈";
+        toggleAppLoginPwdBtn.title = "Hide Password";
+      } else {
+        appLoginPwdInput.setAttribute("type", "password");
+        toggleAppLoginPwdBtn.textContent = "👁️";
+        toggleAppLoginPwdBtn.title = "View Password";
+      }
+    });
+  }
   // Application State
   const state = {
     currentTab: "match-tab",
