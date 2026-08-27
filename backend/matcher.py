@@ -243,7 +243,9 @@ class ShoeMatcher:
             seen_image_hashes.add(img_hash)
 
             ref_category = ref_meta.get("category", "")
-            cat_bonus = 0.05 if db.normalize_category(ref_category) == detected_category else 0.00
+            # Visual matching is driven 100% by pure visual feature similarity (shape, laces, belts, stitching, sole contours)
+            # Catalog text metadata or text categories do not skew visual ranking.
+            cat_bonus = 0.00
                 
             design_id = ref_meta["design_id"]
             cosine_score = float(score)
@@ -257,15 +259,15 @@ class ShoeMatcher:
                 except Exception:
                     color_sim = 1.0
 
-            # High-precision similarity scoring with fallback candidate guarantee
+            # High-precision visual similarity scoring
             if cosine_score >= 0.700:
-                combined_score = 1.00 + float(cosine_score - 0.700)
+                combined_score = cosine_score
                 confidence_pct = min(99.9, max(95.0, 95.0 + float(cosine_score - 0.700) * 16.3))
             elif cosine_score >= 0.300:
-                combined_score = cosine_score + cat_bonus
+                combined_score = cosine_score
                 confidence_pct = min(94.9, max(85.0, 85.0 + float(cosine_score - 0.300) * 24.7))
             else:
-                combined_score = 0.70 * cosine_score + 0.30 * color_sim + cat_bonus
+                combined_score = 0.85 * cosine_score + 0.15 * color_sim
                 confidence_pct = min(84.9, max(60.0, 60.0 + float(cosine_score) * 83.3))
 
             cand_dominant = []
@@ -275,7 +277,7 @@ class ShoeMatcher:
                 except Exception:
                     pass
             
-            if design_id not in seen_designs or combined_score > seen_designs[design_id]["combined_score"]:
+            if design_id not in seen_designs or cosine_score > seen_designs[design_id]["cosine_similarity"]:
                 seen_designs[design_id] = {
                     "design_id": design_id,
                     "design_name": ref_meta["name"],
@@ -291,10 +293,10 @@ class ShoeMatcher:
                     "faiss_id": int(faiss_id)
                 }
 
-        # 6. Sort candidates strictly by similarity score (Top #1 most similar at top, followed by #2 and #3)
+        # 6. Sort candidates strictly by visual similarity score (Top #1 most visually similar at top, followed by #2 and #3)
         sorted_candidates = sorted(
             seen_designs.values(),
-            key=lambda x: (x["combined_score"], x["cosine_similarity"]),
+            key=lambda x: (x["cosine_similarity"], x["combined_score"]),
             reverse=True
         )
 

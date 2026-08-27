@@ -113,6 +113,11 @@ def init_db():
         except sqlite3.OperationalError:
             pass
 
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN can_delete INTEGER DEFAULT 0;")
+        except sqlite3.OperationalError:
+            pass
+
         # Seed initial accounts securely if missing or enforce password change if default
         try:
             from backend.auth import seed_initial_users

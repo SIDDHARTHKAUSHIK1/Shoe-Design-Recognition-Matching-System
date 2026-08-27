@@ -227,6 +227,13 @@
     });
   }
 
+  function checkUserCanDelete() {
+    if (getActiveRole() === "admin") return true;
+    const activeUser = state.viewingEmployeeUser || state.user;
+    if (!activeUser) return false;
+    return activeUser.can_delete === 1 || activeUser.can_delete === true || activeUser.can_delete === "1";
+  }
+
   function applyActiveRole(role) {
     const cleanRole = (role || "").toLowerCase() === "employee" ? "employee" : "admin";
     state.currentRole = cleanRole;
@@ -288,7 +295,7 @@
 
     const deleteBtn = document.getElementById("btn-catalog-edit-delete");
     if (deleteBtn) {
-      deleteBtn.style.display = cleanRole === "admin" ? "inline-flex" : "none";
+      deleteBtn.style.display = checkUserCanDelete() ? "inline-flex" : "none";
     }
 
     const userManagementCard = document.getElementById("admin-user-management-card");
@@ -315,6 +322,11 @@
       renderCatalog(state.catalog);
     }
   }
+
+  function updateRoleUI() {
+    applyActiveRole(getActiveRole());
+  }
+  window.updateRoleUI = updateRoleUI;
 
   window.switchToEmployeeAccount = function (u) {
     if (!u) return;
@@ -1260,6 +1272,66 @@
   // ==========================================
   // Staged AI Scanning & Match Execution
   // ==========================================
+  function compressAndDownscaleImage(file, maxDimension = 1024, quality = 0.85) {
+    return new Promise((resolve) => {
+      if (!file || !file.type || !file.type.startsWith("image/")) {
+        return resolve(file);
+      }
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        let width = img.width;
+        let height = img.height;
+
+        if (width <= maxDimension && height <= maxDimension && file.size <= 300 * 1024) {
+          return resolve(file);
+        }
+
+        if (width > height) {
+          if (width > maxDimension) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          }
+        } else {
+          if (height > maxDimension) {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob && blob.size < file.size) {
+              const resizedFile = new File([blob], file.name || "query.jpg", {
+                type: "image/jpeg",
+                lastModified: Date.now()
+              });
+              resolve(resizedFile);
+            } else {
+              resolve(file);
+            }
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(file);
+      };
+      img.src = objectUrl;
+    });
+  }
+
   async function runVisualMatch() {
     if (!state.selectedQueryFile) return;
 
@@ -1280,9 +1352,17 @@
     stepFAISS.classList.add("active");
 
     try {
-      // Send original full-resolution image file to AI match server
+      let fileToUpload = state.selectedQueryFile;
+      if (fileToUpload && fileToUpload.type && fileToUpload.type.startsWith("image/") && fileToUpload.size > 300 * 1024) {
+        try {
+          fileToUpload = await compressAndDownscaleImage(fileToUpload, 1024, 0.85);
+        } catch (e) {
+          console.warn("[ShoeMatch Mobile] Fast image downscale notice:", e);
+        }
+      }
+
       const formData = new FormData();
-      formData.append("file", state.selectedQueryFile);
+      formData.append("file", fileToUpload);
 
       const res = await window.authenticatedFetch(window.getApiUrl("/api/match"), {
         method: "POST",
@@ -1426,10 +1506,30 @@
     renderActivityHistoryLogs();
   }
 
+  function preloadMatchImages(matches) {
+    if (!matches || !Array.isArray(matches)) return;
+    matches.forEach(m => {
+      let rawImg = m.best_matching_image_url || m.image_path || (m.all_angles && m.all_angles[0] ? m.all_angles[0].image_path : '');
+      if (rawImg) {
+        const img = new Image();
+        img.src = window.getApiUrl(rawImg);
+      }
+      if (m.all_angles && Array.isArray(m.all_angles)) {
+        m.all_angles.forEach(a => {
+          if (a.image_path) {
+            const img = new Image();
+            img.src = window.getApiUrl(a.image_path);
+          }
+        });
+      }
+    });
+  }
+
   function renderMatchResults(data) {
     const alertContainer = document.getElementById("slipper-alert-container");
     const resultsContainer = document.getElementById("match-results-container");
 
+    preloadMatchImages(data.matches);
     alertContainer.classList.add("hidden");
     resultsContainer.innerHTML = "";
 
@@ -1631,7 +1731,7 @@
 
     const deleteBtn = document.getElementById("btn-catalog-edit-delete");
     if (deleteBtn) {
-      deleteBtn.style.display = getActiveRole() === "admin" ? "inline-flex" : "none";
+      deleteBtn.style.display = checkUserCanDelete() ? "inline-flex" : "none";
     }
 
     const modal = document.getElementById("catalog-edit-modal");
@@ -1761,8 +1861,8 @@
   async function submitCatalogDelete() {
     if (!currentEditingDesignId) return;
 
-    if (getActiveRole() === "employee") {
-      alert("Access Restricted: Only Admin accounts can delete catalog items.");
+    if (!checkUserCanDelete()) {
+      alert("Access Restricted: Catalogue delete permission is disabled for your account. Contact Administrator to enable deletion.");
       return;
     }
     const targetId = currentEditingDesignId;
@@ -2400,6 +2500,13 @@
         const item = document.createElement("div");
         item.style.cssText = "display: flex; align-items: center; justify-content: space-between; background: var(--md-sys-color-background); padding: 10px 12px; border-radius: 10px; border: 1px solid var(--md-sys-color-surface-variant); flex-wrap: wrap; gap: 8px;";
 
+        const isAllowed = Boolean(u.can_delete === 1 || u.can_delete === true || u.can_delete === "1");
+        const btnBg = isAllowed ? "#2e7d32" : "#d32f2f";
+        const btnColor = "#ffffff";
+        const btnText = isAllowed ? "✅ Delete Allowed" : "🚫 Allow Delete";
+        const btnBorder = isAllowed ? "#1b5e20" : "#b71c1c";
+        const btnShadow = isAllowed ? "rgba(46, 125, 50, 0.35)" : "rgba(211, 47, 47, 0.35)";
+
         const roleBadgeBg = u.role === "admin" ? "var(--md-sys-color-primary-container)" : "var(--md-sys-color-secondary-container)";
         const roleBadgeFg = u.role === "admin" ? "var(--md-sys-color-on-primary-container)" : "var(--md-sys-color-on-secondary-container)";
         const roleLabel = u.role === "admin" ? "Admin" : "Employee";
@@ -2426,6 +2533,9 @@
             <button class="md-btn btn-view-user-acc" data-id="${u.user_id}" style="padding: 4px 8px; font-size: 0.72rem; min-height: 30px; background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); width: auto;" title="View app as this employee">
               <span>👁️ View Account</span>
             </button>
+            <button class="md-btn btn-toggle-can-delete" data-id="${u.user_id}" data-can-delete="${isAllowed ? 1 : 0}" style="padding: 5px 10px; font-size: 0.76rem; font-weight: 700; min-height: 32px; background-color: ${btnBg}; color: ${btnColor}; border: 1px solid ${btnBorder}; box-shadow: 0 2px 6px ${btnShadow}; border-radius: 6px; width: auto; cursor: pointer;" title="Toggle Catalog Delete Permission for this employee">
+              <span>${btnText}</span>
+            </button>
             ` : ''}
             <button class="md-btn btn-edit-user-pwd" data-id="${u.user_id}" data-user="${escapeHtml(u.username)}" data-name="${escapeHtml(u.full_name)}" data-role="${u.role}" style="padding: 4px 8px; font-size: 0.72rem; min-height: 30px; background-color: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); width: auto;" title="Change Password / Account Details">
               <span>🔑 Change Password</span>
@@ -2442,6 +2552,57 @@
         if (viewAccBtn) {
           viewAccBtn.addEventListener("click", () => {
             window.switchToEmployeeAccount(u);
+          });
+        }
+
+        const toggleDeleteBtn = item.querySelector(".btn-toggle-can-delete");
+        if (toggleDeleteBtn) {
+          toggleDeleteBtn.addEventListener("click", async (e) => {
+            if (e) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+            const currentAllowed = Boolean(u.can_delete === 1 || u.can_delete === true || u.can_delete === "1");
+            const newCanDelete = currentAllowed ? 0 : 1;
+            const nextAllowed = (newCanDelete === 1);
+
+            // ⚡ Immediate Bright Optimistic UI Update (0ms Delay)
+            u.can_delete = newCanDelete;
+            const spanEl = toggleDeleteBtn.querySelector("span");
+            if (spanEl) spanEl.textContent = nextAllowed ? "✅ Delete Allowed" : "🚫 Allow Delete";
+            toggleDeleteBtn.style.backgroundColor = nextAllowed ? "#2e7d32" : "#d32f2f";
+            toggleDeleteBtn.style.color = "#ffffff";
+            toggleDeleteBtn.style.borderColor = nextAllowed ? "#1b5e20" : "#b71c1c";
+            toggleDeleteBtn.style.boxShadow = `0 2px 6px ${nextAllowed ? "rgba(46, 125, 50, 0.35)" : "rgba(211, 47, 47, 0.35)"}`;
+            toggleDeleteBtn.setAttribute("data-can-delete", nextAllowed ? "1" : "0");
+
+            try {
+              const res = await window.authenticatedFetch(window.getApiUrl(`/api/admin/users/${u.user_id}`), {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ can_delete: newCanDelete })
+              });
+              if (res.ok) {
+                if (state.user && state.user.user_id === u.user_id) {
+                  state.user.can_delete = newCanDelete;
+                }
+                if (state.viewingEmployeeUser && state.viewingEmployeeUser.user_id === u.user_id) {
+                  state.viewingEmployeeUser.can_delete = newCanDelete;
+                }
+                if (window.showMobileToast) {
+                  window.showMobileToast(`Delete permission ${newCanDelete ? 'ENABLED' : 'DISABLED'} for @${u.username}`, "info");
+                }
+                updateRoleUI();
+              } else {
+                u.can_delete = currentAllowed ? 1 : 0;
+                fetchUserManagementList();
+                alert("Failed to update delete permission for user.");
+              }
+            } catch (err) {
+              u.can_delete = currentAllowed ? 1 : 0;
+              fetchUserManagementList();
+              alert("Error updating user permission: " + err.message);
+            }
           });
         }
 

@@ -1076,6 +1076,84 @@ document.addEventListener("DOMContentLoaded", () => {
   // ==========================================
   // Visual Matching Logic
   // ==========================================
+  function compressAndDownscaleImage(file, maxDimension = 1024, quality = 0.85) {
+    return new Promise((resolve) => {
+      if (!file || !file.type || !file.type.startsWith("image/")) {
+        return resolve(file);
+      }
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        let width = img.width;
+        let height = img.height;
+
+        if (width <= maxDimension && height <= maxDimension && file.size <= 300 * 1024) {
+          return resolve(file);
+        }
+
+        if (width > height) {
+          if (width > maxDimension) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          }
+        } else {
+          if (height > maxDimension) {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob && blob.size < file.size) {
+              const resizedFile = new File([blob], file.name || "query.jpg", {
+                type: "image/jpeg",
+                lastModified: Date.now()
+              });
+              resolve(resizedFile);
+            } else {
+              resolve(file);
+            }
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(file);
+      };
+      img.src = objectUrl;
+    });
+  }
+
+  function preloadMatchImages(matches) {
+    if (!matches || !Array.isArray(matches)) return;
+    matches.forEach(m => {
+      if (m.best_matching_image_url) {
+        const img = new Image();
+        img.src = window.getImageUrl(m.best_matching_image_url);
+      }
+      if (m.all_angles && Array.isArray(m.all_angles)) {
+        m.all_angles.forEach(a => {
+          if (a.image_path) {
+            const img = new Image();
+            img.src = window.getImageUrl(a.image_path);
+          }
+        });
+      }
+    });
+  }
+
   function handleQueryFileSelect(e) {
     if (e.target.files && e.target.files.length > 0) {
       setQueryFile(e.target.files[0]);
@@ -1091,7 +1169,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     state.selectedQueryFile = file;
 
-    // Show Image Preview
+    // Show Image Preview instantly
     try {
       const objectUrl = URL.createObjectURL(file);
       elements.queryPreviewImg.src = objectUrl;
@@ -1166,7 +1244,15 @@ document.addEventListener("DOMContentLoaded", () => {
     elements.resultsMetaText.textContent = "Executing search pipeline...";
     if (elements.detectedCategoryBadge) elements.detectedCategoryBadge.style.display = "none";
 
-    const fileToUpload = state.selectedQueryFile;
+    let fileToUpload = state.selectedQueryFile;
+    if (fileToUpload && fileToUpload.type && fileToUpload.type.startsWith("image/") && fileToUpload.size > 300 * 1024) {
+      try {
+        fileToUpload = await compressAndDownscaleImage(fileToUpload, 1024, 0.85);
+      } catch (e) {
+        console.warn("[ShoeMatch] Client image downscale notice:", e);
+      }
+    }
+
     const filename = fileToUpload.name || `mobile_photo_${Date.now()}.jpg`;
 
     const formData = new FormData();
@@ -1189,6 +1275,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const data = await response.json();
+      preloadMatchImages(data.matches);
       renderMatchResults(data);
       fetchStats();
     } catch (err) {
@@ -1204,6 +1291,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderMatchResults(data) {
     elements.matchesList.innerHTML = "";
     elements.resultsLoading.style.display = "none";
+    preloadMatchImages(data.matches);
 
     // Non-footwear guard: No shoe or slipper found
     if (data.is_footwear_detected === false || data.detected_category === "none") {
@@ -1237,17 +1325,48 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    // Deduplicate matches by design ID and image path to prevent duplicate cards
+    const rawMatches = data.matches || [];
+    const seenDesignIds = new Set();
+    const seenImagePaths = new Set();
+    const matches = [];
+
+    rawMatches.forEach(m => {
+      const designId = (m.design_id || m.id || "").toString().trim().toUpperCase();
+      let rawImg = m.best_matching_image_url || m.image_path || (m.all_angles && m.all_angles[0] ? m.all_angles[0].image_path : '');
+      const imgKey = rawImg ? rawImg.toString().trim().toLowerCase() : "";
+
+      if (designId && seenDesignIds.has(designId)) return;
+      if (imgKey && seenImagePaths.has(imgKey)) return;
+
+      if (designId) seenDesignIds.add(designId);
+      if (imgKey) seenImagePaths.add(imgKey);
+      matches.push(m);
+    });
+
+    // Ensure matches are sorted strictly by highest confidence percentage (most relevant at top)
+    matches.sort((a, b) => {
+      const confA = a.confidence_pct !== undefined ? a.confidence_pct : (a.combined_score || a.score || 0);
+      const confB = b.confidence_pct !== undefined ? b.confidence_pct : (b.combined_score || b.score || 0);
+      return confB - confA;
+    });
+
+    // Re-assign 1-based ranks
+    matches.forEach((m, idx) => {
+      m.rank = idx + 1;
+    });
+
     elements.resultsEmpty.style.display = "none";
     elements.matchesList.style.display = "flex";
     const catLabel = data.detected_category ? `${data.detected_category.toUpperCase()} Matches` : "Matches";
-    elements.resultsMetaText.textContent = `Found Top 3 ${catLabel} (${data.total_catalog_designs} catalog designs)`;
+    elements.resultsMetaText.textContent = `Found Top ${matches.length} ${catLabel} (${data.total_catalog_designs || 0} catalog designs)`;
 
     // Latency badge
     elements.latencyBadge.style.display = "inline-flex";
     elements.latencyText.textContent = `${data.latency_ms} ms`;
 
-    // Render each of Top 3 matches
-    data.matches.forEach((m) => {
+    // Render each match
+    matches.forEach((m) => {
       const card = document.createElement("div");
       card.className = `match-item-card ${m.match_color}`;
       card.setAttribute("role", "button");
@@ -1267,6 +1386,7 @@ document.addEventListener("DOMContentLoaded", () => {
               <img src="${getImageUrl(a.image_path)}" 
                    class="angle-thumb ${a.image_path === m.best_matching_image_url ? 'active' : ''}" 
                    title="Angle: ${a.angle}" 
+                   loading="eager" decoding="async"
                    onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'1.5\'><path d=\'M20.24 12.24a6 6 0 0 0-8.49-8.49L3.5 12.00a6 6 0 0 0 8.49 8.49l8.25-8.25z\'/><path d=\'M16 8l-4 4\'/></svg>';"
                    onclick="event.stopPropagation(); swapMatchImage(this, '${m.design_id}')">
             `).join("")}
@@ -1278,7 +1398,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       card.innerHTML = `
         <div class="match-img-box" id="img-box-${m.design_id}">
-          <img src="${getImageUrl(m.best_matching_image_url)}" alt="${m.design_name}" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'1.5\'><path d=\'M20.24 12.24a6 6 0 0 0-8.49-8.49L3.5 12.00a6 6 0 0 0 8.49 8.49l8.25-8.25z\'/><path d=\'M16 8l-4 4\'/></svg>';">
+          <img src="${getImageUrl(m.best_matching_image_url)}" alt="${m.design_name}" loading="eager" decoding="async" fetchpriority="high" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'1.5\'><path d=\'M20.24 12.24a6 6 0 0 0-8.49-8.49L3.5 12.00a6 6 0 0 0 8.49 8.49l8.25-8.25z\'/><path d=\'M16 8l-4 4\'/></svg>';">
           <span class="match-angle-tag">${m.best_matching_angle}</span>
         </div>
 
@@ -1722,7 +1842,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <!-- Left Column: Gallery & High-Res Viewer -->
           <div class="preview-gallery-col">
             <div class="preview-main-viewer" id="preview-stage-box">
-              <img id="preview-active-image" src="${firstImage}" alt="${design.name}" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'1.5\'><path d=\'M20.24 12.24a6 6 0 0 0-8.49-8.49L3.5 12.00a6 6 0 0 0 8.49 8.49l8.25-8.25z\'/><path d=\'M16 8l-4 4\'/></svg>';">
+              <img id="preview-active-image" src="${firstImage}" alt="${design.name}" loading="eager" decoding="async" fetchpriority="high" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'1.5\'><path d=\'M20.24 12.24a6 6 0 0 0-8.49-8.49L3.5 12.00a6 6 0 0 0 8.49 8.49l8.25-8.25z\'/><path d=\'M16 8l-4 4\'/></svg>';">
               <span class="viewer-angle-pill" id="preview-angle-pill">Angle: ${firstAngle}</span>
               ${hasQueryPhoto ? `
                 <button class="viewer-toggle-btn" id="btn-toggle-split" onclick="toggleComparisonSplit('${firstImage}', '${queryPreviewSrc}')">
@@ -1740,7 +1860,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <button class="preview-thumb-btn ${idx === 0 ? 'active' : ''}" 
                             onclick="selectPreviewAngle('${getImageUrl(img.image_path)}', '${img.angle}', this)"
                             title="View ${img.angle} angle">
-                      <img src="${getImageUrl(img.image_path)}" alt="${img.angle}" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'1.5\'><path d=\'M20.24 12.24a6 6 0 0 0-8.49-8.49L3.5 12.00a6 6 0 0 0 8.49 8.49l8.25-8.25z\'/><path d=\'M16 8l-4 4\'/></svg>';">
+                      <img src="${getImageUrl(img.image_path)}" alt="${img.angle}" loading="eager" decoding="async" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'1.5\'><path d=\'M20.24 12.24a6 6 0 0 0-8.49-8.49L3.5 12.00a6 6 0 0 0 8.49 8.49l8.25-8.25z\'/><path d=\'M16 8l-4 4\'/></svg>';">
                       <span class="preview-thumb-tag">${img.angle}</span>
                     </button>
                   `).join("")}
@@ -1840,9 +1960,11 @@ document.addEventListener("DOMContentLoaded", () => {
               <button class="btn btn-secondary btn-sm" onclick="document.getElementById('detail-modal').style.display = 'none'">
                 Close Preview
               </button>
+              ${(state.currentUser?.role === 'admin' || state.currentUser?.can_delete) ? `
               <button class="btn btn-danger btn-sm" onclick="deleteDesign('${design.design_id}')">
                 Delete Design
               </button>
+              ` : ''}
             </div>
           </div>
         </div>

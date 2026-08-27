@@ -142,7 +142,10 @@ def get_user_by_id(user_id: int) -> Optional[Dict[str, Any]]:
         from backend.database import get_db_connection
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT user_id, username, role, full_name, is_active, must_change_password, created_at, last_login FROM users WHERE user_id = ?", (user_id,))
+            try:
+                cursor.execute("SELECT user_id, username, role, full_name, is_active, can_delete, must_change_password, created_at, last_login FROM users WHERE user_id = ?", (user_id,))
+            except sqlite3.OperationalError:
+                cursor.execute("SELECT user_id, username, role, full_name, is_active, must_change_password, created_at, last_login FROM users WHERE user_id = ?", (user_id,))
             row = cursor.fetchone()
             return dict(row) if row else None
     except Exception as e:
@@ -157,7 +160,7 @@ def list_users() -> list:
         with get_db_connection() as conn:
             cursor = conn.cursor()
             try:
-                cursor.execute("SELECT user_id, username, role, full_name, plain_password, is_active, must_change_password, created_at, last_login FROM users ORDER BY user_id ASC")
+                cursor.execute("SELECT user_id, username, role, full_name, plain_password, is_active, can_delete, must_change_password, created_at, last_login FROM users ORDER BY user_id ASC")
             except sqlite3.OperationalError:
                 cursor.execute("SELECT user_id, username, role, full_name, is_active, must_change_password, created_at, last_login FROM users ORDER BY user_id ASC")
             return [dict(r) for r in cursor.fetchall()]
@@ -186,7 +189,7 @@ def change_user_password(user_id: int, old_password: str, new_password: str) -> 
         return False
 
 
-def create_user(username: str, password: str, role: str, full_name: str) -> Optional[int]:
+def create_user(username: str, password: str, role: str, full_name: str, can_delete: int = 0) -> Optional[int]:
     """Create a new user account with Bcrypt password hash and plain_password stored."""
     clean_username = username.strip().lstrip("@")
     pwd_hash = hash_password(password)
@@ -196,9 +199,9 @@ def create_user(username: str, password: str, role: str, full_name: str) -> Opti
             cursor = conn.cursor()
             try:
                 cursor.execute("""
-                    INSERT INTO users (username, password_hash, plain_password, role, full_name)
-                    VALUES (?, ?, ?, ?, ?)
-                """, (clean_username, pwd_hash, password.strip(), role.strip(), full_name.strip()))
+                    INSERT INTO users (username, password_hash, plain_password, role, full_name, can_delete)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (clean_username, pwd_hash, password.strip(), role.strip(), full_name.strip(), can_delete))
             except sqlite3.OperationalError:
                 cursor.execute("""
                     INSERT INTO users (username, password_hash, role, full_name)
@@ -211,8 +214,8 @@ def create_user(username: str, password: str, role: str, full_name: str) -> Opti
         return None
 
 
-def update_user(user_id: int, role: Optional[str] = None, full_name: Optional[str] = None, is_active: Optional[int] = None, password: Optional[str] = None) -> bool:
-    """Update user properties or reset password."""
+def update_user(user_id: int, role: Optional[str] = None, full_name: Optional[str] = None, is_active: Optional[int] = None, password: Optional[str] = None, can_delete: Optional[int] = None) -> bool:
+    """Update user properties, delete permission, or reset password."""
     try:
         from backend.database import get_db_connection
         with get_db_connection() as conn:
@@ -228,6 +231,10 @@ def update_user(user_id: int, role: Optional[str] = None, full_name: Optional[st
             if is_active is not None:
                 updates.append("is_active = ?")
                 params.append(is_active)
+            if can_delete is not None:
+                updates.append("can_delete = ?")
+                val = 1 if (can_delete == 1 or can_delete is True or str(can_delete).strip() == "1") else 0
+                params.append(val)
             if password is not None and len(password) > 0:
                 updates.append("password_hash = ?")
                 params.append(hash_password(password))

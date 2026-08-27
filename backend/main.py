@@ -11,6 +11,7 @@ import logging
 from pathlib import Path
 from contextlib import asynccontextmanager
 from typing import List, Optional, Tuple
+from functools import lru_cache
 from PIL import Image, ImageOps
 
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Request, Query, Depends, BackgroundTasks
@@ -119,26 +120,20 @@ def get_matcher():
     return _matcher_instance
 
 
-# Smart Fallback Image Router
-@app.get("/catalog_images/{design_id}/{filename}")
-async def serve_catalog_image_smart_fallback(design_id: str, filename: str):
-    """
-    Serve requested catalog image with smart fallback to any available photo if exact file is missing.
-    Guarantees zero broken images on landing page and app cards.
-    """
+# High-Performance Cached Catalog Image Path Resolver
+@lru_cache(maxsize=4096)
+def _resolve_catalog_image_path(design_id: str, filename: str) -> Optional[str]:
     target_path = CATALOG_IMAGES_DIR / design_id / filename
     if target_path.exists() and target_path.is_file():
-        return FileResponse(str(target_path), headers={"Cache-Control": "public, max-age=86400"})
+        return str(target_path)
     
-    # Smart Fallback: Check if design_id folder exists and pick first valid image
     design_dir = CATALOG_IMAGES_DIR / design_id
     if design_dir.exists() and design_dir.is_dir():
         image_files = [f for f in design_dir.iterdir() if f.is_file() and f.suffix.lower() in ('.jpg', '.jpeg', '.png', '.webp')]
         if image_files:
             image_files.sort(key=lambda x: 0 if x.name.startswith("photo") else 1)
-            return FileResponse(str(image_files[0]), headers={"Cache-Control": "public, max-age=86400"})
+            return str(image_files[0])
 
-    # Fallback to DB item lookup
     item = db.get_catalog_item_by_id(design_id)
     if item:
         ref_path = item.get("thumbnail_path") or (item.get("reference_images") and item["reference_images"][0].get("image_path"))
@@ -146,17 +141,55 @@ async def serve_catalog_image_smart_fallback(design_id: str, filename: str):
             clean_path = ref_path.lstrip("/\\")
             full_ref = BASE_DIR / clean_path
             if full_ref.exists():
-                return FileResponse(str(full_ref), headers={"Cache-Control": "public, max-age=86400"})
+                return str(full_ref)
 
     placeholder = FRONTEND_DIR / "placeholder.png"
     if placeholder.exists():
-        return FileResponse(str(placeholder), headers={"Cache-Control": "no-cache"})
+        return str(placeholder)
     
-    raise HTTPException(status_code=404, detail="Image not found")
+    return None
+
+def clear_catalog_image_cache():
+    _resolve_catalog_image_path.cache_clear()
 
 
-# Static file mounts
-app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
+# Smart High-Speed Image Router with ETag / 304 Not Modified & Aggressive Browser Cache
+@app.get("/catalog_images/{design_id}/{filename}")
+async def serve_catalog_image_smart_fallback(request: Request, design_id: str, filename: str):
+    file_path_str = _resolve_catalog_image_path(design_id, filename)
+    if not file_path_str:
+        raise HTTPException(status_code=404, detail="Image not found")
+    
+    try:
+        stat_res = os.stat(file_path_str)
+        etag = f'"{int(stat_res.st_mtime)}-{stat_res.st_size}"'
+    except OSError:
+        etag = None
+
+    if etag:
+        if_none_match = request.headers.get("if-none-match")
+        if if_none_match and etag in if_none_match:
+            return Response(status_code=304, headers={
+                "Cache-Control": "public, max-age=31536000, immutable",
+                "ETag": etag
+            })
+
+    headers = {"Cache-Control": "public, max-age=31536000, immutable"}
+    if etag:
+        headers["ETag"] = etag
+
+    return FileResponse(file_path_str, headers=headers)
+
+
+class FastCachedStaticFiles(StaticFiles):
+    async def get_response(self, path: str, scope) -> Response:
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
+
+
+# High-Speed Upload Static Mount
+app.mount("/uploads", FastCachedStaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
 
 # ==========================================
@@ -380,6 +413,7 @@ async def create_design(
         background_tasks=background_tasks
     )
 
+    clear_catalog_image_cache()
     return JSONResponse(content=ingest_result)
 
 
@@ -650,8 +684,13 @@ async def get_design_details(design_id: str):
 
 @app.delete("/api/designs/{design_id}")
 async def delete_catalog_design(design_id: str, request: Request):
-    """Fast-delete a design record and its image folder (Admin only)."""
-    _ = await require_admin_user(request)
+    """Fast-delete a design record and its image folder (Admin or authorized Employee)."""
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required. Please sign in.")
+    if user.get("role") != "admin" and not user.get("can_delete"):
+        raise HTTPException(status_code=403, detail="Delete permission required. Contact administrator to enable delete access.")
+
     design = db.get_design(design_id)
     if not design:
         raise HTTPException(status_code=404, detail=f"Design '{design_id}' not found.")
@@ -663,6 +702,7 @@ async def delete_catalog_design(design_id: str, request: Request):
 
     # 2. Delete design record from SQLite database
     db.delete_design(design_id)
+    clear_catalog_image_cache()
 
     return JSONResponse(content={"success": True, "message": f"Design '{design_id}' deleted successfully.", "design_id": design_id})
 
@@ -886,14 +926,15 @@ async def create_admin_user(payload: dict, request: Request):
 
 @app.put("/api/admin/users/{user_id}")
 async def update_admin_user(user_id: int, payload: dict, request: Request):
-    """Update user role, active status, or reset password (Admin only)."""
+    """Update user role, active status, delete permission, or reset password (Admin only)."""
     _ = await require_admin_user(request)
     role = payload.get("role")
     full_name = payload.get("full_name")
     is_active = payload.get("is_active")
+    can_delete = payload.get("can_delete")
     password = payload.get("password")
 
-    success = auth.update_user(user_id, role=role, full_name=full_name, is_active=is_active, password=password)
+    success = auth.update_user(user_id, role=role, full_name=full_name, is_active=is_active, password=password, can_delete=can_delete)
     if not success:
         raise HTTPException(status_code=400, detail="Could not update user or no fields changed.")
 
