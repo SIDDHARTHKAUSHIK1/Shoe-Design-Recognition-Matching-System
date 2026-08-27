@@ -1508,19 +1508,33 @@
 
   function preloadMatchImages(matches) {
     if (!matches || !Array.isArray(matches)) return;
-    matches.forEach(m => {
+
+    // Remove any previous preload hints we injected
+    document.querySelectorAll('link[data-match-preload]').forEach(el => el.remove());
+
+    // Top 3 results: inject <link rel="preload"> into <head> so the browser
+    // fetches them at highest network priority BEFORE the cards are even painted.
+    const top3 = matches.slice(0, 3);
+    top3.forEach((m, idx) => {
+      let rawImg = m.best_matching_image_url || m.image_path || (m.all_angles && m.all_angles[0] ? m.all_angles[0].image_path : '');
+      if (!rawImg && m.design_id) rawImg = `/catalog_images/${m.design_id}/photo_1.jpg`;
+      if (rawImg) {
+        const link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'image';
+        link.href = window.getApiUrl(rawImg);
+        link.setAttribute('fetchpriority', idx === 0 ? 'high' : 'auto');
+        link.setAttribute('data-match-preload', 'true');
+        document.head.appendChild(link);
+      }
+    });
+
+    // Remaining results: standard Image() preload in background
+    matches.slice(3).forEach(m => {
       let rawImg = m.best_matching_image_url || m.image_path || (m.all_angles && m.all_angles[0] ? m.all_angles[0].image_path : '');
       if (rawImg) {
         const img = new Image();
         img.src = window.getApiUrl(rawImg);
-      }
-      if (m.all_angles && Array.isArray(m.all_angles)) {
-        m.all_angles.forEach(a => {
-          if (a.image_path) {
-            const img = new Image();
-            img.src = window.getApiUrl(a.image_path);
-          }
-        });
       }
     });
   }
@@ -1634,11 +1648,15 @@
         <div class="card-title" style="margin-top: 8px;">${escapeHtml(designName)}</div>
         <div style="font-size: 0.8rem; color: var(--md-sys-color-outline); margin-bottom: 10px;">SKU: ${escapeHtml(designId)} • Category: ${escapeHtml(category)}</div>
         
-        <div style="position: relative; text-align: center; margin-bottom: 12px; background-color: var(--md-sys-color-background); border-radius: 12px; padding: 8px; border: 1px solid var(--md-sys-color-surface-variant); min-height: 140px; display: flex; align-items: center; justify-content: center;">
-          <img src="${imgPath}" alt="${escapeHtml(designName)}" 
-               loading="${rank <= 2 ? 'eager' : 'lazy'}" decoding="async"
-               style="width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px; transition: opacity 0.15s ease;"
-               onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23D97706\' stroke-width=\'2\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\'/><path d=\'M2 17l10 4 10-4\'/><path d=\'M12 3L2 8l10 5 10-5-10-5z\'/></svg>';" />
+        <div style="position: relative; text-align: center; margin-bottom: 12px; border-radius: 12px; overflow: hidden; min-height: 140px; display: flex; align-items: center; justify-content: center;
+          ${rank <= 3 ? 'background-color: var(--md-sys-color-background); border: 1px solid var(--md-sys-color-surface-variant); padding: 8px;' : 'background: linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%); background-size:200% 100%; animation: catalogShimmer 1.4s infinite;'}">
+          <img src="${imgPath}" alt="${escapeHtml(designName)}"
+               loading="${rank <= 3 ? 'eager' : 'lazy'}"
+               decoding="async"
+               fetchpriority="${rank === 1 ? 'high' : rank <= 3 ? 'auto' : 'low'}"
+               style="width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px; transition: opacity 0.15s ease; ${rank <= 3 ? 'opacity:1;' : 'opacity:0;'}"
+               onload="this.style.opacity='1'; this.parentElement.style.animation='none'; this.parentElement.style.background='var(--md-sys-color-background)'; this.parentElement.style.border='1px solid var(--md-sys-color-surface-variant)'; this.parentElement.style.padding='8px';"
+               onerror="this.onerror=null; this.style.opacity='1'; this.parentElement.style.animation='none'; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23D97706\' stroke-width=\'2\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\'/><path d=\'M2 17l10 4 10-4\'/><path d=\'M12 3L2 8l10 5 10-5-10-5z\'/></svg>';" />
         </div>
         
         <div style="font-size: 0.82rem; color: var(--md-sys-color-on-surface-variant); margin-bottom: 8px;">
@@ -1674,13 +1692,28 @@
     }
 
     try {
-      const res = await window.authenticatedFetch(window.getApiUrl("/api/designs?limit=10000"));
-      if (!res.ok) return;
-
-      const data = await res.json();
-      state.catalog = data.designs || (Array.isArray(data) ? data : []);
-      state.totalDesignsCount = data.total !== undefined ? data.total : state.catalog.length;
+      // Phase 1: fetch first 50 designs for instant first paint
+      const resFirst = await window.authenticatedFetch(window.getApiUrl("/api/designs?limit=50&page=1"));
+      if (!resFirst.ok) return;
+      const dataFirst = await resFirst.json();
+      const firstBatch = dataFirst.designs || (Array.isArray(dataFirst) ? dataFirst : []);
+      state.catalog = firstBatch;
+      state.totalDesignsCount = dataFirst.total !== undefined ? dataFirst.total : firstBatch.length;
       renderCatalog(state.catalog);
+
+      // Phase 2: if more designs exist, load the full set silently in background
+      if (state.totalDesignsCount > 50) {
+        setTimeout(async () => {
+          try {
+            const resAll = await window.authenticatedFetch(window.getApiUrl("/api/designs?limit=10000"));
+            if (!resAll.ok) return;
+            const dataAll = await resAll.json();
+            state.catalog = dataAll.designs || (Array.isArray(dataAll) ? dataAll : []);
+            state.totalDesignsCount = dataAll.total !== undefined ? dataAll.total : state.catalog.length;
+            renderCatalog(state.catalog);
+          } catch (e) { /* silently ignore background load errors */ }
+        }, 300);
+      }
     } catch (err) {
       if (!state.catalog || state.catalog.length === 0) {
         grid.innerHTML = `<div class="md-card">Error loading catalog.</div>`;
@@ -2218,8 +2251,8 @@
           <div class="card-title" style="margin: 0; font-size: 0.92rem; font-weight: 700; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>
         </div>
 
-        <div style="position: relative; width: 100%; text-align: center; margin: 6px 0;">
-          <img src="${imgPath}" style="width: 100%; height: 110px; object-fit: contain; border-radius: 10px; background-color: var(--md-sys-color-background);" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23D97706\' stroke-width=\'2\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\'/><path d=\'M2 17l10 4 10-4\'/><path d=\'M12 3L2 8l10 5 10-5-10-5z\'/></svg>';" />
+        <div style="position: relative; width: 100%; text-align: center; margin: 6px 0; height: 110px; border-radius: 10px; overflow: hidden; background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: catalogShimmer 1.4s infinite;">
+          <img src="${imgPath}" loading="lazy" decoding="async" style="width: 100%; height: 110px; object-fit: contain; border-radius: 10px; background-color: transparent; display: block; opacity: 0; transition: opacity 0.3s ease;" onload="this.style.opacity='1'; this.parentElement.style.animation='none'; this.parentElement.style.background='var(--md-sys-color-background)';" onerror="this.onerror=null; this.style.opacity='1'; this.parentElement.style.animation='none'; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23D97706\' stroke-width=\'2\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\'/><path d=\'M2 17l10 4 10-4\'/><path d=\'M12 3L2 8l10 5 10-5-10-5z\'/></svg>';" />
         </div>
 
         <div style="font-size: 0.75rem; color: var(--md-sys-color-on-surface-variant); line-height: 1.35; width: 100%; min-width: 0;">
