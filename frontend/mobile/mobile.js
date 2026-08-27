@@ -1352,6 +1352,7 @@
     stepFAISS.classList.add("active");
 
     // Free up all 6 browser HTTP network connection slots exclusively for AI search & Top 3 results
+    pauseCatalogPreloading();
     abortBackgroundCatalogRequests();
 
     try {
@@ -1386,6 +1387,8 @@
     } catch (err) {
       overlay.classList.add("hidden");
       alert("Network error connecting to matching server.");
+    } finally {
+      resumeCatalogPreloading(2500);
     }
   }
 
@@ -1509,6 +1512,124 @@
     renderActivityHistoryLogs();
   }
 
+  // =========================================================================
+  // PERSISTENT CACHE & BACKGROUND PRE-LOAD ENGINE
+  // =========================================================================
+  const CATALOG_CACHE_NAME = 'shoematch-catalog-images-v1';
+  let isPreloadingPaused = false;
+  let preloadQueue = [];
+  let isPreloadWorkerRunning = false;
+
+  async function prefetchImageToCache(url) {
+    if (!url || typeof url !== 'string') return;
+    try {
+      if ('caches' in window) {
+        const cache = await caches.open(CATALOG_CACHE_NAME);
+        const match = await cache.match(url);
+        if (!match) {
+          const res = await fetch(url, { mode: 'cors', cache: 'force-cache' });
+          if (res && res.ok) {
+            await cache.put(url, res.clone());
+          }
+        }
+      } else {
+        const img = new Image();
+        img.src = url;
+      }
+    } catch (e) {
+      // Non-fatal background prefetch error (e.g. device offline)
+    }
+  }
+
+  function queueCatalogImagesForPreload(designs) {
+    if (!designs || !Array.isArray(designs) || designs.length === 0) return;
+    const urls = [];
+    designs.forEach(d => {
+      const rawImg = d.thumbnail_path || (d.reference_images && d.reference_images[0] ? d.reference_images[0].image_path : '');
+      if (rawImg) {
+        urls.push(window.getApiUrl(rawImg));
+      }
+    });
+
+    if (urls.length === 0) return;
+    preloadQueue = Array.from(new Set([...preloadQueue, ...urls]));
+    schedulePreloadWorker();
+  }
+
+  function pauseCatalogPreloading() {
+    isPreloadingPaused = true;
+  }
+
+  function resumeCatalogPreloading(delayMs = 2000) {
+    setTimeout(() => {
+      isPreloadingPaused = false;
+      schedulePreloadWorker();
+    }, delayMs);
+  }
+
+  async function processPreloadQueue() {
+    if (isPreloadWorkerRunning) return;
+    isPreloadWorkerRunning = true;
+
+    try {
+      while (preloadQueue.length > 0) {
+        if (isPreloadingPaused) break;
+
+        // Process in small batches of 3 to avoid saturating mobile connection
+        const batch = preloadQueue.splice(0, 3);
+        await Promise.all(batch.map(url => prefetchImageToCache(url)));
+
+        // 120ms breather between batches to keep CPU and network ultra-responsive
+        await new Promise(resolve => setTimeout(resolve, 120));
+      }
+    } finally {
+      isPreloadWorkerRunning = false;
+    }
+  }
+
+  function schedulePreloadWorker() {
+    if (isPreloadingPaused || preloadQueue.length === 0) return;
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(() => processPreloadQueue(), { timeout: 3000 });
+    } else {
+      setTimeout(processPreloadQueue, 500);
+    }
+  }
+
+  async function purgeDesignImageFromCache(designId) {
+    if (!('caches' in window) || !designId) return;
+    try {
+      const cache = await caches.open(CATALOG_CACHE_NAME);
+      const keys = await cache.keys();
+      const searchKey = `/catalog_images/${designId}/`;
+      for (const request of keys) {
+        if (request.url.includes(searchKey)) {
+          await cache.delete(request);
+        }
+      }
+    } catch (e) {}
+  }
+
+  async function purgeDeletedDesignsFromCache(activeDesigns) {
+    if (!('caches' in window) || !Array.isArray(activeDesigns) || activeDesigns.length === 0) return;
+    try {
+      const activeUrls = new Set(
+        activeDesigns.map(d => {
+          const raw = d.thumbnail_path || (d.reference_images && d.reference_images[0] ? d.reference_images[0].image_path : '');
+          return raw ? window.getApiUrl(raw) : null;
+        }).filter(Boolean)
+      );
+
+      const cache = await caches.open(CATALOG_CACHE_NAME);
+      const keys = await cache.keys();
+      for (const request of keys) {
+        if (request.url.includes('/catalog_images/') && !activeUrls.has(request.url)) {
+          await cache.delete(request);
+        }
+      }
+    } catch (e) {}
+  }
+
   function preloadMatchImages(matches) {
     if (!matches || !Array.isArray(matches)) return;
 
@@ -1530,7 +1651,8 @@
         link.setAttribute('data-match-preload', 'true');
         document.head.appendChild(link);
 
-        // In-memory instant decode
+        // Save to persistent cache & in-memory decode
+        prefetchImageToCache(fullUrl);
         const img = new Image();
         img.src = fullUrl;
         if (img.decode) {
@@ -1544,8 +1666,10 @@
       matches.slice(3).forEach(m => {
         let rawImg = m.best_matching_image_url || m.image_path || (m.all_angles && m.all_angles[0] ? m.all_angles[0].image_path : '');
         if (rawImg) {
+          const fullUrl = window.getApiUrl(rawImg);
+          prefetchImageToCache(fullUrl);
           const img = new Image();
-          img.src = window.getApiUrl(rawImg);
+          img.src = fullUrl;
         }
       });
     }, 800);
@@ -1710,6 +1834,18 @@
     const grid = document.getElementById("catalog-grid");
     if (!grid) return;
 
+    // 0ms Instant Display from localStorage if in-memory state is empty
+    if (!state.catalog || state.catalog.length === 0) {
+      try {
+        const stored = localStorage.getItem("shoematch_catalog_cache");
+        if (stored) {
+          state.catalog = JSON.parse(stored);
+          state.totalDesignsCount = state.catalog.length;
+          renderCatalog(state.catalog);
+        }
+      } catch(e) {}
+    }
+
     if (!silent && (!state.catalog || state.catalog.length === 0)) {
       grid.innerHTML = `<div class="md-card">Loading catalog designs...</div>`;
     }
@@ -1729,6 +1865,9 @@
       state.catalog = firstBatch;
       state.totalDesignsCount = dataFirst.total !== undefined ? dataFirst.total : firstBatch.length;
       renderCatalog(state.catalog);
+      queueCatalogImagesForPreload(state.catalog);
+      purgeDeletedDesignsFromCache(state.catalog);
+      try { localStorage.setItem("shoematch_catalog_cache", JSON.stringify(state.catalog)); } catch(e) {}
 
       // Phase 2: if more designs exist, load the full set silently in background
       if (state.totalDesignsCount > 50) {
@@ -1743,6 +1882,9 @@
             state.catalog = dataAll.designs || (Array.isArray(dataAll) ? dataAll : []);
             state.totalDesignsCount = dataAll.total !== undefined ? dataAll.total : state.catalog.length;
             renderCatalog(state.catalog);
+            queueCatalogImagesForPreload(state.catalog);
+            purgeDeletedDesignsFromCache(state.catalog);
+            try { localStorage.setItem("shoematch_catalog_cache", JSON.stringify(state.catalog)); } catch(e) {}
           } catch (e) { /* silently ignore background load errors / aborts */ }
         }, 300);
       }
@@ -1945,6 +2087,8 @@
     // 2. Instantly remove design from local catalog state & update UI grid
     state.catalog = (state.catalog || []).filter(d => d.design_id !== targetId);
     renderCatalog(state.catalog);
+    purgeDesignImageFromCache(targetId);
+    try { localStorage.setItem("shoematch_catalog_cache", JSON.stringify(state.catalog)); } catch(e) {}
 
     // 3. Instantly decrement total design counter and update dashboard stats
     if (state.totalDesignsCount !== undefined && state.totalDesignsCount > 0) {
@@ -3102,6 +3246,11 @@
 
     checkAuthStatus();
     updateAdminDashboard();
+
+    // Warm up catalog cache quietly in background during idle time
+    setTimeout(() => {
+      fetchCatalog({ silent: true });
+    }, 1200);
   });
 
 })();
