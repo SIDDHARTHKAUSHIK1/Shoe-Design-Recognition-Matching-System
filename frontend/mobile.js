@@ -1351,6 +1351,9 @@
     stepDINO.classList.add("active");
     stepFAISS.classList.add("active");
 
+    // Free up all 6 browser HTTP network connection slots exclusively for AI search & Top 3 results
+    abortBackgroundCatalogRequests();
+
     try {
       let fileToUpload = state.selectedQueryFile;
       if (fileToUpload && fileToUpload.type && fileToUpload.type.startsWith("image/") && fileToUpload.size > 300 * 1024) {
@@ -1509,34 +1512,43 @@
   function preloadMatchImages(matches) {
     if (!matches || !Array.isArray(matches)) return;
 
-    // Remove any previous preload hints we injected
+    // 1. Remove previous preload link tags
     document.querySelectorAll('link[data-match-preload]').forEach(el => el.remove());
 
-    // Top 3 results: inject <link rel="preload"> into <head> so the browser
-    // fetches them at highest network priority BEFORE the cards are even painted.
+    // 2. Preload TOP 3 result images at MAX network priority
     const top3 = matches.slice(0, 3);
     top3.forEach((m, idx) => {
       let rawImg = m.best_matching_image_url || m.image_path || (m.all_angles && m.all_angles[0] ? m.all_angles[0].image_path : '');
       if (!rawImg && m.design_id) rawImg = `/catalog_images/${m.design_id}/photo_1.jpg`;
       if (rawImg) {
+        const fullUrl = window.getApiUrl(rawImg);
         const link = document.createElement('link');
         link.rel = 'preload';
         link.as = 'image';
-        link.href = window.getApiUrl(rawImg);
+        link.href = fullUrl;
         link.setAttribute('fetchpriority', idx === 0 ? 'high' : 'auto');
         link.setAttribute('data-match-preload', 'true');
         document.head.appendChild(link);
+
+        // In-memory instant decode
+        const img = new Image();
+        img.src = fullUrl;
+        if (img.decode) {
+          img.decode().catch(() => {});
+        }
       }
     });
 
-    // Remaining results: standard Image() preload in background
-    matches.slice(3).forEach(m => {
-      let rawImg = m.best_matching_image_url || m.image_path || (m.all_angles && m.all_angles[0] ? m.all_angles[0].image_path : '');
-      if (rawImg) {
-        const img = new Image();
-        img.src = window.getApiUrl(rawImg);
-      }
-    });
+    // 3. Defer ranks 4+ until top 3 are ready
+    setTimeout(() => {
+      matches.slice(3).forEach(m => {
+        let rawImg = m.best_matching_image_url || m.image_path || (m.all_angles && m.all_angles[0] ? m.all_angles[0].image_path : '');
+        if (rawImg) {
+          const img = new Image();
+          img.src = window.getApiUrl(rawImg);
+        }
+      });
+    }, 800);
   }
 
   function renderMatchResults(data) {
@@ -1682,6 +1694,17 @@
   // ==========================================
   // Catalog & Search Logic
   // ==========================================
+  let activeCatalogAbortController = null;
+
+  function abortBackgroundCatalogRequests() {
+    if (activeCatalogAbortController) {
+      try {
+        activeCatalogAbortController.abort();
+      } catch (e) {}
+      activeCatalogAbortController = null;
+    }
+  }
+
   async function fetchCatalog(options = {}) {
     const { silent = false } = options;
     const grid = document.getElementById("catalog-grid");
@@ -1691,9 +1714,15 @@
       grid.innerHTML = `<div class="md-card">Loading catalog designs...</div>`;
     }
 
+    abortBackgroundCatalogRequests();
+    activeCatalogAbortController = new AbortController();
+    const currentSignal = activeCatalogAbortController.signal;
+
     try {
       // Phase 1: fetch first 50 designs for instant first paint
-      const resFirst = await window.authenticatedFetch(window.getApiUrl("/api/designs?limit=50&page=1"));
+      const resFirst = await window.authenticatedFetch(window.getApiUrl("/api/designs?limit=50&page=1"), {
+        signal: currentSignal
+      });
       if (!resFirst.ok) return;
       const dataFirst = await resFirst.json();
       const firstBatch = dataFirst.designs || (Array.isArray(dataFirst) ? dataFirst : []);
@@ -1704,17 +1733,21 @@
       // Phase 2: if more designs exist, load the full set silently in background
       if (state.totalDesignsCount > 50) {
         setTimeout(async () => {
+          if (currentSignal.aborted) return;
           try {
-            const resAll = await window.authenticatedFetch(window.getApiUrl("/api/designs?limit=10000"));
+            const resAll = await window.authenticatedFetch(window.getApiUrl("/api/designs?limit=10000"), {
+              signal: currentSignal
+            });
             if (!resAll.ok) return;
             const dataAll = await resAll.json();
             state.catalog = dataAll.designs || (Array.isArray(dataAll) ? dataAll : []);
             state.totalDesignsCount = dataAll.total !== undefined ? dataAll.total : state.catalog.length;
             renderCatalog(state.catalog);
-          } catch (e) { /* silently ignore background load errors */ }
+          } catch (e) { /* silently ignore background load errors / aborts */ }
         }, 300);
       }
     } catch (err) {
+      if (err && err.name === "AbortError") return;
       if (!state.catalog || state.catalog.length === 0) {
         grid.innerHTML = `<div class="md-card">Error loading catalog.</div>`;
       }
