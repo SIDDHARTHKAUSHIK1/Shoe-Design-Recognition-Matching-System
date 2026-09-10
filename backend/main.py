@@ -1334,7 +1334,7 @@ MOBILE_DIR = FRONTEND_DIR / "mobile"
 if MOBILE_DIR.exists():
     app.mount("/mobile-static", StaticFiles(directory=str(MOBILE_DIR)), name="mobile_static")
 
-    for m_asset in ["mobile.css", "mobile.js"]:
+    for m_asset in ["mobile.css", "mobile.js", "hero_shoe_3d.jpg"]:
         m_path = MOBILE_DIR / m_asset
         if m_path.exists():
             def make_mobile_handler(p):
