@@ -786,161 +786,191 @@ button:focus-visible, input:focus-visible {
 .login-screen-overlay {
   position: fixed;
   inset: 0;
-  background: linear-gradient(170deg, #0a0a0f 0%, #0d0b14 25%, #14101e 50%, #1a120a 85%, #2a1600 100%);
   z-index: 99999;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
   padding: 0;
-  overflow-y: auto;
+  background: #0b0b0f;
   overflow-x: hidden;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
 
-.login-scroll-wrapper {
-  width: 100%;
-  max-width: 400px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 0 24px 40px;
-  min-height: 100%;
-}
-
-/* --- Hero Shoe Section --- */
-.login-hero-section {
+/* The "phone" frame — keeps mobile proportions on desktop */
+.login-app-frame {
   position: relative;
   width: 100%;
-  height: 220px;
+  max-width: 448px;
+  min-height: 100%;
   display: flex;
+  flex-direction: column;
+  background: #0d0b12;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   WHITE HERO SECTION
+   ========================================================================== */
+.login-hero {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  min-height: 40vh;
+  min-height: 40dvh;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin-bottom: 8px;
-  overflow: visible;
+  background: #FFFFFF;
+  padding: calc(48px + var(--safe-top, 0px)) 24px 44px;
+  box-sizing: border-box;
 }
 
-.login-hero-glow {
-  position: absolute;
-  width: 180px;
-  height: 180px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(217, 119, 6, 0.35) 0%, rgba(217, 119, 6, 0.08) 60%, transparent 80%);
-  filter: blur(30px);
-  animation: loginGlowPulse 3s ease-in-out infinite;
-  z-index: 0;
-}
-
-@keyframes loginGlowPulse {
-  0%, 100% { transform: scale(1); opacity: 0.7; }
-  50% { transform: scale(1.15); opacity: 1; }
-}
-
-.login-hero-shoe {
-  position: relative;
-  z-index: 1;
-  width: 240px;
-  height: 200px;
-  object-fit: contain;
-  filter: drop-shadow(0 20px 40px rgba(217, 119, 6, 0.3)) drop-shadow(0 8px 16px rgba(0,0,0,0.5));
-  animation: loginShoeFloat 4s ease-in-out infinite;
-  mix-blend-mode: lighten;
-}
-
-@keyframes loginShoeFloat {
-  0%, 100% { transform: translateY(0px) rotate(-2deg); }
-  50% { transform: translateY(-12px) rotate(2deg); }
-}
-
-/* --- Brand Badge --- */
-.login-brand {
+.login-hero-inner {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 11px;
-  margin-bottom: 18px;
+  gap: 16px;
+  width: 100%;
 }
 
-/* 3D glossy app-icon tile */
 .login-brand-icon {
   position: relative;
-  width: 66px;
-  height: 66px;
-  border-radius: 19px;
+  width: 58px;
+  height: 58px;
+  border-radius: 17px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(155deg, #FFC178 0%, #F59E0B 44%, #D97706 76%, #B45309 100%);
   box-shadow:
-    0 16px 32px -10px rgba(217, 119, 6, 0.6),
-    0 6px 14px -6px rgba(0, 0, 0, 0.55),
+    0 12px 26px -8px rgba(217, 119, 6, 0.42),
+    0 4px 10px -4px rgba(0, 0, 0, 0.16),
     inset 0 2px 3px rgba(255, 255, 255, 0.6),
-    inset 0 -7px 14px -5px rgba(120, 53, 15, 0.6);
+    inset 0 -6px 12px -4px rgba(120, 53, 15, 0.5);
   overflow: hidden;
 }
-
 .login-brand-icon::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.1) 38%, rgba(255, 255, 255, 0) 54%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.08) 42%, rgba(255, 255, 255, 0) 56%);
   pointer-events: none;
 }
-
 .login-brand-icon svg {
   position: relative;
   z-index: 1;
-  filter: drop-shadow(0 2px 3px rgba(120, 53, 15, 0.55));
+  filter: drop-shadow(0 2px 3px rgba(120, 53, 15, 0.5));
+}
+.login-brand-icon-img {
+  position: relative;
+  z-index: 1;
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  /* force the black line-art icon to pure white */
+  filter: brightness(0) invert(1) drop-shadow(0 2px 3px rgba(120, 53, 15, 0.5));
 }
 
 .login-brand-text {
+  margin: 0;
   font-family: var(--font-family-sans);
-  font-size: 1.05rem;
+  font-size: 1.5rem;
   font-weight: 800;
-  letter-spacing: 0.5px;
-  background: linear-gradient(180deg, #FFE0B8 0%, #F8AE33 52%, #D97706 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  text-shadow: 0 2px 8px rgba(217, 119, 6, 0.4);
+  letter-spacing: -0.3px;
+  color: #1C1917;
 }
 
-/* --- Welcome Title --- */
+.login-tagline {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #C2410C;
+}
+.login-tagline i {
+  font-style: normal;
+  font-size: 0.5rem;
+  color: rgba(194, 65, 12, 0.4);
+}
+
+/* --- Curved wave transition (white spills into the dark panel) --- */
+.login-hero-wave {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -62px;
+  width: 100%;
+  height: 64px;
+  display: block;
+  filter: drop-shadow(0 -8px 18px rgba(0, 0, 0, 0.12));
+}
+
+/* ==========================================================================
+   DARK LOGIN PANEL
+   ========================================================================== */
+.login-panel {
+  position: relative;
+  z-index: 1;
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #0d0b12 0%, #100c16 42%, #150d0a 100%);
+  padding: 0 0 calc(28px + var(--safe-bottom, 0px));
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.login-panel-glow {
+  position: absolute;
+  left: 50%;
+  top: 30px;
+  width: 320px;
+  height: 320px;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(217, 119, 6, 0.20) 0%, rgba(217, 119, 6, 0.05) 45%, transparent 72%);
+  filter: blur(20px);
+  pointer-events: none;
+}
+
+.login-panel-inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 58px 26px 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
 .login-welcome-title {
+  margin: 0 0 8px;
   font-family: var(--font-family-sans);
-  font-size: 2.4rem;
+  font-size: 1.95rem;
   font-weight: 800;
   color: #FFFFFF;
   text-align: center;
   line-height: 1.1;
-  margin-bottom: 8px;
   letter-spacing: -0.5px;
 }
 
-.login-subtitle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+.login-welcome-sub {
+  margin: 0 0 26px;
+  font-size: 0.84rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.5);
   text-align: center;
-  margin-bottom: 28px;
-}
-
-.login-subtitle-word {
-  font-size: 0.74rem;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  background: linear-gradient(180deg, #FFE0B8 0%, #F8AE33 55%, #D97706 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.login-subtitle-dot {
-  font-size: 0.5rem;
-  color: rgba(217, 119, 6, 0.55);
-  line-height: 1;
+  line-height: 1.4;
 }
 
 /* --- Login Form --- */
@@ -948,7 +978,6 @@ button:focus-visible, input:focus-visible {
   width: 100%;
 }
 
-/* --- Input Group --- */
 .login-input-group {
   position: relative;
   width: 100%;
@@ -957,7 +986,7 @@ button:focus-visible, input:focus-visible {
 
 .login-input-icon {
   position: absolute;
-  left: 14px;
+  left: 17px;
   top: 50%;
   transform: translateY(-50%);
   color: rgba(255, 255, 255, 0.35);
@@ -970,59 +999,60 @@ button:focus-visible, input:focus-visible {
 
 .login-input {
   width: 100%;
-  height: 52px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.06);
+  height: 60px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.055);
   color: #FFFFFF;
-  padding: 0 48px 0 44px;
+  padding: 0 50px 0 46px;
   font-size: 0.95rem;
   font-family: var(--font-family-sans);
   outline: none;
+  box-sizing: border-box;
   transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
 
 .login-input::placeholder {
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.32);
   font-weight: 400;
 }
 
 .login-input:focus {
-  border-color: rgba(217, 119, 6, 0.6);
-  background: rgba(255, 255, 255, 0.09);
-  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.12);
+  border-color: rgba(245, 158, 11, 0.55);
+  background: rgba(255, 255, 255, 0.085);
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.13);
 }
 
-/* --- Password Toggle --- */
 .login-pwd-toggle {
   position: absolute;
-  right: 10px;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
   border: none;
   cursor: pointer;
-  padding: 6px;
+  padding: 8px;
   color: rgba(255, 255, 255, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 10;
+  font-size: 1rem;
+  line-height: 1;
   transition: color 0.2s ease;
 }
-
 .login-pwd-toggle:active {
   color: rgba(255, 255, 255, 0.7);
 }
 
-/* --- Options Row (Remember Me + Forgot) --- */
 .login-options-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 22px;
+  gap: 10px;
+  margin: 6px 2px 22px;
   font-size: 0.8rem;
 }
 
@@ -1032,8 +1062,9 @@ button:focus-visible, input:focus-visible {
   gap: 8px;
   cursor: pointer;
   user-select: none;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.55);
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .login-remember-checkbox {
@@ -1042,16 +1073,17 @@ button:focus-visible, input:focus-visible {
   accent-color: #D97706;
   cursor: pointer;
   border-radius: 4px;
+  flex-shrink: 0;
 }
 
 .login-forgot-link {
-  color: #D97706;
+  color: #F59E0B;
   text-decoration: none;
   font-weight: 600;
   font-size: 0.8rem;
+  white-space: nowrap;
   transition: opacity 0.2s ease;
 }
-
 .login-forgot-link:active {
   opacity: 0.7;
 }
@@ -1059,22 +1091,22 @@ button:focus-visible, input:focus-visible {
 /* --- Login Button --- */
 .login-submit-btn {
   width: 100%;
-  height: 54px;
-  border-radius: 16px;
+  height: 60px;
+  border-radius: 19px;
   border: none;
-  background: linear-gradient(135deg, #D97706 0%, #B45309 50%, #92400E 100%);
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 52%, #B45309 100%);
   color: #FFFFFF;
   font-size: 1.05rem;
   font-weight: 700;
   font-family: var(--font-family-sans);
+  letter-spacing: 0.3px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  box-shadow: 0 6px 24px rgba(217, 119, 6, 0.35), 0 2px 8px rgba(0, 0, 0, 0.3);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-  letter-spacing: 0.5px;
+  box-sizing: border-box;
+  box-shadow: 0 10px 28px -8px rgba(217, 119, 6, 0.5), 0 3px 10px -4px rgba(0, 0, 0, 0.4);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
   position: relative;
   overflow: hidden;
 }
@@ -1086,24 +1118,27 @@ button:focus-visible, input:focus-visible {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
   transition: left 0.5s ease;
 }
 
 .login-submit-btn:active {
-  transform: scale(0.97);
-  box-shadow: 0 3px 12px rgba(217, 119, 6, 0.25), 0 1px 4px rgba(0, 0, 0, 0.3);
+  transform: scale(0.98);
+  box-shadow: 0 4px 14px -6px rgba(217, 119, 6, 0.4);
 }
-
 .login-submit-btn:active::before {
   left: 100%;
+}
+.login-submit-btn:disabled {
+  filter: grayscale(0.3) brightness(0.85);
+  cursor: default;
 }
 
 /* --- Error Text --- */
 .login-error-text {
   color: #FF6B6B;
   font-size: 0.82rem;
-  margin-top: 10px;
+  margin-top: 12px;
   font-weight: 700;
   text-align: center;
   min-height: 0;
@@ -1111,63 +1146,61 @@ button:focus-visible, input:focus-visible {
 
 /* --- Sign Up Footer --- */
 .login-signup-text {
+  margin: auto 0 0;
+  padding-top: 26px;
   text-align: center;
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.5);
   font-weight: 400;
-  margin-top: 24px;
 }
 
 .login-signup-link {
-  color: #D97706;
+  color: #F59E0B;
   text-decoration: none;
   font-weight: 700;
   transition: opacity 0.2s ease;
 }
-
 .login-signup-link:active {
   opacity: 0.7;
 }
 
-/* --- Responsive Adjustments for Small Phones --- */
-@media screen and (max-height: 680px) {
-  .login-hero-section {
-    height: 170px;
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+@media screen and (max-width: 360px) {
+  .login-hero {
+    min-height: 36vh;
+    padding: calc(40px + var(--safe-top, 0px)) 20px 40px;
   }
-  .login-hero-shoe {
-    width: 200px;
-    height: 160px;
-  }
-  .login-welcome-title {
-    font-size: 2rem;
-  }
-  .login-subtitle {
-    margin-bottom: 20px;
-  }
+  .login-brand-text { font-size: 1.35rem; }
+  .login-tagline { gap: 6px; letter-spacing: 1.4px; font-size: 0.63rem; }
+  .login-panel-inner { padding-left: 20px; padding-right: 20px; }
+  .login-welcome-title { font-size: 1.72rem; }
+  .login-input { height: 56px; }
+  .login-submit-btn { height: 56px; }
 }
 
-@media screen and (max-height: 580px) {
-  .login-hero-section {
-    height: 130px;
+@media screen and (max-height: 640px) {
+  .login-hero {
+    min-height: 0;
+    padding-top: calc(34px + var(--safe-top, 0px));
+    padding-bottom: 36px;
   }
-  .login-hero-shoe {
-    width: 160px;
-    height: 130px;
+  .login-hero-inner { gap: 12px; }
+  .login-welcome-sub { margin-bottom: 18px; }
+}
+
+/* Desktop: framed mobile-app container */
+@media screen and (min-width: 480px) {
+  .login-screen-overlay { justify-content: center; }
+  .login-app-frame {
+    min-height: 0;
+    height: min(92dvh, 900px);
+    margin: 24px 0;
+    border-radius: 34px;
+    box-shadow: 0 40px 90px -20px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
   }
-  .login-welcome-title {
-    font-size: 1.7rem;
-    margin-bottom: 4px;
-  }
-  .login-subtitle {
-    margin-bottom: 14px;
-    font-size: 0.8rem;
-  }
-  .login-input {
-    height: 46px;
-  }
-  .login-submit-btn {
-    height: 48px;
-  }
+  .login-panel { flex: 1 1 auto; }
 }
 
 /* Hidden Utility */
