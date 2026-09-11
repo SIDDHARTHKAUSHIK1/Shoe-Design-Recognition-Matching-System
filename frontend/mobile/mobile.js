@@ -143,7 +143,7 @@
   // UI Tab Navigation & Theme Controller
   // ==========================================
   function initNavigation() {
-    const navTabs = document.querySelectorAll(".nav-tab");
+    const navTabs = document.querySelectorAll(".nav-tab[data-tab]");
     const tabPanes = document.querySelectorAll(".tab-pane");
 
     navTabs.forEach(tab => {
@@ -607,7 +607,7 @@
   // ==========================================
   function initCameraEvents() {
     const cameraBtn = document.getElementById("btn-studio-camera");
-    const fabCamera = document.getElementById("fab-camera-capture");
+    const navScanBtn = document.getElementById("nav-tab-scan");
     const galleryBtn = document.getElementById("btn-studio-gallery");
     const filePicker = document.getElementById("file-gallery-picker");
 
@@ -637,7 +637,12 @@
     }
 
     cameraBtn.addEventListener("click", handleCameraCapture);
-    fabCamera.addEventListener("click", handleCameraCapture);
+    if (navScanBtn) {
+      navScanBtn.addEventListener("click", () => {
+        switchTab("tab-studio");
+        handleCameraCapture();
+      });
+    }
 
     galleryBtn.addEventListener("click", () => filePicker.click());
     filePicker.addEventListener("change", (e) => {
@@ -651,7 +656,7 @@
   }
 
   function switchTab(tabId) {
-    const navTabs = document.querySelectorAll(".nav-tab");
+    const navTabs = document.querySelectorAll(".nav-tab[data-tab]");
     const tabPanes = document.querySelectorAll(".tab-pane");
 
     navTabs.forEach(t => t.classList.toggle("active", t.dataset.tab === tabId));
@@ -2389,18 +2394,35 @@
     if (zoomBtn) {
       zoomBtn.onclick = () => {
         const path = previewImagePaths[previewImageIndex];
-        if (path) window.open(window.getApiUrl(path), "_blank");
+        if (path) {
+          const overlay = document.getElementById("preview-zoom-overlay");
+          const zoomImg = document.getElementById("preview-zoom-img");
+          if (overlay && zoomImg) {
+            zoomImg.src = window.getApiUrl(path);
+            overlay.classList.remove("hidden");
+          }
+        }
       };
     }
 
     const modal = document.getElementById("catalog-preview-modal");
     if (modal) modal.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
   };
 
   window.closeCatalogPreviewModal = function() {
     currentPreviewDesignId = null;
     const modal = document.getElementById("catalog-preview-modal");
     if (modal) modal.classList.add("hidden");
+    const zoomOverlay = document.getElementById("preview-zoom-overlay");
+    if (zoomOverlay) zoomOverlay.classList.add("hidden");
+    document.body.style.overflow = "";
+  };
+
+  window.closePreviewZoom = function(e) {
+    if (e) e.stopPropagation();
+    const overlay = document.getElementById("preview-zoom-overlay");
+    if (overlay) overlay.classList.add("hidden");
   };
 
   window.renderTotalDesignLog = function() {
