@@ -584,55 +584,100 @@
 
     <!-- Large Shoe Design Detail Preview Modal -->
     <div id="catalog-preview-modal" class="scanner-overlay hidden">
-      <div class="md-card" id="catalog-preview-card" style="width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; padding: 20px; position: relative;">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-          <span id="preview-design-id-badge" style="font-size: 0.78rem; font-weight: 700; background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); padding: 4px 10px; border-radius: 8px;"></span>
-          <button class="icon-btn" onclick="closeCatalogPreviewModal()" title="Close" style="min-width: 36px; min-height: 36px;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
-          </button>
+      <div class="md-card catalog-preview-card" id="catalog-preview-card">
+
+        <!-- Blue Hero Header -->
+        <div class="catalog-preview-hero">
+          <div class="catalog-preview-hero-top">
+            <span id="preview-design-id-badge" class="catalog-preview-badge"></span>
+            <button class="catalog-preview-close-btn" onclick="closeCatalogPreviewModal()" title="Close">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <h2 id="preview-design-name" class="catalog-preview-title"></h2>
+          <div id="preview-design-category" class="catalog-preview-subtitle"></div>
+          <span class="catalog-preview-collection-tag">Premium Collection</span>
+          <svg class="catalog-preview-hero-wave" viewBox="0 0 440 40" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M0,0 H440 V14 C340,38 240,10 140,22 C80,30 30,26 0,16 Z" fill="var(--md-sys-color-surface)"/>
+          </svg>
         </div>
 
-        <!-- Large Image Preview -->
-        <div style="width: 100%; background-color: var(--md-sys-color-background); border-radius: 16px; padding: 12px; text-align: center; margin-bottom: 14px; border: 1px solid var(--md-sys-color-surface-variant);">
-          <img id="preview-shoe-img" src="" alt="Shoe Design Preview" style="width: 100%; max-height: 240px; object-fit: contain; border-radius: 12px;" />
-        </div>
+        <div class="catalog-preview-body">
+          <!-- Large Image Preview + Carousel -->
+          <div class="catalog-preview-image-wrap">
+            <img id="preview-shoe-img" src="" alt="Shoe Design Preview" class="catalog-preview-image" />
+            <button class="catalog-preview-nav-btn catalog-preview-nav-prev" id="btn-preview-prev" title="Previous photo">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <button class="catalog-preview-nav-btn catalog-preview-nav-next" id="btn-preview-next" title="Next photo">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+            <span id="preview-image-counter" class="catalog-preview-counter"></span>
+            <button class="catalog-preview-zoom-btn" id="btn-preview-zoom" title="View full size">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            </button>
+          </div>
 
-        <h2 id="preview-design-name" style="font-size: 1.2rem; font-weight: 700; color: var(--md-sys-color-on-surface); margin-bottom: 4px;"></h2>
-        <div id="preview-design-category" style="font-size: 0.85rem; font-weight: 600; color: var(--md-sys-color-secondary); margin-bottom: 12px;"></div>
+          <!-- Thumbnail Strip -->
+          <div class="catalog-preview-thumbs" id="preview-thumbs"></div>
 
-        <!-- Details Table Grid -->
-        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.83rem; background: var(--md-sys-color-surface); padding: 12px; border-radius: 12px; border: 1px solid var(--md-sys-color-surface-variant); margin-bottom: 16px;">
-          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--md-sys-color-surface-variant); padding-bottom: 6px;">
-            <span style="color: var(--md-sys-color-on-surface-variant); font-weight: 600;">Farma Shelf:</span>
-            <span id="preview-farma-shelf" style="font-weight: 700; color: var(--md-sys-color-on-surface);"></span>
+          <!-- Item Details -->
+          <div class="catalog-preview-details-header">
+            <span class="catalog-preview-details-icon">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+            </span>
+            <span>Item Details</span>
           </div>
-          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--md-sys-color-surface-variant); padding-bottom: 6px;">
-            <span style="color: var(--md-sys-color-on-surface-variant); font-weight: 600;">Warehouse Location:</span>
-            <span id="preview-shelf-location" style="font-weight: 600; color: var(--md-sys-color-on-surface);"></span>
-          </div>
-          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--md-sys-color-surface-variant); padding-bottom: 6px;">
-            <span style="color: var(--md-sys-color-on-surface-variant); font-weight: 600;">Size:</span>
-            <span id="preview-materials" style="color: var(--md-sys-color-on-surface);"></span>
-          </div>
-          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--md-sys-color-surface-variant); padding-bottom: 6px;">
-            <span style="color: var(--md-sys-color-on-surface-variant); font-weight: 600;">Season:</span>
-            <span id="preview-season" style="color: var(--md-sys-color-on-surface);"></span>
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <span style="color: var(--md-sys-color-on-surface-variant); font-weight: 600;">Created Date:</span>
-            <span id="preview-created-at" style="color: var(--md-sys-color-on-surface);"></span>
-          </div>
-        </div>
 
-        <!-- Modal Action Buttons -->
-        <div style="display: flex; gap: 10px;">
-          <button class="md-btn" id="btn-preview-edit" style="flex: 1; background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container);">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-            <span>Edit Details</span>
-          </button>
-          <button class="md-btn" onclick="closeCatalogPreviewModal()" style="flex: 1; background-color: var(--md-sys-color-surface-variant); color: var(--md-sys-color-on-surface-variant);">
-            <span>Close</span>
-          </button>
+          <div class="catalog-preview-details-table">
+            <div class="catalog-preview-detail-row">
+              <span class="catalog-preview-detail-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                <span>Farma Shelf</span>
+              </span>
+              <span id="preview-farma-shelf" class="catalog-preview-detail-value"></span>
+            </div>
+            <div class="catalog-preview-detail-row">
+              <span class="catalog-preview-detail-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/></svg>
+                <span>Warehouse Location</span>
+              </span>
+              <span id="preview-shelf-location" class="catalog-preview-detail-value catalog-preview-detail-value--accent"></span>
+            </div>
+            <div class="catalog-preview-detail-row">
+              <span class="catalog-preview-detail-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>
+                <span>Size</span>
+              </span>
+              <span id="preview-materials" class="catalog-preview-detail-value"></span>
+            </div>
+            <div class="catalog-preview-detail-row">
+              <span class="catalog-preview-detail-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41L11 3.83 3.83 11l9.58 9.59a2 2 0 0 0 2.83 0l4.35-4.35a2 2 0 0 0 0-2.83z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+                <span>Season</span>
+              </span>
+              <span id="preview-season" class="catalog-preview-detail-value"></span>
+            </div>
+            <div class="catalog-preview-detail-row catalog-preview-detail-row--last">
+              <span class="catalog-preview-detail-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                <span>Created Date</span>
+              </span>
+              <span id="preview-created-at" class="catalog-preview-detail-value"></span>
+            </div>
+          </div>
+
+          <!-- Modal Action Buttons -->
+          <div class="catalog-preview-actions">
+            <button class="catalog-preview-btn-edit" id="btn-preview-edit">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              <span>Edit Details</span>
+            </button>
+            <button class="catalog-preview-btn-close" onclick="closeCatalogPreviewModal()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              <span>Close</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -2301,6 +2301,45 @@
   };
 
   let currentPreviewDesignId = null;
+  let previewImagePaths = [];
+  let previewImageIndex = 0;
+
+  function renderPreviewImage(index) {
+    if (!previewImagePaths.length) return;
+    previewImageIndex = ((index % previewImagePaths.length) + previewImagePaths.length) % previewImagePaths.length;
+
+    const img = document.getElementById("preview-shoe-img");
+    const counter = document.getElementById("preview-image-counter");
+    const prevBtn = document.getElementById("btn-preview-prev");
+    const nextBtn = document.getElementById("btn-preview-next");
+    const thumbs = document.querySelectorAll("#preview-thumbs .catalog-preview-thumb");
+
+    if (img) img.src = window.getApiUrl(previewImagePaths[previewImageIndex]);
+    if (counter) counter.textContent = `${previewImageIndex + 1}/${previewImagePaths.length}`;
+
+    const multi = previewImagePaths.length > 1;
+    if (prevBtn) prevBtn.classList.toggle("hidden", !multi);
+    if (nextBtn) nextBtn.classList.toggle("hidden", !multi);
+    if (counter) counter.classList.toggle("hidden", !multi);
+
+    thumbs.forEach((t, i) => t.classList.toggle("active", i === previewImageIndex));
+  }
+
+  function buildPreviewThumbs() {
+    const thumbsEl = document.getElementById("preview-thumbs");
+    if (!thumbsEl) return;
+    thumbsEl.innerHTML = "";
+    if (previewImagePaths.length <= 1) return;
+
+    previewImagePaths.forEach((path, i) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "catalog-preview-thumb" + (i === previewImageIndex ? " active" : "");
+      btn.innerHTML = `<img src="${window.getApiUrl(path)}" alt="Photo ${i + 1}">`;
+      btn.addEventListener("click", () => renderPreviewImage(i));
+      thumbsEl.appendChild(btn);
+    });
+  }
 
   window.openCatalogPreviewModal = function(designId) {
     const design = (state.catalog || []).find(d => d.design_id === designId);
@@ -2308,10 +2347,13 @@
 
     currentPreviewDesignId = designId;
 
-    const imgPath = window.getApiUrl(design.thumbnail_path || (design.reference_images && design.reference_images[0] ? design.reference_images[0].image_path : ''));
-    
+    previewImagePaths = (design.reference_images && design.reference_images.length)
+      ? design.reference_images.map(r => r.image_path).filter(Boolean)
+      : [design.thumbnail_path].filter(Boolean);
+    if (!previewImagePaths.length) previewImagePaths = [""];
+    previewImageIndex = 0;
+
     const badge = document.getElementById("preview-design-id-badge");
-    const img = document.getElementById("preview-shoe-img");
     const name = document.getElementById("preview-design-name");
     const category = document.getElementById("preview-design-category");
     const farmaShelf = document.getElementById("preview-farma-shelf");
@@ -2320,9 +2362,11 @@
     const season = document.getElementById("preview-season");
     const createdAt = document.getElementById("preview-created-at");
     const editBtn = document.getElementById("btn-preview-edit");
+    const prevBtn = document.getElementById("btn-preview-prev");
+    const nextBtn = document.getElementById("btn-preview-next");
+    const zoomBtn = document.getElementById("btn-preview-zoom");
 
     if (badge) badge.textContent = design.design_id || "";
-    if (img) img.src = imgPath;
     if (name) name.textContent = design.name || "Unnamed Design";
     if (category) category.textContent = design.category || "Footwear";
     if (farmaShelf) farmaShelf.textContent = design.farma_shelf || "Unspecified";
@@ -2331,10 +2375,21 @@
     if (season) season.textContent = design.season || "Collection 2026";
     if (createdAt) createdAt.textContent = design.created_at || "Recent";
 
+    buildPreviewThumbs();
+    renderPreviewImage(0);
+
     if (editBtn) {
       editBtn.onclick = function() {
         closeCatalogPreviewModal();
         openCatalogEditModal(designId);
+      };
+    }
+    if (prevBtn) prevBtn.onclick = () => renderPreviewImage(previewImageIndex - 1);
+    if (nextBtn) nextBtn.onclick = () => renderPreviewImage(previewImageIndex + 1);
+    if (zoomBtn) {
+      zoomBtn.onclick = () => {
+        const path = previewImagePaths[previewImageIndex];
+        if (path) window.open(window.getApiUrl(path), "_blank");
       };
     }
 
