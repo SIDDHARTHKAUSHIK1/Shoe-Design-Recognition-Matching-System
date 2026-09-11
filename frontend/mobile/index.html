@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- Mobile Native Material 3 Stylesheet -->
-  <link rel="stylesheet" href="mobile.css?v=20260911">
+  <link rel="stylesheet" href="mobile.css?v=20260912s">
 </head>
 <body>
 
@@ -20,18 +20,16 @@
     <!-- Material 3 Top App Bar -->
     <header class="top-app-bar">
       <div class="brand-title">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="min-width: 22px; min-height: 22px; width: 22px; height: 22px; flex-shrink: 0; display: block;">
-          <path d="M2 17l10 4 10-4"/>
-          <path d="M12 3L2 8l10 5 10-5-10-5z"/>
-        </svg>
+        <span class="brand-icon-badge">
+          <img src="/mobile-static/brand-icon.png" alt="ShoeMatch AI" class="brand-icon-img" />
+        </span>
         <span style="font-weight: 700; color: var(--md-sys-color-on-surface); white-space: nowrap; display: inline-block;">ShoeMatch AI</span>
         <span class="brand-badge" id="role-badge">Admin</span>
       </div>
 
       <div class="top-bar-actions">
-        <button class="md-btn-add-top" id="btn-open-catalog-add" title="Add New Design" onclick="openCatalogAddModal()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-          <span>Add New Design</span>
+        <button class="icon-btn" id="btn-toggle-catalog-search" title="Search Catalog">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </button>
       </div>
     </header>
@@ -41,23 +39,33 @@
       
       <!-- TAB 1: MATCH STUDIO -->
       <section id="tab-studio" class="tab-pane active">
-        <div class="md-card">
-          <div class="card-title">
-            <span>Visual Match Studio</span>
-            <span style="font-size: 0.75rem; color: var(--md-sys-color-outline);" id="target-host-indicator">LAN: 192.168.29.14</span>
+
+        <div class="studio-page-header">
+          <div>
+            <div class="studio-page-title">Match Studio</div>
+            <div class="studio-page-subtitle">Find any shoe design in seconds</div>
           </div>
-          <p style="font-size: 0.85rem; color: var(--md-sys-color-on-surface-variant); margin-bottom: 14px;">
-            Snap a shoe photo with your camera or select an image from your gallery to match catalog designs and locate its warehouse slot.
-          </p>
-          
-          <div style="display: flex; gap: 10px;">
-            <button class="md-btn" id="btn-studio-camera" style="flex: 1; background-color: var(--md-sys-color-secondary); color: var(--md-sys-color-on-secondary);">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <button class="studio-header-add-btn" id="btn-open-catalog-add" title="Add New Design" onclick="openCatalogAddModal()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><path d="M12 5v14M5 12h14"/></svg>
+            <span>Add New Design</span>
+          </button>
+        </div>
+
+        <div class="studio-hero-card">
+          <div class="studio-hero-icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+          <div class="studio-hero-heading">Scan a Shoe Design</div>
+          <div class="studio-hero-text">Snap a photo or upload one from your gallery to match it against the catalogue and locate its warehouse slot.</div>
+
+          <div class="studio-hero-actions">
+            <button class="popup-btn-primary" id="btn-studio-camera">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
               <span>Camera</span>
             </button>
 
-            <button class="md-btn" id="btn-studio-gallery" style="flex: 1; background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container);">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <button class="popup-btn-secondary" id="btn-studio-gallery">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
               <span>Gallery</span>
             </button>
           </div>
@@ -67,7 +75,7 @@
         <!-- Selected Query File Preview -->
         <div id="query-preview-container" class="md-card hidden" style="text-align: center;">
           <img id="query-preview-img" style="max-height: 220px; border-radius: 12px; object-fit: contain; width: 100%; margin-bottom: 12px;" />
-          <button class="md-btn" id="btn-execute-match">
+          <button class="popup-btn-primary" id="btn-execute-match" style="width: 100%;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <span>Run AI Visual Search</span>
           </button>
@@ -90,8 +98,16 @@
 
       <!-- TAB 2: CATALOG -->
       <section id="tab-catalog" class="tab-pane">
-        <div class="md-card" style="margin-bottom: 12px;">
-          <input type="text" id="catalog-search-input" class="md-input" placeholder="Search catalog by SKU, name, or material..." style="margin-bottom: 0;">
+        <div class="catalog-search-wrap hidden" id="catalog-search-wrap">
+          <div class="search-bar-pro">
+            <span class="search-bar-pro-icon">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </span>
+            <input type="text" id="catalog-search-input" class="search-bar-pro-input" placeholder="Search catalog by SKU, name, or material..." autocomplete="off">
+            <button class="search-bar-pro-clear hidden" id="btn-clear-catalog-search" title="Clear search" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
         </div>
         <div id="catalog-grid"></div>
       </section>
@@ -99,72 +115,78 @@
       <!-- TAB 3: ADMIN CONSOLE -->
       <section id="tab-admin" class="tab-pane">
 
-        <!-- Total Design Log & Catalog Status Card (Positioned directly below Active User Account) -->
-        <div class="md-card" id="admin-total-design-log-card" style="margin-bottom: 12px;">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+        <div class="admin-page-header">
+          <div class="admin-page-title">Admin Console</div>
+          <div class="admin-page-subtitle">Manage your catalogue, team, and activity</div>
+        </div>
+
+        <!-- Catalog Overview -->
+        <div class="admin-section-card" id="admin-total-design-log-card">
+          <div class="admin-section-header">
             <div>
-              <div class="card-title" style="margin-bottom: 2px;">📊 Total Design Status & Catalog Log</div>
-              <div style="font-size: 0.78rem; color: var(--md-sys-color-on-surface-variant);">Live counts and inventory status of registered shoe designs</div>
-            </div>
-            <span id="admin-total-designs-badge" style="font-size: 0.78rem; font-weight: 700; background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); padding: 4px 10px; border-radius: 20px;">
-              Total Designs: 0
-            </span>
-          </div>
-
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px;">
-            <div style="background: var(--md-sys-color-surface-variant); padding: 8px 6px; border-radius: 10px; text-align: center;">
-              <div style="font-size: 1.1rem; font-weight: 800; color: var(--md-sys-color-primary);" id="stat-total-designs-count">0</div>
-              <div style="font-size: 0.7rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant);">Total Designs</div>
-            </div>
-            <div style="background: var(--md-sys-color-surface-variant); padding: 8px 6px; border-radius: 10px; text-align: center;">
-              <div style="font-size: 1.1rem; font-weight: 800; color: var(--md-sys-color-secondary);" id="stat-total-categories-count">0</div>
-              <div style="font-size: 0.7rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant);">Categories</div>
-            </div>
-            <div style="background: var(--md-sys-color-surface-variant); padding: 8px 6px; border-radius: 10px; text-align: center;">
-              <div style="font-size: 1.1rem; font-weight: 800; color: var(--md-sys-color-tertiary, #7D5260);" id="stat-total-shelves-count">0</div>
-              <div style="font-size: 0.7rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant);">Farma Shelves</div>
+              <div class="admin-section-title">Catalog Overview</div>
+              <div class="admin-section-subtitle">Live counts of registered shoe designs</div>
             </div>
           </div>
 
-          <div id="admin-design-log-summary" style="font-size: 0.78rem; color: var(--md-sys-color-on-surface-variant); background: var(--md-sys-color-background); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--md-sys-color-surface-variant);">
+          <div class="admin-stats-grid">
+            <div class="admin-stat-tile">
+              <div class="admin-stat-value" id="stat-total-designs-count">0</div>
+              <div class="admin-stat-label">Total Designs</div>
+            </div>
+            <div class="admin-stat-tile">
+              <div class="admin-stat-value" id="stat-total-categories-count">0</div>
+              <div class="admin-stat-label">Categories</div>
+            </div>
+            <div class="admin-stat-tile">
+              <div class="admin-stat-value" id="stat-total-shelves-count">0</div>
+              <div class="admin-stat-label">Farma Shelves</div>
+            </div>
+          </div>
+
+          <div class="admin-summary-box" id="admin-design-log-summary">
             Loading catalog status...
           </div>
         </div>
 
         <!-- Create and Manage User Section (Admin Only) -->
-        <div class="md-card" id="admin-user-management-card" style="margin-bottom: 12px; display: none;">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+        <div class="admin-section-card" id="admin-user-management-card" style="display: none;">
+          <div class="admin-section-header">
             <div>
-              <div class="card-title" style="margin-bottom: 2px;">Create and Manage User</div>
-              <div style="font-size: 0.78rem; color: var(--md-sys-color-on-surface-variant);">Create Admin/Employee accounts, view/change passwords, or delete accounts</div>
+              <div class="admin-section-title">Team Members</div>
+              <div class="admin-section-subtitle">Manage admin and employee accounts</div>
             </div>
-            <button class="md-btn" id="btn-open-create-user" style="padding: 6px 12px; font-size: 0.8rem; background-color: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); width: auto;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-              <span>+ Create User</span>
+            <button class="studio-header-add-btn" id="btn-open-create-user" title="Create User">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><path d="M12 5v14M5 12h14"/></svg>
+              <span>Add User</span>
             </button>
           </div>
 
-          <!-- Users List Table Container (Roller Scroll Container) -->
-          <div id="admin-users-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; padding-right: 4px;">
-            <div style="font-size: 0.82rem; color: var(--md-sys-color-outline); text-align: center; padding: 8px 0;">Loading system users...</div>
+          <!-- Users List Container -->
+          <div id="admin-users-list" class="admin-user-list">
+            <div class="admin-list-empty">Loading system users...</div>
           </div>
         </div>
 
         <!-- Recent Activity History Section (Bottom of Admin Panel) -->
-        <div class="md-card" id="admin-activity-history-card" style="margin-bottom: 12px;">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+        <div class="admin-section-card" id="admin-activity-history-card">
+          <div class="admin-section-header">
             <div>
-              <div class="card-title" style="margin-bottom: 2px;">⏱️ Recent Activity History</div>
-              <div style="font-size: 0.78rem; color: var(--md-sys-color-on-surface-variant);">Real-time audit log of visual searches, catalog updates, and user actions</div>
+              <div class="admin-section-title">Recent Activity</div>
+              <div class="admin-section-subtitle">Audit log of searches, catalog updates, and account actions</div>
             </div>
             <div style="display: flex; gap: 6px;">
-              <button class="md-btn" id="btn-refresh-activity-logs" style="padding: 4px 8px; font-size: 0.75rem; min-height: 32px; background-color: var(--md-sys-color-surface-variant); color: var(--md-sys-color-on-surface-variant); width: auto;">🔄 Refresh</button>
-              <button class="md-btn" id="btn-clear-activity-logs" style="padding: 4px 8px; font-size: 0.75rem; min-height: 32px; background-color: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container); width: auto;">🗑️ Clear History</button>
+              <button class="admin-icon-action-btn" id="btn-refresh-activity-logs" title="Refresh">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="23 4 23 10 17 10"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              </button>
+              <button class="admin-icon-action-btn admin-icon-action-btn--danger" id="btn-clear-activity-logs" title="Clear History">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
             </div>
           </div>
 
-          <div id="admin-activity-history-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; padding-right: 4px;">
-            <div style="font-size: 0.82rem; color: var(--md-sys-color-outline); text-align: center; padding: 12px 0;">Loading activity logs...</div>
+          <div id="admin-activity-history-list" class="admin-activity-list">
+            <div class="admin-list-empty">Loading activity logs...</div>
           </div>
         </div>
 
@@ -173,63 +195,113 @@
       <!-- TAB 4: PROFILE -->
       <section id="tab-profile" class="tab-pane">
 
-        <!-- Account Controls & Options Card -->
-        <div class="md-card" style="margin-bottom: 12px; background: linear-gradient(135deg, var(--md-sys-color-surface), var(--md-sys-color-background)); border: 1px solid var(--md-sys-color-surface-variant);">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-            <div>
-              <div style="font-size: 0.76rem; font-weight: 700; color: var(--md-sys-color-outline); letter-spacing: 0.5px;">ACTIVE USER ACCOUNT</div>
-              <div style="font-size: 1.1rem; font-weight: 700; color: var(--md-sys-color-on-surface);" id="admin-user-display-name">Active User</div>
-            </div>
-            <span class="brand-badge" id="admin-role-badge" style="font-size: 0.78rem; padding: 4px 10px;">Employee</span>
-          </div>
-
-          <div style="display: flex; gap: 8px; margin-top: 12px; flex-direction: column;">
-            <div id="switch-role-container" style="width: 100%;">
-              <button class="md-btn" id="btn-open-switch-employee-modal" style="width: 100%; padding: 10px 14px; min-height: 42px; font-size: 0.84rem; background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); border: none; font-weight: 600; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
-                <span id="switch-employee-btn-label">-- Switch to Employee View --</span>
-              </button>
-              <button class="md-btn hidden" id="btn-return-to-admin" style="width: 100%; padding: 10px 14px; min-height: 42px; font-size: 0.84rem; background-color: var(--md-sys-color-tertiary-container, #E8DEF8); color: var(--md-sys-color-on-tertiary-container, #1D192B); border: none; font-weight: 700; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                ↩️ Return to Admin Account
-              </button>
-            </div>
-
-            <div style="display: flex; gap: 8px; width: 100%;">
-              <button class="md-btn" id="btn-theme-toggle" style="flex: 1; padding: 8px 12px; min-height: 40px; font-size: 0.82rem; background-color: var(--md-sys-color-surface-variant); color: var(--md-sys-color-on-surface-variant); border: none; font-weight: 600;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/></svg>
-                <span id="theme-toggle-label">Dark Mode</span>
-              </button>
-
-              <button class="md-btn" id="btn-logout" style="flex: 1; padding: 10px 16px; min-height: 44px; font-size: 0.85rem; background-color: #DC2626 !important; color: #FFFFFF !important; border: none; font-weight: 700; border-radius: 12px; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3) !important;" title="Log Out">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                <span style="color: #FFFFFF !important; font-weight: 700;">Logout</span>
-              </button>
-            </div>
+        <!-- Profile Page Header -->
+        <div class="profile-page-header">
+          <div>
+            <div class="profile-page-title">Profile</div>
+            <div class="profile-page-subtitle">Your account, your control</div>
           </div>
         </div>
 
-        <!-- Personal Profile & Password Card (Visible for both Admin & Employee) -->
-        <div class="md-card" id="my-account-card" style="margin-bottom: 12px;">
-          <div class="card-title" style="margin-bottom: 8px;">My Account Profile</div>
-          <div style="font-size: 0.83rem; color: var(--md-sys-color-on-surface-variant); display: flex; flex-direction: column; gap: 6px;">
-            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--md-sys-color-surface-variant); padding-bottom: 6px;">
-              <span style="font-weight: 600;">Account Name:</span>
-              <span id="my-profile-name" style="font-weight: 700; color: var(--md-sys-color-on-surface);">Active User</span>
+        <!-- Identity Card: Avatar, Name, Role & Status -->
+        <div class="profile-identity-card">
+          <div class="profile-avatar-wrap">
+            <div class="profile-avatar">
+              <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>
             </div>
-            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--md-sys-color-surface-variant); padding-bottom: 6px;">
-              <span style="font-weight: 600;">Username:</span>
-              <span id="my-profile-username" style="font-weight: 700; color: var(--md-sys-color-secondary);">@account</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 2px; flex-wrap: wrap; gap: 6px;">
-              <span style="font-weight: 600;">My Password:</span>
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <span id="my-profile-password" data-pwd="" style="font-family: monospace; font-weight: 700; background: var(--md-sys-color-surface-variant); padding: 2px 8px; border-radius: 4px;">••••••••</span>
-                <button class="btn-toggle-pwd-view" id="btn-toggle-my-pwd-view" style="background: none; border: none; cursor: pointer; padding: 0 2px; color: var(--md-sys-color-primary);" title="Reveal/Hide My Password">👁️</button>
-                <button class="md-btn" id="btn-change-my-pwd" style="padding: 4px 8px; font-size: 0.72rem; min-height: 30px; background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); width: auto;">🔑 Change My Password</button>
-              </div>
-            </div>
+            <span class="profile-avatar-badge" title="Verified Account">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="0.5"><path d="M3 8l4 3 5-6 5 6 4-3-2 11H5L3 8z"/></svg>
+            </span>
+          </div>
+
+          <div class="profile-identity-name" id="admin-user-display-name">Active User</div>
+          <div class="profile-identity-meta">
+            <span class="brand-badge" id="admin-role-badge">Employee</span>
+          </div>
+          <div class="profile-identity-quote">&ldquo;Great products, better management!&rdquo;</div>
+        </div>
+
+        <!-- Quick Actions Grid -->
+        <div class="profile-actions-grid">
+          <button class="profile-action-tile tile-darkblue" id="btn-change-my-pwd" type="button">
+            <span class="profile-action-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="4" y="10.5" width="16" height="10" rx="2.2"/><path d="M7.5 10.5V7a4.5 4.5 0 0 1 9 0v3.5"/></svg>
+            </span>
+            <span class="profile-action-label">Change Password</span>
+          </button>
+
+          <button class="profile-action-tile tile-darkblue" id="btn-theme-toggle" type="button">
+            <span class="profile-action-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z"/></svg>
+            </span>
+            <span class="profile-action-label" id="theme-toggle-label">Dark Mode</span>
+          </button>
+
+          <div id="switch-role-container">
+            <button class="profile-action-tile tile-orange" id="btn-open-switch-employee-modal" type="button">
+              <span class="profile-action-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M17 3l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 21l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+              </span>
+              <span class="profile-action-label" id="switch-employee-btn-label">Switch to Employee</span>
+            </button>
+            <button class="profile-action-tile tile-orange hidden" id="btn-return-to-admin" type="button">
+              <span class="profile-action-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 14l-4-4 4-4"/><path d="M5 10h9a5 5 0 0 1 5 5v1"/></svg>
+              </span>
+              <span class="profile-action-label">Return to Admin</span>
+            </button>
           </div>
         </div>
+
+        <!-- Account Details Card -->
+        <div class="md-card profile-details-card" id="my-account-card">
+          <div class="profile-details-header">
+            <span class="card-title" style="margin-bottom: 0;">Account Details</span>
+            <button class="profile-edit-link" id="btn-profile-edit-link" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+              <span>Edit</span>
+            </button>
+          </div>
+
+          <div class="profile-detail-row">
+            <span class="profile-detail-label">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>
+              Account Name
+            </span>
+            <span class="profile-detail-value" id="my-profile-name">Active User</span>
+          </div>
+
+          <div class="profile-detail-row">
+            <span class="profile-detail-label">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="4"/><path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-4 7.5"/></svg>
+              Username
+            </span>
+            <span class="profile-detail-value profile-detail-link" id="my-profile-username">@account</span>
+          </div>
+
+          <div class="profile-detail-row">
+            <span class="profile-detail-label">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/></svg>
+              Role
+            </span>
+            <span class="profile-detail-value"><span class="profile-role-chip" id="profile-role-detail-chip">Administrator</span></span>
+          </div>
+
+          <div class="profile-detail-row profile-detail-row-last">
+            <span class="profile-detail-label">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+              Last Login
+            </span>
+            <span class="profile-detail-value" id="profile-last-login">&mdash;</span>
+          </div>
+
+          <span id="my-profile-password" data-pwd="" class="hidden"></span>
+        </div>
+
+        <button class="md-btn profile-logout-btn" id="btn-logout" type="button" title="Log Out">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <span>Log Out</span>
+        </button>
 
       </section>
 
@@ -372,88 +444,145 @@
     </div>
 
     <!-- Switch Employee Account Modal -->
-    <div id="switch-employee-modal" class="scanner-overlay hidden" style="background-color: rgba(0,0,0,0.6); z-index: 99999;">
-      <div style="width: 100%; max-width: 360px; background-color: var(--md-sys-color-surface); padding: 20px; border-radius: 24px; box-shadow: var(--md-elevation-3); text-align: left;">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-          <h3 style="color: var(--md-sys-color-on-surface); font-size: 1.1rem; font-weight: 700; margin: 0;">Switch to Employee View</h3>
-          <button class="icon-btn" onclick="window.closeSwitchEmployeeModal();" style="min-width: 28px; min-height: 28px; font-size: 1.1rem; border: none; background: none; cursor: pointer; color: var(--md-sys-color-on-surface);">✕</button>
+    <div id="switch-employee-modal" class="scanner-overlay hidden" style="z-index: 99999;">
+      <div class="popup-card">
+        <button class="popup-close-btn" onclick="window.closeSwitchEmployeeModal();" title="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+
+        <div class="popup-header">
+          <div class="popup-header-decor"></div>
+          <div class="popup-icon-badge">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+          </div>
+          <div class="popup-title">Switch to Employee View</div>
+          <div class="popup-subtitle">Select an employee account to switch into employee view mode</div>
         </div>
-        <p style="color: var(--md-sys-color-on-surface-variant); font-size: 0.82rem; margin-bottom: 14px;">Select an employee account to switch into employee view mode:</p>
-        
-        <div id="switch-employee-modal-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; padding-right: 4px;">
-          <div style="font-size: 0.82rem; color: var(--md-sys-color-outline); text-align: center; padding: 12px 0;">Loading employee accounts...</div>
+
+        <div class="popup-body">
+          <div id="switch-employee-modal-list" class="popup-list">
+            <div style="font-size: 0.82rem; color: var(--md-sys-color-outline); text-align: center; padding: 12px 0;">Loading employee accounts...</div>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Forced Password Reset Modal -->
     <div id="password-reset-modal" class="scanner-overlay hidden" style="background-color: rgba(0,0,0,0.85);">
-      <div style="width: 100%; max-width: 360px; background-color: var(--md-sys-color-surface); padding: 24px; border-radius: 24px; text-align: center;">
-        <h2 style="color: var(--md-sys-color-on-surface); font-size: 1.25rem; font-weight: 700; margin-bottom: 8px;">Password Change Required</h2>
-        <p style="color: var(--md-sys-color-on-surface-variant); font-size: 0.85rem; margin-bottom: 16px;">You must change your default password before continuing.</p>
-        
-        <form id="password-reset-form">
-          <input type="password" id="reset-current-pass" class="md-input" placeholder="Current Password" required>
-          <input type="password" id="reset-new-pass" class="md-input" placeholder="New Password (min 8 chars)" required>
-          <button type="submit" class="md-btn">Update Password & Continue</button>
-        </form>
+      <div class="popup-card">
+        <div class="popup-header">
+          <div class="popup-header-decor"></div>
+          <div class="popup-icon-badge">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10.5" width="16" height="10" rx="2.2"/><path d="M7.5 10.5V7a4.5 4.5 0 0 1 9 0v3.5"/></svg>
+          </div>
+          <div class="popup-title">Password Change Required</div>
+          <div class="popup-subtitle">You must change your default password before continuing</div>
+        </div>
+
+        <div class="popup-body">
+          <form id="password-reset-form">
+            <label class="popup-label">Current Password</label>
+            <div class="popup-field">
+              <span class="popup-field-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="10.5" width="16" height="10" rx="2.2"/><path d="M7.5 10.5V7a4.5 4.5 0 0 1 9 0v3.5"/></svg>
+              </span>
+              <input type="password" id="reset-current-pass" class="popup-input" placeholder="Current Password" required>
+            </div>
+
+            <label class="popup-label">New Password</label>
+            <div class="popup-field">
+              <span class="popup-field-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="10.5" width="16" height="10" rx="2.2"/><path d="M7.5 10.5V7a4.5 4.5 0 0 1 9 0v3.5"/></svg>
+              </span>
+              <input type="password" id="reset-new-pass" class="popup-input" placeholder="New Password (min 8 chars)" required>
+            </div>
+
+            <div class="popup-actions">
+              <button type="submit" class="popup-btn-primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                <span>Update Password & Continue</span>
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
 
     <!-- Add to Catalogue Modal -->
     <div id="catalog-add-modal" class="scanner-overlay hidden">
-      <div class="md-card" id="catalog-add-card" style="width: 100%; max-width: 400px; max-height: 85vh; overflow-y: auto;">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-          <div class="card-title" style="margin-bottom: 0;">Add to Catalogue</div>
-          <button class="icon-btn" id="btn-close-catalog-add" title="Close" style="min-width: 36px; min-height: 36px;" onclick="closeCatalogAddModal()">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
-          </button>
-        </div>
-        <p style="font-size: 0.85rem; color: var(--md-sys-color-on-surface-variant); margin-bottom: 8px;">
-          Snap or upload a photo of a new shoe design to add it to the searchable catalogue.
-        </p>
+      <div class="popup-card" id="catalog-add-card">
+        <button class="popup-close-btn" id="btn-close-catalog-add" title="Close" onclick="closeCatalogAddModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
 
-        <div style="margin-bottom: 12px; padding: 8px 12px; background: rgba(78, 189, 214, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: space-between;">
-          <span style="font-size: 0.78rem; font-weight: 700; color: var(--md-sys-color-secondary);">Real-Time Generated SKU:</span>
-          <span id="catalog-add-sku-badge" style="font-size: 0.9rem; font-weight: 800; color: var(--md-sys-color-primary); font-family: monospace;">SKU</span>
-        </div>
-
-        <div class="combobox-wrap" style="position: relative; margin-bottom: 12px;">
-          <input type="text" id="catalog-add-name-input" class="md-input" placeholder="Design name (optional)" autocomplete="off" style="margin-bottom: 0;">
-          <div id="design-name-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1202; max-height: 160px;">
-            <!-- Populated dynamically by mobile.js -->
+        <div class="popup-header">
+          <div class="popup-header-decor"></div>
+          <div class="popup-icon-badge">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
           </div>
+          <div class="popup-title">Add to Catalogue</div>
+          <div class="popup-subtitle">Snap or upload a photo of a new shoe design</div>
         </div>
 
-        <div class="combobox-wrap" style="position: relative; margin-bottom: 12px;">
-          <input type="text" id="catalog-add-category-input" class="md-input" placeholder="Category (optional, e.g. Sneaker, Formal)" autocomplete="off" style="margin-bottom: 0;">
-          <div id="category-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1201; max-height: 160px;">
-            <!-- Populated dynamically by mobile.js -->
+        <div class="popup-body" style="overflow-y: auto;">
+          <div style="margin-bottom: 14px; padding: 8px 12px; background: rgba(47, 111, 237, 0.1); border-radius: 12px; display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-size: 0.78rem; font-weight: 700; color: #1852C9;">Real-Time Generated SKU:</span>
+            <span id="catalog-add-sku-badge" style="font-size: 0.9rem; font-weight: 800; color: #1852C9; font-family: monospace;">SKU</span>
           </div>
-        </div>
-        
-        <div class="combobox-wrap" style="position: relative; margin-bottom: 12px;">
-          <input type="text" id="catalog-add-farma-shelf-input" class="md-input" placeholder="Farma Shelf (optional, e.g. Rack A-01)" autocomplete="off" style="margin-bottom: 0;">
-          <div id="farma-shelf-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1200; max-height: 160px;">
-            <!-- Populated dynamically by mobile.js -->
+
+          <div class="popup-field">
+            <span class="popup-field-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20.59 13.41L11 3.83 3.83 11l9.58 9.59a2 2 0 0 0 2.83 0l4.35-4.35a2 2 0 0 0 0-2.83z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+            </span>
+            <input type="text" id="catalog-add-name-input" class="popup-input" placeholder="Design name (optional)" autocomplete="off">
+            <div id="design-name-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1202; max-height: 160px;">
+              <!-- Populated dynamically by mobile.js -->
+            </div>
           </div>
-        </div>
 
-        <div class="combobox-wrap" style="position: relative; margin-bottom: 12px;">
-          <input type="text" id="catalog-add-drawer-input" class="md-input" placeholder="Drawer (optional, e.g. Drawer 01)" autocomplete="off" style="margin-bottom: 0;">
-          <div id="add-drawer-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1199; max-height: 160px;"></div>
-        </div>
+          <div class="popup-field">
+            <span class="popup-field-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+            </span>
+            <input type="text" id="catalog-add-category-input" class="popup-input" placeholder="Category (optional, e.g. Sneaker, Formal)" autocomplete="off">
+            <div id="category-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1201; max-height: 160px;">
+              <!-- Populated dynamically by mobile.js -->
+            </div>
+          </div>
 
-        <div class="combobox-wrap" style="position: relative; margin-bottom: 12px;">
-          <input type="text" id="catalog-add-location-input" class="md-input" placeholder="Warehouse Location (optional, e.g. Warehouse A - Rack 03)" autocomplete="off" style="margin-bottom: 0;">
-          <div id="add-location-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1198; max-height: 160px;"></div>
-        </div>
+          <div class="popup-field">
+            <span class="popup-field-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            </span>
+            <input type="text" id="catalog-add-farma-shelf-input" class="popup-input" placeholder="Farma Shelf (optional, e.g. Rack A-01)" autocomplete="off">
+            <div id="farma-shelf-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1200; max-height: 160px;">
+              <!-- Populated dynamically by mobile.js -->
+            </div>
+          </div>
 
-        <div style="margin-bottom: 14px; position: relative;">
-          <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Size</label>
-          <div style="position: relative;">
-            <input type="text" id="catalog-add-materials-display" class="md-input" placeholder="-- Select Size (6 to 12) --" readonly style="margin-bottom: 0; background-color: var(--md-sys-color-surface); font-weight: 600; cursor: pointer; padding-right: 32px;" />
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; opacity: 0.7;"><polyline points="6 9 12 15 18 9"/></svg>
+          <div class="popup-field">
+            <span class="popup-field-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+            </span>
+            <input type="text" id="catalog-add-drawer-input" class="popup-input" placeholder="Drawer (optional, e.g. Drawer 01)" autocomplete="off">
+            <div id="add-drawer-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1199; max-height: 160px;"></div>
+          </div>
+
+          <div class="popup-field">
+            <span class="popup-field-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="10" r="3"/><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/></svg>
+            </span>
+            <input type="text" id="catalog-add-location-input" class="popup-input" placeholder="Warehouse Location (optional, e.g. Warehouse A - Rack 03)" autocomplete="off">
+            <div id="add-location-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1198; max-height: 160px;"></div>
+          </div>
+
+          <label class="popup-label">Size</label>
+          <div class="popup-field">
+            <span class="popup-field-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>
+            </span>
+            <input type="text" id="catalog-add-materials-display" class="popup-input" placeholder="-- Select Size (6 to 12) --" readonly style="cursor: pointer; padding-right: 32px;" />
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; opacity: 0.6;"><polyline points="6 9 12 15 18 9"/></svg>
             <div id="add-size-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1200; max-height: 200px; width: 100%; box-sizing: border-box;">
               <div class="farma-shelf-item" data-val="">-- Select Size (6 to 12) --</div>
               <div class="farma-shelf-item" data-val="6">Size 6</div>
@@ -475,119 +604,148 @@
             <option value="11">Size 11</option>
             <option value="12">Size 12</option>
           </select>
-        </div>
 
-        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-          <button class="md-btn" id="btn-catalog-add-camera" style="flex: 1; background-color: var(--md-sys-color-secondary); color: var(--md-sys-color-on-secondary);">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-            <span>Camera</span>
-          </button>
-          <button class="md-btn" id="btn-catalog-add-gallery" style="flex: 1; background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container);">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            <span>Gallery</span>
-          </button>
-        </div>
-        <input type="file" id="file-catalog-add-picker" accept="image/*" class="hidden">
+          <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+            <button class="popup-btn-primary" id="btn-catalog-add-camera">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              <span>Camera</span>
+            </button>
+            <button class="popup-btn-secondary" id="btn-catalog-add-gallery">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span>Gallery</span>
+            </button>
+          </div>
+          <input type="file" id="file-catalog-add-picker" accept="image/*" class="hidden">
 
-        <div id="catalog-add-preview-container" class="hidden" style="text-align: center;">
-          <img id="catalog-add-preview-img" style="max-height: 180px; border-radius: 12px; object-fit: contain; width: 100%; margin-bottom: 10px;" />
-          <button class="md-btn" id="btn-catalog-add-submit">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-            <span>Add to Catalogue</span>
-          </button>
-        </div>
-        <div id="catalog-add-loading-row" style="display: none; align-items: center; gap: 8px; margin-top: 8px;">
-          <div class="catalog-add-spinner"></div>
-          <span id="catalog-add-status-text" style="font-size: 0.82rem;"></span>
+          <div id="catalog-add-preview-container" class="hidden" style="text-align: center;">
+            <img id="catalog-add-preview-img" style="max-height: 180px; border-radius: 12px; object-fit: contain; width: 100%; margin-bottom: 10px;" />
+            <button class="popup-btn-primary" id="btn-catalog-add-submit" style="width: 100%;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
+              <span>Add to Catalogue</span>
+            </button>
+          </div>
+          <div id="catalog-add-loading-row" style="display: none; align-items: center; gap: 8px; margin-top: 8px;">
+            <div class="catalog-add-spinner"></div>
+            <span id="catalog-add-status-text" style="font-size: 0.82rem;"></span>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Edit Catalog Item Modal -->
     <div id="catalog-edit-modal" class="scanner-overlay hidden">
-      <div class="md-card" id="catalog-edit-card" style="width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; overflow-x: hidden;">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-          <div class="card-title" style="margin-bottom: 0;">Edit Catalog Design</div>
-          <button class="icon-btn" id="btn-close-catalog-edit" title="Close" style="min-width: 36px; min-height: 36px;" onclick="closeCatalogEditModal()">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
-          </button>
-        </div>
+      <div class="popup-card" id="catalog-edit-card">
+        <button class="popup-close-btn" id="btn-close-catalog-edit" title="Close" onclick="closeCatalogEditModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
 
-        <label style="font-size: 0.78rem; font-weight: 700; color: var(--md-sys-color-secondary); margin-bottom: 4px; display: block;">SKU Code (Editable)</label>
-        <div style="margin-bottom: 12px;">
-          <input type="text" id="catalog-edit-sku-input" class="md-input" placeholder="SKU Details (e.g. F-SHES24)" style="margin-bottom: 0; font-weight: 700; color: var(--md-sys-color-secondary); border-color: var(--md-sys-color-secondary);">
-        </div>
-
-        <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Design Name</label>
-        <div class="combobox-wrap" style="position: relative; margin-bottom: 12px;">
-          <input type="text" id="catalog-edit-name-input" class="md-input" placeholder="Design Name" autocomplete="off" style="margin-bottom: 0;">
-          <div id="edit-name-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1302; max-height: 140px;"></div>
-        </div>
-
-        <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Category</label>
-        <div class="combobox-wrap" style="position: relative; margin-bottom: 12px;">
-          <input type="text" id="catalog-edit-category-input" class="md-input" placeholder="Category" autocomplete="off" style="margin-bottom: 0;">
-          <div id="edit-category-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1301; max-height: 140px;"></div>
-        </div>
-
-        <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Farma Shelf</label>
-        <div class="combobox-wrap" style="position: relative; margin-bottom: 12px;">
-          <input type="text" id="catalog-edit-farma-shelf-input" class="md-input" placeholder="Farma Shelf (e.g. Rack A-01)" autocomplete="off" style="margin-bottom: 0;">
-          <div id="edit-farma-shelf-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1300; max-height: 140px;"></div>
-        </div>
-
-        <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Drawer</label>
-        <div class="combobox-wrap" style="position: relative; margin-bottom: 12px;">
-          <input type="text" id="catalog-edit-drawer-input" class="md-input" placeholder="Drawer (e.g. Drawer 01)" autocomplete="off" style="margin-bottom: 0;">
-          <div id="edit-drawer-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1299; max-height: 140px;"></div>
-        </div>
-
-        <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Warehouse Location</label>
-        <div class="combobox-wrap" style="position: relative; margin-bottom: 12px;">
-          <input type="text" id="catalog-edit-location-input" class="md-input" placeholder="Warehouse Location (e.g. Warehouse A - Rack 03)" autocomplete="off" style="margin-bottom: 0;">
-          <div id="edit-location-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1298; max-height: 140px;"></div>
-        </div>
-
-        <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Size</label>
-        <div style="position: relative; margin-bottom: 16px;">
-          <input type="text" id="catalog-edit-materials-display" class="md-input" placeholder="-- Select Size (6 to 12) --" readonly style="margin-bottom: 0; background-color: var(--md-sys-color-surface); font-weight: 600; cursor: pointer; padding-right: 32px;" />
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; opacity: 0.7;"><polyline points="6 9 12 15 18 9"/></svg>
-          <div id="edit-size-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1300; max-height: 200px; width: 100%; box-sizing: border-box;">
-            <div class="farma-shelf-item" data-val="">-- Select Size (6 to 12) --</div>
-            <div class="farma-shelf-item" data-val="6">Size 6</div>
-            <div class="farma-shelf-item" data-val="7">Size 7</div>
-            <div class="farma-shelf-item" data-val="8">Size 8</div>
-            <div class="farma-shelf-item" data-val="9">Size 9</div>
-            <div class="farma-shelf-item" data-val="10">Size 10</div>
-            <div class="farma-shelf-item" data-val="11">Size 11</div>
-            <div class="farma-shelf-item" data-val="12">Size 12</div>
+        <div class="popup-header">
+          <div class="popup-header-decor"></div>
+          <div class="popup-icon-badge">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           </div>
+          <div class="popup-title">Edit Catalog Design</div>
+          <div class="popup-subtitle">Update this design's catalog details</div>
         </div>
-        <select id="catalog-edit-materials-input" style="display: none;">
-          <option value="">-- Select Size (6 to 12) --</option>
-          <option value="6">Size 6</option>
-          <option value="7">Size 7</option>
-          <option value="8">Size 8</option>
-          <option value="9">Size 9</option>
-          <option value="10">Size 10</option>
-          <option value="11">Size 11</option>
-          <option value="12">Size 12</option>
-        </select>
 
-        <div style="display: flex; gap: 8px; margin-top: 14px;">
-          <button type="button" class="md-btn" id="btn-catalog-edit-delete" style="background-color: #DC2626; color: #FFFFFF; border: none; font-weight: 700; width: auto; padding: 10px 16px; display: inline-flex; align-items: center; gap: 6px; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);" title="Delete Design">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-            <span>Delete</span>
-          </button>
+        <div class="popup-body" style="overflow-y: auto; overflow-x: hidden;">
+          <label class="popup-label">SKU Code (Editable)</label>
+          <div class="popup-field">
+            <span class="popup-field-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+            </span>
+            <input type="text" id="catalog-edit-sku-input" class="popup-input" placeholder="SKU Details (e.g. F-SHES24)" style="font-weight: 700; color: #1852C9;">
+          </div>
 
-          <button class="md-btn" id="btn-catalog-edit-submit" style="flex: 1;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-            <span>Save Changes</span>
-          </button>
-        </div>
-        <div id="catalog-edit-loading-row" style="display: none; align-items: center; gap: 8px; margin-top: 8px;">
-          <div class="catalog-add-spinner"></div>
-          <span id="catalog-edit-status-text" style="font-size: 0.82rem;"></span>
+          <label class="popup-label">Design Name</label>
+          <div class="popup-field">
+            <span class="popup-field-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20.59 13.41L11 3.83 3.83 11l9.58 9.59a2 2 0 0 0 2.83 0l4.35-4.35a2 2 0 0 0 0-2.83z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+            </span>
+            <input type="text" id="catalog-edit-name-input" class="popup-input" placeholder="Design Name" autocomplete="off">
+            <div id="edit-name-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1302; max-height: 140px;"></div>
+          </div>
+
+          <label class="popup-label">Category</label>
+          <div class="popup-field">
+            <span class="popup-field-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+            </span>
+            <input type="text" id="catalog-edit-category-input" class="popup-input" placeholder="Category" autocomplete="off">
+            <div id="edit-category-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1301; max-height: 140px;"></div>
+          </div>
+
+          <label class="popup-label">Farma Shelf</label>
+          <div class="popup-field">
+            <span class="popup-field-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            </span>
+            <input type="text" id="catalog-edit-farma-shelf-input" class="popup-input" placeholder="Farma Shelf (e.g. Rack A-01)" autocomplete="off">
+            <div id="edit-farma-shelf-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1300; max-height: 140px;"></div>
+          </div>
+
+          <label class="popup-label">Drawer</label>
+          <div class="popup-field">
+            <span class="popup-field-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+            </span>
+            <input type="text" id="catalog-edit-drawer-input" class="popup-input" placeholder="Drawer (e.g. Drawer 01)" autocomplete="off">
+            <div id="edit-drawer-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1299; max-height: 140px;"></div>
+          </div>
+
+          <label class="popup-label">Warehouse Location</label>
+          <div class="popup-field">
+            <span class="popup-field-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="10" r="3"/><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/></svg>
+            </span>
+            <input type="text" id="catalog-edit-location-input" class="popup-input" placeholder="Warehouse Location (e.g. Warehouse A - Rack 03)" autocomplete="off">
+            <div id="edit-location-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1298; max-height: 140px;"></div>
+          </div>
+
+          <label class="popup-label">Size</label>
+          <div class="popup-field">
+            <span class="popup-field-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>
+            </span>
+            <input type="text" id="catalog-edit-materials-display" class="popup-input" placeholder="-- Select Size (6 to 12) --" readonly style="cursor: pointer; padding-right: 32px;" />
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; opacity: 0.6;"><polyline points="6 9 12 15 18 9"/></svg>
+            <div id="edit-size-dropdown" class="farma-shelf-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 1300; max-height: 200px; width: 100%; box-sizing: border-box;">
+              <div class="farma-shelf-item" data-val="">-- Select Size (6 to 12) --</div>
+              <div class="farma-shelf-item" data-val="6">Size 6</div>
+              <div class="farma-shelf-item" data-val="7">Size 7</div>
+              <div class="farma-shelf-item" data-val="8">Size 8</div>
+              <div class="farma-shelf-item" data-val="9">Size 9</div>
+              <div class="farma-shelf-item" data-val="10">Size 10</div>
+              <div class="farma-shelf-item" data-val="11">Size 11</div>
+              <div class="farma-shelf-item" data-val="12">Size 12</div>
+            </div>
+          </div>
+          <select id="catalog-edit-materials-input" style="display: none;">
+            <option value="">-- Select Size (6 to 12) --</option>
+            <option value="6">Size 6</option>
+            <option value="7">Size 7</option>
+            <option value="8">Size 8</option>
+            <option value="9">Size 9</option>
+            <option value="10">Size 10</option>
+            <option value="11">Size 11</option>
+            <option value="12">Size 12</option>
+          </select>
+
+          <div class="popup-actions">
+            <button type="button" class="popup-btn-secondary" id="btn-catalog-edit-delete" style="flex: 0 0 auto; padding: 0 16px; background-color: #DC2626; color: #FFFFFF;" title="Delete Design">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              <span>Delete</span>
+            </button>
+
+            <button class="popup-btn-primary" id="btn-catalog-edit-submit">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              <span>Save Changes</span>
+            </button>
+          </div>
+          <div id="catalog-edit-loading-row" style="display: none; align-items: center; gap: 8px; margin-top: 8px;">
+            <div class="catalog-add-spinner"></div>
+            <span id="catalog-edit-status-text" style="font-size: 0.82rem;"></span>
+          </div>
         </div>
       </div>
     </div>
@@ -596,41 +754,27 @@
     <div id="catalog-preview-modal" class="scanner-overlay hidden">
       <div class="md-card catalog-preview-card" id="catalog-preview-card">
 
-        <!-- Blue Hero Header -->
-        <div class="catalog-preview-hero">
-          <div class="catalog-preview-hero-top">
-            <span id="preview-design-id-badge" class="catalog-preview-badge"></span>
-            <button class="catalog-preview-close-btn" onclick="closeCatalogPreviewModal()" title="Close">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        <!-- Large Image Preview + Carousel (Hero) -->
+        <div class="catalog-preview-image-wrap">
+          <img id="preview-shoe-img" src="" alt="Shoe Design Preview" class="catalog-preview-image" />
+          <button class="catalog-preview-close-btn" onclick="closeCatalogPreviewModal()" title="Close">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+          <button class="catalog-preview-nav-btn catalog-preview-nav-prev" id="btn-preview-prev" title="Previous photo">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <button class="catalog-preview-nav-btn catalog-preview-nav-next" id="btn-preview-next" title="Next photo">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+          <span id="preview-image-counter" class="catalog-preview-counter"></span>
+          <div class="catalog-preview-img-actions">
+            <button class="catalog-preview-action-btn" id="btn-preview-zoom" title="View image">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
-          </div>
-          <div class="catalog-preview-hero-main">
-            <div class="catalog-preview-hero-text">
-              <h2 id="preview-design-name" class="catalog-preview-title"></h2>
-              <div id="preview-design-category" class="catalog-preview-subtitle"></div>
-            </div>
-
           </div>
         </div>
 
         <div class="catalog-preview-body">
-          <!-- Large Image Preview + Carousel -->
-          <div class="catalog-preview-image-wrap">
-            <img id="preview-shoe-img" src="" alt="Shoe Design Preview" class="catalog-preview-image" />
-            <button class="catalog-preview-nav-btn catalog-preview-nav-prev" id="btn-preview-prev" title="Previous photo">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 18l-6-6 6-6"/></svg>
-            </button>
-            <button class="catalog-preview-nav-btn catalog-preview-nav-next" id="btn-preview-next" title="Next photo">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M9 18l6-6-6-6"/></svg>
-            </button>
-            <span id="preview-image-counter" class="catalog-preview-counter"></span>
-            <div class="catalog-preview-img-actions">
-              <button class="catalog-preview-action-btn" id="btn-preview-zoom" title="View image">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              </button>
-            </div>
-          </div>
-
           <!-- Fullscreen Zoom Overlay -->
           <div id="preview-zoom-overlay" class="preview-zoom-overlay hidden" onclick="closePreviewZoom(event)">
             <button class="preview-zoom-close" onclick="closePreviewZoom(event)" title="Close">
@@ -641,6 +785,18 @@
 
           <!-- Thumbnail Strip -->
           <div class="catalog-preview-thumbs" id="preview-thumbs"></div>
+
+          <!-- Name / SKU / Category -->
+          <div class="catalog-preview-info">
+            <h2 class="catalog-preview-title" id="preview-design-name"></h2>
+            <div class="catalog-preview-meta-line">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              <span class="catalog-preview-sku-inline" id="preview-design-id-badge"></span>
+              <span class="catalog-preview-meta-dot">&bull;</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20.59 13.41L11 3.83 3.83 11l9.58 9.59a2 2 0 0 0 2.83 0l4.35-4.35a2 2 0 0 0 0-2.83z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+              <span id="preview-design-category"></span>
+            </div>
+          </div>
 
           <!-- Item Details -->
           <div class="catalog-preview-details-header">
@@ -705,45 +861,126 @@
 
     <!-- Create and Manage User Modal (Admin Only) -->
     <div id="user-modal" class="scanner-overlay hidden">
-      <div class="md-card" style="width: 100%; max-width: 380px; padding: 20px;">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
-          <div class="card-title" id="user-modal-title" style="margin-bottom: 0;">Create New User</div>
-          <button class="icon-btn" onclick="closeUserModal()" title="Close" style="min-width: 32px; min-height: 32px;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
-          </button>
+      <div class="popup-card">
+        <button class="popup-close-btn" onclick="closeUserModal()" title="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+
+        <div class="popup-header">
+          <div class="popup-header-decor"></div>
+          <div class="popup-icon-badge">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>
+          </div>
+          <div class="popup-title" id="user-modal-title">Create New User</div>
+          <div class="popup-subtitle" id="user-modal-subtitle">Fill in the details to create an account</div>
         </div>
 
-        <input type="hidden" id="user-modal-edit-id" value="">
+        <div class="popup-body">
+          <input type="hidden" id="user-modal-edit-id" value="">
 
-        <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Account Role</label>
-        <select id="user-modal-role-select" class="md-input" style="margin-bottom: 12px; background-color: var(--md-sys-color-surface); font-weight: 600;">
-          <option value="employee">Employee Account</option>
-          <option value="admin">Administrator Account</option>
-        </select>
+          <label class="popup-label">Account Role</label>
+          <div class="popup-field">
+            <span class="popup-field-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/></svg>
+            </span>
+            <select id="user-modal-role-select" class="popup-input">
+              <option value="employee">Employee Account</option>
+              <option value="admin">Administrator Account</option>
+            </select>
+          </div>
 
-        <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Full Name</label>
-        <input type="text" id="user-modal-fullname-input" class="md-input" placeholder="Full Name (e.g. John Doe)" style="margin-bottom: 12px;">
+          <label class="popup-label">Full Name</label>
+          <div class="popup-field">
+            <span class="popup-field-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>
+            </span>
+            <input type="text" id="user-modal-fullname-input" class="popup-input" placeholder="Full Name (e.g. John Doe)">
+          </div>
 
-        <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Username</label>
-        <input type="text" id="user-modal-username-input" class="md-input" placeholder="Username (e.g. employee2)" style="margin-bottom: 12px;">
+          <label class="popup-label">Username</label>
+          <div class="popup-field">
+            <span class="popup-field-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="4"/><path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-4 7.5"/></svg>
+            </span>
+            <input type="text" id="user-modal-username-input" class="popup-input" placeholder="Username (e.g. employee2)">
+          </div>
 
-        <label style="font-size: 0.78rem; font-weight: 600; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px; display: block;">Password</label>
-        <div style="position: relative; margin-bottom: 16px;">
-          <input type="password" id="user-modal-password-input" class="md-input" placeholder="Password (min 4 chars)" style="margin-bottom: 0; padding-right: 40px;">
-          <button type="button" id="btn-toggle-user-modal-password" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--md-sys-color-on-surface-variant);" title="Show/Hide Password">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
+          <label class="popup-label">Password</label>
+          <div class="popup-field">
+            <span class="popup-field-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="10.5" width="16" height="10" rx="2.2"/><path d="M7.5 10.5V7a4.5 4.5 0 0 1 9 0v3.5"/></svg>
+            </span>
+            <input type="password" id="user-modal-password-input" class="popup-input" placeholder="Password (min 4 chars)" style="padding-right: 42px;">
+            <button type="button" id="btn-toggle-user-modal-password" class="popup-field-toggle" title="Show/Hide Password">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+
+          <div id="user-modal-status-text" class="popup-status-text"></div>
+
+          <div class="popup-actions">
+            <button class="popup-btn-primary" id="btn-submit-user-form">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              <span>Save Account</span>
+            </button>
+            <button class="popup-btn-secondary" onclick="closeUserModal()">
+              <span>Cancel</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Change My Password Modal (New Password + Confirm Only) -->
+    <div id="change-password-modal" class="scanner-overlay hidden">
+      <div class="popup-card">
+        <button class="popup-close-btn" onclick="window.closeChangePasswordModal()" title="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+
+        <div class="popup-header">
+          <div class="popup-header-decor"></div>
+          <div class="popup-icon-badge">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10.5" width="16" height="10" rx="2.2"/><path d="M7.5 10.5V7a4.5 4.5 0 0 1 9 0v3.5"/></svg>
+          </div>
+          <div class="popup-title">Change Password</div>
+          <div class="popup-subtitle">Choose a new password for your account</div>
         </div>
 
-        <div id="user-modal-status-text" style="font-size: 0.8rem; margin-bottom: 10px; text-align: center;"></div>
+        <div class="popup-body">
+          <label class="popup-label">New Password</label>
+          <div class="popup-field">
+            <span class="popup-field-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="10.5" width="16" height="10" rx="2.2"/><path d="M7.5 10.5V7a4.5 4.5 0 0 1 9 0v3.5"/></svg>
+            </span>
+            <input type="password" id="change-pwd-new-input" class="popup-input" placeholder="New password (min 6 chars)" style="padding-right: 42px;">
+            <button type="button" class="popup-field-toggle btn-toggle-change-pwd" data-target="change-pwd-new-input" title="Show/Hide Password">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
 
-        <div style="display: flex; gap: 10px;">
-          <button class="md-btn" id="btn-submit-user-form" style="flex: 1; background-color: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary);">
-            <span>Save Account</span>
-          </button>
-          <button class="md-btn" onclick="closeUserModal()" style="flex: 1; background-color: var(--md-sys-color-surface-variant); color: var(--md-sys-color-on-surface-variant);">
-            <span>Cancel</span>
-          </button>
+          <label class="popup-label">Confirm Password</label>
+          <div class="popup-field">
+            <span class="popup-field-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="10.5" width="16" height="10" rx="2.2"/><path d="M7.5 10.5V7a4.5 4.5 0 0 1 9 0v3.5"/></svg>
+            </span>
+            <input type="password" id="change-pwd-confirm-input" class="popup-input" placeholder="Re-enter new password" style="padding-right: 42px;">
+            <button type="button" class="popup-field-toggle btn-toggle-change-pwd" data-target="change-pwd-confirm-input" title="Show/Hide Password">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+
+          <div id="change-pwd-status-text" class="popup-status-text"></div>
+
+          <div class="popup-actions">
+            <button class="popup-btn-primary" id="btn-submit-change-pwd">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>
+              <span>Update</span>
+            </button>
+            <button class="popup-btn-secondary" onclick="window.closeChangePasswordModal()">
+              <span>Cancel</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -751,6 +988,6 @@
   <!-- Mobile Logic & Router -->
   <script src="config.js"></script>
   <script src="router.js"></script>
-  <script src="mobile.js?v=20260911"></script>
+  <script src="mobile.js?v=20260912s"></script>
 </body>
 </html>

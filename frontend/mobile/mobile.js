@@ -211,13 +211,18 @@
     listContainer.innerHTML = "";
     employees.forEach(emp => {
       const item = document.createElement("div");
-      item.style.cssText = "display: flex; align-items: center; justify-content: space-between; background: var(--md-sys-color-background); padding: 10px 12px; border-radius: 12px; border: 1px solid var(--md-sys-color-surface-variant); cursor: pointer;";
+      item.className = "popup-list-item";
+      const displayName = emp.full_name || emp.username;
+      const initial = displayName.trim().charAt(0).toUpperCase() || "?";
       item.innerHTML = `
-        <div>
-          <div style="font-size: 0.86rem; font-weight: 700; color: var(--md-sys-color-on-surface);">${escapeHtml(emp.full_name || emp.username)}</div>
-          <div style="font-size: 0.76rem; color: var(--md-sys-color-secondary);">@${escapeHtml(emp.username)}</div>
+        <div class="popup-list-item-left">
+          <div class="popup-list-item-avatar">${escapeHtml(initial)}</div>
+          <div>
+            <div class="popup-list-item-name">${escapeHtml(displayName)}</div>
+            <div class="popup-list-item-user">@${escapeHtml(emp.username)}</div>
+          </div>
         </div>
-        <button class="md-btn" style="padding: 6px 12px; font-size: 0.76rem; background-color: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); width: auto;">Select View</button>
+        <button class="popup-list-item-btn">Select View</button>
       `;
       item.addEventListener("click", () => {
         window.closeSwitchEmployeeModal();
@@ -262,17 +267,22 @@
     const adminRoleBadge = document.getElementById("admin-role-badge");
 
     if (userDisplayName) {
-      if (cleanRole === "admin") {
-        userDisplayName.textContent = "Admin Account";
-      } else if (state.viewingEmployeeUser) {
-        userDisplayName.textContent = `Viewing Account: ${state.viewingEmployeeUser.full_name || state.viewingEmployeeUser.username}`;
+      if (cleanRole === "employee" && state.viewingEmployeeUser) {
+        userDisplayName.textContent = state.viewingEmployeeUser.full_name || state.viewingEmployeeUser.username;
+      } else if (state.user) {
+        userDisplayName.textContent = state.user.full_name || state.user.username;
       } else {
-        userDisplayName.textContent = "Employee Account View";
+        userDisplayName.textContent = cleanRole === "admin" ? "Admin Account" : "Employee Account";
       }
     }
 
     if (adminRoleBadge) {
       adminRoleBadge.textContent = cleanRole === "admin" ? "Admin" : "Employee View";
+    }
+
+    const roleDetailChip = document.getElementById("profile-role-detail-chip");
+    if (roleDetailChip) {
+      roleDetailChip.textContent = cleanRole === "admin" ? "Administrator" : "Employee";
     }
 
     const switchContainer = document.getElementById("switch-role-container");
@@ -336,8 +346,10 @@
     const nameEl = document.getElementById("my-profile-name");
     const userEl = document.getElementById("my-profile-username");
     const pwdEl = document.getElementById("my-profile-password");
+    const lastLoginEl = document.getElementById("profile-last-login");
     if (nameEl) nameEl.textContent = u.full_name || u.username;
     if (userEl) userEl.textContent = `@${u.username}`;
+    if (lastLoginEl) lastLoginEl.textContent = formatLastLogin(u.last_login);
     if (pwdEl) {
       const userPwd = u.plain_password || (u.username === "employee" ? "newemp789" : u.username === "john" ? "john123" : u.username === "ram" ? "ram123" : u.username === "doggy" ? "doggy123" : "emp123");
       pwdEl.setAttribute("data-pwd", userPwd);
@@ -411,6 +423,13 @@
     }
   }
 
+  function formatLastLogin(value) {
+    if (!value) return "First login";
+    const d = new Date(String(value).replace(" ", "T"));
+    if (isNaN(d.getTime())) return String(value);
+    return d.toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  }
+
   function updateUserRoleBadge(user) {
     if (!user) return;
     const cleanRole = user.role === "admin" ? "admin" : "employee";
@@ -419,9 +438,11 @@
     const nameEl = document.getElementById("my-profile-name");
     const userEl = document.getElementById("my-profile-username");
     const pwdEl = document.getElementById("my-profile-password");
+    const lastLoginEl = document.getElementById("profile-last-login");
 
     if (nameEl) nameEl.textContent = user.full_name || user.username;
     if (userEl) userEl.textContent = `@${user.username}`;
+    if (lastLoginEl) lastLoginEl.textContent = formatLastLogin(user.last_login);
     if (pwdEl) {
       pwdEl.textContent = "••••••••";
       const userPwd = user.plain_password || (user.username === "admin" ? "admin123" : user.username === "employee" ? "newemp789" : user.username === "john" ? "john123" : user.username === "ram" ? "ram123" : user.username === "doggy" ? "doggy123" : "admin123");
@@ -514,6 +535,7 @@
       hideModal("auth-modal");
       hideModal("password-reset-modal");
       await checkAuthStatus();
+      switchTab("tab-studio");
     } catch (err) {
       if (loginErr) {
         loginErr.textContent = "❌ Network error connecting to server. Please check your connection.";
@@ -585,21 +607,24 @@
       myPwdSpan.addEventListener("click", toggleMyProfilePasswordText);
     }
 
-    const changeMyPwdBtn = document.getElementById("btn-change-my-pwd");
-    if (changeMyPwdBtn) {
-      changeMyPwdBtn.addEventListener("click", () => {
-        if (state.user && state.user.user_id) {
-          openEditUserModal({
-            user_id: state.user.user_id,
-            username: state.user.username,
-            full_name: state.user.full_name,
-            role: state.user.role
-          });
-        } else {
-          alert("Account session active. Please use password reset form.");
-        }
-      });
+    function openMyAccountEditModal() {
+      if (state.user && state.user.user_id) {
+        openEditUserModal({
+          user_id: state.user.user_id,
+          username: state.user.username,
+          full_name: state.user.full_name,
+          role: state.user.role
+        });
+      } else {
+        alert("Account session active. Please use password reset form.");
+      }
     }
+
+    const editLinkBtn = document.getElementById("btn-profile-edit-link");
+    if (editLinkBtn) editLinkBtn.addEventListener("click", openMyAccountEditModal);
+
+    const changePwdBtn = document.getElementById("btn-change-my-pwd");
+    if (changePwdBtn) changePwdBtn.addEventListener("click", window.openChangePasswordModal);
   }
 
   // ==========================================
@@ -1461,35 +1486,32 @@
     listContainer.innerHTML = "";
     logs.forEach(item => {
       const row = document.createElement("div");
-      row.style.cssText = "background: var(--md-sys-color-background); border: 1px solid var(--md-sys-color-surface-variant); border-radius: 10px; padding: 10px 12px;";
+      row.className = "admin-activity-row";
 
-      let badgeBg = "var(--md-sys-color-primary-container)";
-      let badgeFg = "var(--md-sys-color-on-primary-container)";
-      let badgeIcon = "📝";
+      let iconClass = "admin-activity-icon--default";
+      let iconSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`;
 
       if (item.type === "ai_search") {
-        badgeBg = "var(--md-sys-color-tertiary-container, #E8DEF8)";
-        badgeFg = "var(--md-sys-color-on-tertiary-container, #1D192B)";
-        badgeIcon = "🔍";
+        iconClass = "admin-activity-icon--search";
+        iconSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`;
       } else if (item.type === "catalog_add" || item.type === "catalog_edit") {
-        badgeBg = "var(--md-sys-color-secondary-container)";
-        badgeFg = "var(--md-sys-color-on-secondary-container)";
-        badgeIcon = "👟";
+        iconClass = "admin-activity-icon--catalog";
+        iconSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20.59 13.41L11 3.83 3.83 11l9.58 9.59a2 2 0 0 0 2.83 0l4.35-4.35a2 2 0 0 0 0-2.83z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>`;
       } else if (item.type === "user_action" || item.type === "role_switch") {
-        badgeBg = "var(--md-sys-color-surface-variant)";
-        badgeFg = "var(--md-sys-color-on-surface-variant)";
-        badgeIcon = "👤";
+        iconClass = "admin-activity-icon--user";
+        iconSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>`;
       }
 
       row.innerHTML = `
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; flex-wrap: wrap; gap: 4px;">
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <span style="font-size: 0.72rem; font-weight: 700; background: ${badgeBg}; color: ${badgeFg}; padding: 2px 8px; border-radius: 6px;">${badgeIcon} ${escapeHtml(item.action)}</span>
+        <div class="admin-activity-icon ${iconClass}">${iconSvg}</div>
+        <div class="admin-activity-body">
+          <div class="admin-activity-top">
+            <span class="admin-activity-action">${escapeHtml(item.action)}</span>
+            <span class="admin-activity-time">${escapeHtml(item.timestamp || "")}</span>
           </div>
-          <span style="font-size: 0.72rem; font-weight: 600; color: var(--md-sys-color-outline);">${escapeHtml(item.timestamp || "")}</span>
+          <div class="admin-activity-details">${escapeHtml(item.details)}</div>
+          <div class="admin-activity-user">By ${escapeHtml(item.user || "Active Account")}</div>
         </div>
-        <div style="font-size: 0.82rem; font-weight: 600; color: var(--md-sys-color-on-surface); margin-bottom: 2px;">${escapeHtml(item.details)}</div>
-        <div style="font-size: 0.74rem; color: var(--md-sys-color-on-surface-variant);">User: <strong>${escapeHtml(item.user || "Active Account")}</strong></div>
       `;
       listContainer.appendChild(row);
     });
@@ -2449,7 +2471,7 @@
       } else {
         const latestDesign = catalog[0];
         const latestName = latestDesign ? (latestDesign.name || latestDesign.design_id) : "N/A";
-        summaryEl.innerHTML = `<strong>Catalog Status:</strong> 🟢 Active with <strong>${totalCount}</strong> design${totalCount === 1 ? '' : 's'} across <strong>${categories.size}</strong> categories. Latest entry: <em>${escapeHtml(latestName)}</em>.`;
+        summaryEl.innerHTML = `<span class="admin-status-dot"></span> Active with <strong>${totalCount}</strong> design${totalCount === 1 ? '' : 's'} across <strong>${categories.size}</strong> categories. Latest entry: <strong>${escapeHtml(latestName)}</strong>.`;
       }
     }
   };
@@ -2493,44 +2515,71 @@
       card.className = "md-card catalog-card";
       card.setAttribute("data-id", item.design_id);
 
+      const isInactive = item.is_active === 0 || item.is_active === "0" || item.is_active === false;
+
+      const locationParts = [item.farma_shelf, item.drawer].filter(Boolean);
+      const locationSummary = locationParts.length ? locationParts.join(" · ") : (item.shelf_location || "");
+
       card.innerHTML = `
-        <div style="display: flex; flex-direction: column; width: 100%; min-width: 0;">
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; width: 100%; margin-bottom: 4px;">
-            <div style="font-size: 0.70rem; font-weight: 700; color: var(--md-sys-color-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;" title="${escapeHtml(item.design_id)}">${escapeHtml(item.design_id)}</div>
-            <button class="catalog-edit-btn" data-id="${escapeHtml(item.design_id)}" title="Edit Design" style="flex-shrink: 0;">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-              <span>Edit</span>
-            </button>
+        <div class="shoe-card-image-wrap">
+          <img src="${imgPath}" loading="lazy" decoding="async" class="shoe-card-image" onload="this.style.opacity='1'; this.parentElement.style.animation='none'; this.parentElement.style.background='var(--md-sys-color-background)';" onerror="this.onerror=null; this.style.opacity='1'; this.parentElement.style.animation='none'; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23D97706\' stroke-width=\'2\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\'/><path d=\'M2 17l10 4 10-4\'/><path d=\'M12 3L2 8l10 5 10-5-10-5z\'/></svg>';" />
+          ${isInactive ? `<span class="shoe-card-badge-inactive">INACTIVE</span>` : ""}
+        </div>
+
+        <div class="shoe-card-body">
+          <div class="shoe-card-sku" title="${escapeHtml(item.design_id)}">${escapeHtml(item.design_id)}</div>
+          <div class="shoe-card-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>
+          <div class="shoe-card-meta-row">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20.59 13.41L11 3.83 3.83 11l9.58 9.59a2 2 0 0 0 2.83 0l4.35-4.35a2 2 0 0 0 0-2.83z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+            <span title="${escapeHtml(item.category || 'Footwear')}">${escapeHtml(item.category || "Footwear")}</span>
           </div>
-          <div class="card-title" style="margin: 0; font-size: 0.92rem; font-weight: 700; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>
+          ${locationSummary ? `
+          <div class="shoe-card-meta-row">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="10" r="3"/><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/></svg>
+            <span title="${escapeHtml(locationSummary)}">${escapeHtml(locationSummary)}</span>
+          </div>` : ""}
         </div>
 
-        <div style="position: relative; width: 100%; text-align: center; margin: 6px 0; height: 110px; border-radius: 10px; overflow: hidden; background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: catalogShimmer 1.4s infinite;">
-          <img src="${imgPath}" loading="lazy" decoding="async" style="width: 100%; height: 110px; object-fit: contain; border-radius: 10px; background-color: transparent; display: block; opacity: 0; transition: opacity 0.3s ease;" onload="this.style.opacity='1'; this.parentElement.style.animation='none'; this.parentElement.style.background='var(--md-sys-color-background)';" onerror="this.onerror=null; this.style.opacity='1'; this.parentElement.style.animation='none'; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23D97706\' stroke-width=\'2\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\'/><path d=\'M2 17l10 4 10-4\'/><path d=\'M12 3L2 8l10 5 10-5-10-5z\'/></svg>';" />
-        </div>
-
-        <div style="font-size: 0.75rem; color: var(--md-sys-color-on-surface-variant); line-height: 1.35; width: 100%; min-width: 0;">
-          <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(item.category || "Footwear")}</div>
-          ${item.farma_shelf ? `<div style="font-weight: 600; color: var(--md-sys-color-primary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Farma Shelf: ${escapeHtml(item.farma_shelf)}">Farma Shelf: ${escapeHtml(item.farma_shelf)}</div>` : ""}
+        <div class="shoe-card-actions">
+          <button class="shoe-card-btn-edit" title="Edit Design">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            <span>Edit</span>
+          </button>
+          <button class="shoe-card-btn-delete" title="Delete Design">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            <span>Delete</span>
+          </button>
         </div>
       `;
 
       card.addEventListener("click", (e) => {
-        if (e.target.closest(".catalog-edit-btn")) {
+        if (e.target.closest(".shoe-card-btn-edit") || e.target.closest(".shoe-card-btn-delete")) {
           return;
         }
         openCatalogPreviewModal(item.design_id);
       });
 
-      const editBtn = card.querySelector(".catalog-edit-btn");
+      const editBtn = card.querySelector(".shoe-card-btn-edit");
       if (editBtn) {
         if (getActiveRole() === "employee") {
           editBtn.style.display = "none";
         } else {
-          editBtn.style.display = "inline-flex";
           editBtn.addEventListener("click", (e) => {
             e.stopPropagation();
             openCatalogEditModal(item.design_id);
+          });
+        }
+      }
+
+      const deleteBtn = card.querySelector(".shoe-card-btn-delete");
+      if (deleteBtn) {
+        if (!checkUserCanDelete()) {
+          deleteBtn.style.display = "none";
+        } else {
+          deleteBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            currentEditingDesignId = item.design_id;
+            submitCatalogDelete();
           });
         }
       }
@@ -2541,13 +2590,16 @@
 
   function initCatalogSearch() {
     const input = document.getElementById("catalog-search-input");
+    const clearBtn = document.getElementById("btn-clear-catalog-search");
+
     input.addEventListener("input", (e) => {
       const q = e.target.value.toLowerCase().trim();
+      if (clearBtn) clearBtn.classList.toggle("hidden", !e.target.value);
       if (!q) {
         renderCatalog(state.catalog);
         return;
       }
-      const filtered = state.catalog.filter(i => 
+      const filtered = state.catalog.filter(i =>
         (i.name && i.name.toLowerCase().includes(q)) ||
         (i.design_id && i.design_id.toLowerCase().includes(q)) ||
         (i.category && i.category.toLowerCase().includes(q)) ||
@@ -2555,6 +2607,31 @@
       );
       renderCatalog(filtered);
     });
+
+    if (clearBtn) {
+      clearBtn.addEventListener("click", () => {
+        input.value = "";
+        clearBtn.classList.add("hidden");
+        renderCatalog(state.catalog);
+        input.focus();
+      });
+    }
+
+    const toggleBtn = document.getElementById("btn-toggle-catalog-search");
+    const searchWrap = document.getElementById("catalog-search-wrap");
+    if (toggleBtn && searchWrap) {
+      toggleBtn.addEventListener("click", () => {
+        switchTab("tab-catalog");
+        searchWrap.classList.toggle("hidden");
+        if (!searchWrap.classList.contains("hidden")) {
+          input.focus();
+        } else {
+          input.value = "";
+          if (clearBtn) clearBtn.classList.add("hidden");
+          renderCatalog(state.catalog);
+        }
+      });
+    }
   }
 
   // ==========================================
@@ -2785,51 +2862,48 @@
       listContainer.innerHTML = "";
       users.forEach(u => {
         const item = document.createElement("div");
-        item.style.cssText = "display: flex; align-items: center; justify-content: space-between; background: var(--md-sys-color-background); padding: 10px 12px; border-radius: 10px; border: 1px solid var(--md-sys-color-surface-variant); flex-wrap: wrap; gap: 8px;";
+        item.className = "admin-user-row";
 
         const isAllowed = Boolean(u.can_delete === 1 || u.can_delete === true || u.can_delete === "1");
-        const btnBg = isAllowed ? "#2e7d32" : "#d32f2f";
-        const btnColor = "#ffffff";
-        const btnText = isAllowed ? "✅ Delete Allowed" : "🚫 Allow Delete";
-        const btnBorder = isAllowed ? "#1b5e20" : "#b71c1c";
-        const btnShadow = isAllowed ? "rgba(46, 125, 50, 0.35)" : "rgba(211, 47, 47, 0.35)";
-
-        const roleBadgeBg = u.role === "admin" ? "var(--md-sys-color-primary-container)" : "var(--md-sys-color-secondary-container)";
-        const roleBadgeFg = u.role === "admin" ? "var(--md-sys-color-on-primary-container)" : "var(--md-sys-color-on-secondary-container)";
         const roleLabel = u.role === "admin" ? "Admin" : "Employee";
+        const roleChipClass = u.role === "admin" ? "admin-role-chip--admin" : "admin-role-chip--employee";
+        const displayName = u.full_name || u.username;
+        const initial = displayName.trim().charAt(0).toUpperCase() || "?";
         const plainPwd = u.plain_password || u.password_plain || (u.username === "admin" ? "admin123" : u.username === "employee" ? "newemp789" : u.username === "john" ? "john123" : u.username === "ram" ? "ram123" : u.username === "doggy" ? "doggy123" : (u.password || "admin123"));
 
         item.innerHTML = `
-          <div style="flex: 1; min-width: 160px;">
-            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
-              <span style="font-size: 0.88rem; font-weight: 700; color: var(--md-sys-color-on-surface);">${escapeHtml(u.full_name || u.username)}</span>
-              <span style="font-size: 0.68rem; font-weight: 700; background: ${roleBadgeBg}; color: ${roleBadgeFg}; padding: 2px 8px; border-radius: 6px;">${roleLabel}</span>
+          <div class="admin-user-avatar">${escapeHtml(initial)}</div>
+          <div class="admin-user-info">
+            <div class="admin-user-name-row">
+              <span class="admin-user-name">${escapeHtml(displayName)}</span>
+              <span class="admin-role-chip ${roleChipClass}">${roleLabel}</span>
             </div>
-            <div style="font-size: 0.76rem; color: var(--md-sys-color-on-surface-variant); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div class="admin-user-meta">
               <span>@${escapeHtml(u.username)}</span>
-              <span style="display: inline-flex; align-items: center; gap: 4px; background: var(--md-sys-color-surface-variant); padding: 2px 6px; border-radius: 4px;">
-                <span>Password:</span>
-                <span class="user-pwd-text" data-pwd="${escapeHtml(plainPwd)}" style="font-family: monospace; font-weight: 700;">••••••••</span>
-                <button class="btn-toggle-pwd-view" style="background: none; border: none; cursor: pointer; padding: 0 2px; color: var(--md-sys-color-primary);" title="Reveal/Hide Password">👁️</button>
+              <span class="admin-user-pwd">
+                <span class="user-pwd-text" data-pwd="${escapeHtml(plainPwd)}">••••••••</span>
+                <button class="btn-toggle-pwd-view" title="Reveal/Hide Password">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
               </span>
             </div>
           </div>
 
-          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+          <div class="admin-user-actions">
             ${u.role === "employee" ? `
-            <button class="md-btn btn-view-user-acc" data-id="${u.user_id}" style="padding: 4px 8px; font-size: 0.72rem; min-height: 30px; background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); width: auto;" title="View app as this employee">
-              <span>👁️ View Account</span>
+            <button class="admin-icon-action-btn btn-view-user-acc" data-id="${u.user_id}" title="View app as this employee">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
-            <button class="md-btn btn-toggle-can-delete" data-id="${u.user_id}" data-can-delete="${isAllowed ? 1 : 0}" style="padding: 5px 10px; font-size: 0.76rem; font-weight: 700; min-height: 32px; background-color: ${btnBg}; color: ${btnColor}; border: 1px solid ${btnBorder}; box-shadow: 0 2px 6px ${btnShadow}; border-radius: 6px; width: auto; cursor: pointer;" title="Toggle Catalog Delete Permission for this employee">
-              <span>${btnText}</span>
+            <button class="admin-icon-action-btn btn-toggle-can-delete ${isAllowed ? 'admin-icon-action-btn--success' : ''}" data-id="${u.user_id}" data-can-delete="${isAllowed ? 1 : 0}" title="${isAllowed ? 'Catalogue delete allowed - tap to disable' : 'Catalogue delete disabled - tap to allow'}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>${isAllowed ? '<path d="M9 12l2 2 4-4"/>' : '<line x1="9.5" y1="9.5" x2="14.5" y2="14.5"/><line x1="14.5" y1="9.5" x2="9.5" y2="14.5"/>'}</svg>
             </button>
             ` : ''}
-            <button class="md-btn btn-edit-user-pwd" data-id="${u.user_id}" data-user="${escapeHtml(u.username)}" data-name="${escapeHtml(u.full_name)}" data-role="${u.role}" style="padding: 4px 8px; font-size: 0.72rem; min-height: 30px; background-color: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); width: auto;" title="Change Password / Account Details">
-              <span>🔑 Change Password</span>
+            <button class="admin-icon-action-btn btn-edit-user-pwd" data-id="${u.user_id}" data-user="${escapeHtml(u.username)}" data-name="${escapeHtml(u.full_name)}" data-role="${u.role}" title="Change Password / Account Details">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="7.5" cy="15.5" r="5.5"/><path d="M21 2l-9.6 9.6M15.5 7.5l3 3L22 7l-3-3"/></svg>
             </button>
             ${u.username !== "admin" ? `
-            <button class="md-btn btn-delete-user" data-id="${u.user_id}" data-user="${escapeHtml(u.username)}" style="padding: 4px 8px; font-size: 0.72rem; min-height: 30px; background-color: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container); width: auto;" title="Delete User Account">
-              <span>🗑️ Delete</span>
+            <button class="admin-icon-action-btn admin-icon-action-btn--danger btn-delete-user" data-id="${u.user_id}" data-user="${escapeHtml(u.username)}" title="Delete User Account">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
             </button>
             ` : ''}
           </div>
@@ -2853,14 +2927,14 @@
             const newCanDelete = currentAllowed ? 0 : 1;
             const nextAllowed = (newCanDelete === 1);
 
-            // ⚡ Immediate Bright Optimistic UI Update (0ms Delay)
+            // ⚡ Immediate Optimistic UI Update (0ms Delay)
             u.can_delete = newCanDelete;
-            const spanEl = toggleDeleteBtn.querySelector("span");
-            if (spanEl) spanEl.textContent = nextAllowed ? "✅ Delete Allowed" : "🚫 Allow Delete";
-            toggleDeleteBtn.style.backgroundColor = nextAllowed ? "#2e7d32" : "#d32f2f";
-            toggleDeleteBtn.style.color = "#ffffff";
-            toggleDeleteBtn.style.borderColor = nextAllowed ? "#1b5e20" : "#b71c1c";
-            toggleDeleteBtn.style.boxShadow = `0 2px 6px ${nextAllowed ? "rgba(46, 125, 50, 0.35)" : "rgba(211, 47, 47, 0.35)"}`;
+            toggleDeleteBtn.classList.toggle("admin-icon-action-btn--success", nextAllowed);
+            toggleDeleteBtn.title = nextAllowed ? "Catalogue delete allowed - tap to disable" : "Catalogue delete disabled - tap to allow";
+            const iconSvg = toggleDeleteBtn.querySelector("svg");
+            if (iconSvg) {
+              iconSvg.innerHTML = `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>${nextAllowed ? '<path d="M9 12l2 2 4-4"/>' : '<line x1="9.5" y1="9.5" x2="14.5" y2="14.5"/><line x1="14.5" y1="9.5" x2="9.5" y2="14.5"/>'}`;
+            }
             toggleDeleteBtn.setAttribute("data-can-delete", nextAllowed ? "1" : "0");
 
             try {
@@ -2954,7 +3028,9 @@
     const roleSelect = document.getElementById("user-modal-role-select");
     const statusText = document.getElementById("user-modal-status-text");
 
+    const subtitle = document.getElementById("user-modal-subtitle");
     if (title) title.textContent = "Create New User";
+    if (subtitle) subtitle.textContent = "Fill in the details to create an account";
     if (editIdInput) editIdInput.value = "";
     if (fullnameInput) fullnameInput.value = "";
     if (usernameInput) {
@@ -2978,7 +3054,9 @@
     const roleSelect = document.getElementById("user-modal-role-select");
     const statusText = document.getElementById("user-modal-status-text");
 
-    if (title) title.textContent = `Edit Account @${user.username}`;
+    const subtitle = document.getElementById("user-modal-subtitle");
+    if (title) title.textContent = "Edit Account";
+    if (subtitle) subtitle.textContent = `Update account information for @${user.username}`;
     if (editIdInput) editIdInput.value = user.user_id;
     if (fullnameInput) fullnameInput.value = user.full_name || "";
     if (usernameInput) {
@@ -2998,6 +3076,106 @@
     const modal = document.getElementById("user-modal");
     if (modal) modal.classList.add("hidden");
   };
+
+  window.openChangePasswordModal = function() {
+    const modal = document.getElementById("change-password-modal");
+    const newInput = document.getElementById("change-pwd-new-input");
+    const confirmInput = document.getElementById("change-pwd-confirm-input");
+    const statusText = document.getElementById("change-pwd-status-text");
+
+    if (newInput) newInput.value = "";
+    if (confirmInput) confirmInput.value = "";
+    if (statusText) statusText.textContent = "";
+    if (modal) modal.classList.remove("hidden");
+    if (newInput) newInput.focus();
+  };
+
+  window.closeChangePasswordModal = function() {
+    const modal = document.getElementById("change-password-modal");
+    if (modal) modal.classList.add("hidden");
+  };
+
+  async function submitChangePasswordForm() {
+    const newInput = document.getElementById("change-pwd-new-input");
+    const confirmInput = document.getElementById("change-pwd-confirm-input");
+    const statusText = document.getElementById("change-pwd-status-text");
+    const submitBtn = document.getElementById("btn-submit-change-pwd");
+
+    const newPassword = newInput ? newInput.value.trim() : "";
+    const confirmPassword = confirmInput ? confirmInput.value.trim() : "";
+
+    if (!newPassword || !confirmPassword) {
+      if (statusText) {
+        statusText.style.color = "var(--md-sys-color-error)";
+        statusText.textContent = "Please fill in both password fields.";
+      }
+      return;
+    }
+    if (newPassword.length < 6) {
+      if (statusText) {
+        statusText.style.color = "var(--md-sys-color-error)";
+        statusText.textContent = "Password must be at least 6 characters.";
+      }
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      if (statusText) {
+        statusText.style.color = "var(--md-sys-color-error)";
+        statusText.textContent = "Passwords do not match.";
+      }
+      return;
+    }
+    if (!state.user || !state.user.user_id) {
+      if (statusText) {
+        statusText.style.color = "var(--md-sys-color-error)";
+        statusText.textContent = "No active account session found.";
+      }
+      return;
+    }
+
+    if (submitBtn) submitBtn.disabled = true;
+    if (statusText) {
+      statusText.style.color = "var(--md-sys-color-on-surface-variant)";
+      statusText.textContent = "Updating password...";
+    }
+
+    try {
+      const res = await window.authenticatedFetch(window.getApiUrl(`/api/admin/users/${state.user.user_id}`), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: newPassword })
+      });
+      const data = await res.json();
+      if (!res.ok || data.success === false) {
+        if (statusText) {
+          statusText.style.color = "var(--md-sys-color-error)";
+          statusText.textContent = data.detail || data.message || "Failed to update password.";
+        }
+        return;
+      }
+
+      state.user.plain_password = newPassword;
+      updateUserRoleBadge(state.user);
+
+      addActivityLog({
+        action: "Password Changed",
+        details: `Updated password for @${state.user.username}`,
+        type: "user_management"
+      });
+
+      if (window.showMobileToast) {
+        window.showMobileToast("Password updated successfully.", "success");
+      }
+      window.closeChangePasswordModal();
+    } catch (err) {
+      if (statusText) {
+        statusText.style.color = "var(--md-sys-color-error)";
+        statusText.textContent = "Network error updating password.";
+      }
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  }
 
   async function submitUserForm() {
     const editIdInput = document.getElementById("user-modal-edit-id");
@@ -3157,6 +3335,23 @@
       });
     }
 
+    const submitChangePwdBtn = document.getElementById("btn-submit-change-pwd");
+    if (submitChangePwdBtn) {
+      submitChangePwdBtn.addEventListener("click", () => {
+        submitChangePasswordForm();
+      });
+    }
+
+    document.querySelectorAll(".btn-toggle-change-pwd").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const targetId = btn.getAttribute("data-target");
+        const input = targetId ? document.getElementById(targetId) : null;
+        if (input) {
+          input.type = input.type === "password" ? "text" : "password";
+        }
+      });
+    });
+
     const refreshLogsBtn = document.getElementById("btn-refresh-activity-logs");
     if (refreshLogsBtn) {
       refreshLogsBtn.addEventListener("click", (e) => {
@@ -3301,12 +3496,10 @@
     initCatalogSearch();
     initUserManagementEvents();
 
-    const hostIndicator = document.getElementById("target-host-indicator");
-    if (hostIndicator) {
-      hostIndicator.textContent = window.getApiBaseUrl() || "Relative Host";
-      hostIndicator.style.cursor = "pointer";
-      hostIndicator.title = "Tap to change Server IP";
-      hostIndicator.addEventListener("click", () => {
+    const settingsBtn = document.getElementById("btn-profile-settings");
+    if (settingsBtn) {
+      settingsBtn.title = "Tap to change Server IP";
+      settingsBtn.addEventListener("click", () => {
         const current = window.getApiBaseUrl() || "http://195.35.6.176:8000";
         const custom = prompt("Enter Server Base URL (e.g. http://195.35.6.176:8000):", current);
         if (custom !== null) {
@@ -3315,7 +3508,6 @@
           } else {
             localStorage.removeItem("shoematch_api_base_url");
           }
-          hostIndicator.textContent = window.getApiBaseUrl() || "Relative Host";
           checkAuthStatus();
         }
       });
