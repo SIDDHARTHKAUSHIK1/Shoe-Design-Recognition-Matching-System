@@ -160,6 +160,13 @@ body {
   z-index: 100 !important;
   position: relative !important;
   box-sizing: border-box !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+[data-theme="dark"] .top-app-bar {
+  background-color: var(--md-sys-color-surface) !important;
+  border-bottom: 1px solid var(--md-sys-color-surface-variant) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35) !important;
 }
 
 .brand-title {
@@ -171,6 +178,10 @@ body {
   gap: clamp(4px, 1.5vw, 8px) !important;
   flex-shrink: 0 !important;
   min-width: 0 !important;
+}
+
+[data-theme="dark"] .brand-title {
+  color: #FFFFFF !important;
 }
 
 .brand-icon-badge {
@@ -216,7 +227,7 @@ body {
 }
 
 [data-theme="dark"] .brand-title span {
-  color: #0F172A !important;
+  color: #FFFFFF !important;
 }
 
 .brand-badge {
