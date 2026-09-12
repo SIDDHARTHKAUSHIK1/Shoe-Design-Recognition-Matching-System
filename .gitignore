@@ -42,6 +42,7 @@ storage/catalog_images/
 storage/uploads/*
 !storage/uploads/.gitkeep
 storage/models/*
+storage/thumbnails/
 storage/hard_negatives/*
 storage/catalog_segmented/*
 storage/.fuse_hidden*

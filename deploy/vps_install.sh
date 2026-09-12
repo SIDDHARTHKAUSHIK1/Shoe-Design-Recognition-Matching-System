@@ -50,6 +50,8 @@ RestartSec=5s
 Environment=PYTHONUNBUFFERED=1
 Environment=PORT=8000
 Environment=HOST=127.0.0.1
+Environment=WORKERS=2
+Environment=TORCH_THREADS=2
 
 [Install]
 WantedBy=multi-user.target

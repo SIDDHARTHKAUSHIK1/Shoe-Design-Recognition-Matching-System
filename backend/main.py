@@ -8,6 +8,7 @@ import time
 import uuid
 import shutil
 import logging
+import asyncio
 from pathlib import Path
 from contextlib import asynccontextmanager
 from typing import List, Optional, Tuple
@@ -23,10 +24,13 @@ from backend.config import (
     STORAGE_DIR,
     UPLOADS_DIR,
     CATALOG_IMAGES_DIR,
+    THUMBNAILS_DIR,
     FRONTEND_DIR,
     HOST,
     PORT,
-    DEBUG
+    DEBUG,
+    REDIS_URL,
+    CATALOG_CACHE_TTL_SECONDS
 )
 from backend import database as db
 from backend import auth
@@ -48,6 +52,41 @@ except Exception:
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
+
+import json as _json
+
+try:
+    import redis as _redis
+    _redis_client = _redis.from_url(REDIS_URL, decode_responses=True, socket_connect_timeout=0.5)
+    _redis_client.ping()
+except Exception as e:
+    logging.getLogger(__name__).warning(f"Redis unavailable, catalog listing will hit SQLite directly: {e}")
+    _redis_client = None
+
+CATALOG_CACHE_KEY = "shoematch:all_designs:v1"
+
+def get_all_designs_cached():
+    if _redis_client:
+        try:
+            cached = _redis_client.get(CATALOG_CACHE_KEY)
+            if cached:
+                return _json.loads(cached)
+        except Exception as e:
+            logger.warning(f"Redis read failed, falling back to SQLite: {e}")
+    designs = db.get_all_designs()
+    if _redis_client:
+        try:
+            _redis_client.setex(CATALOG_CACHE_KEY, CATALOG_CACHE_TTL_SECONDS, _json.dumps(designs, default=str))
+        except Exception as e:
+            logger.warning(f"Redis write failed: {e}")
+    return designs
+
+def invalidate_catalog_cache():
+    if _redis_client:
+        try:
+            _redis_client.delete(CATALOG_CACHE_KEY)
+        except Exception as e:
+            logger.warning(f"Redis invalidate failed: {e}")
 
 
 # Application lifespan for singleton initialization
@@ -131,10 +170,10 @@ def _resolve_catalog_image_path(design_id: str, filename: str) -> Optional[str]:
     if design_dir.exists() and design_dir.is_dir():
         image_files = [f for f in design_dir.iterdir() if f.is_file() and f.suffix.lower() in ('.jpg', '.jpeg', '.png', '.webp')]
         if image_files:
-            image_files.sort(key=lambda x: 0 if x.name.startswith("photo") else 1)
+            image_files.sort(key=lambda x: 0 if (x.name.startswith("photo") or x.name.startswith("angle")) else 1)
             return str(image_files[0])
 
-    item = db.get_catalog_item_by_id(design_id)
+    item = db.get_design(design_id)
     if item:
         ref_path = item.get("thumbnail_path") or (item.get("reference_images") and item["reference_images"][0].get("image_path"))
         if ref_path:
@@ -149,19 +188,54 @@ def _resolve_catalog_image_path(design_id: str, filename: str) -> Optional[str]:
     
     return None
 
+def _get_or_create_thumbnail(original_file_path: str, design_id: str) -> str:
+    """Generate and cache an ultra-fast ~25KB 480px WebP thumbnail."""
+    try:
+        orig_p = Path(original_file_path)
+        if orig_p.name == "placeholder.png" or not orig_p.exists():
+            return original_file_path
+
+        thumb_dir = THUMBNAILS_DIR / design_id
+        thumb_dir.mkdir(parents=True, exist_ok=True)
+        thumb_path = thumb_dir / f"{orig_p.stem}_480.webp"
+
+        if thumb_path.exists() and thumb_path.stat().st_size > 0:
+            if thumb_path.stat().st_mtime >= orig_p.stat().st_mtime:
+                return str(thumb_path)
+
+        with Image.open(orig_p) as img:
+            img = ImageOps.exif_transpose(img)
+            img = img.convert("RGB")
+            img.thumbnail((480, 480), Image.Resampling.LANCZOS)
+            thumb_path_tmp = thumb_path.with_suffix(".tmp")
+            img.save(thumb_path_tmp, "WEBP", quality=82, method=4)
+            thumb_path_tmp.replace(thumb_path)
+        return str(thumb_path)
+    except Exception as e:
+        logger.warning(f"Thumbnail generation fallback for {original_file_path}: {e}")
+        return original_file_path
+
 def clear_catalog_image_cache():
     _resolve_catalog_image_path.cache_clear()
+    invalidate_catalog_cache()
+    if _matcher_instance is not None:
+        _matcher_instance.invalidate_cache()
 
 
 # Smart High-Speed Image Router with ETag / 304 Not Modified & Aggressive Browser Cache
-@app.get("/catalog_images/{design_id}/{filename}")
+@app.api_route("/catalog_images/{design_id}/{filename}", methods=["GET", "HEAD"])
 async def serve_catalog_image_smart_fallback(request: Request, design_id: str, filename: str):
     file_path_str = _resolve_catalog_image_path(design_id, filename)
     if not file_path_str:
         raise HTTPException(status_code=404, detail="Image not found")
-    
+
+    raw_requested = request.query_params.get("raw") == "1"
+    serve_path = file_path_str if raw_requested else await asyncio.to_thread(
+        _get_or_create_thumbnail, file_path_str, design_id
+    )
+
     try:
-        stat_res = os.stat(file_path_str)
+        stat_res = os.stat(serve_path)
         etag = f'"{int(stat_res.st_mtime)}-{stat_res.st_size}"'
     except OSError:
         etag = None
@@ -178,7 +252,8 @@ async def serve_catalog_image_smart_fallback(request: Request, design_id: str, f
     if etag:
         headers["ETag"] = etag
 
-    return FileResponse(file_path_str, headers=headers)
+    media_type = "image/webp" if serve_path.endswith(".webp") else None
+    return FileResponse(serve_path, headers=headers, media_type=media_type)
 
 
 class FastCachedStaticFiles(StaticFiles):
@@ -263,9 +338,13 @@ def validate_and_sanitize_image(filename: Optional[str], contents: bytes) -> Tup
         elif img.mode != "RGB":
             img = img.convert("RGB")
 
-        # Re-encode clean image at high quality (95) to strip malicious EXIF/HTML/PHP metadata
+        # Downscale large mobile uploads to max 1024px for sub-second processing
+        if max(img.size) > 1024:
+            img.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
+
+        # Re-encode clean image at high quality (88) to strip malicious EXIF/HTML/PHP metadata
         out_buf = io.BytesIO()
-        img.save(out_buf, format="JPEG", quality=95, optimize=True)
+        img.save(out_buf, format="JPEG", quality=88, optimize=True)
         clean_bytes = out_buf.getvalue()
     except Exception as e:
         logger.warning(f"Image validation rejected upload ({filename}): {e}")
@@ -305,7 +384,8 @@ async def match_shoe_design(
         rel_url = f"/uploads/{safe_filename}"
 
         # Execute matching with clean orientation-baked bytes
-        result = get_matcher().match_image(
+        result = await asyncio.to_thread(
+            get_matcher().match_image,
             query_image_input=clean_bytes,
             query_image_save_path=rel_url,
             top_k=top_k
@@ -414,6 +494,11 @@ async def create_design(
     )
 
     clear_catalog_image_cache()
+    invalidate_catalog_cache()
+    for item in image_payloads:
+        resolved_img = _resolve_catalog_image_path(design_id.strip(), item["filename"])
+        if resolved_img:
+            background_tasks.add_task(_get_or_create_thumbnail, resolved_img, design_id.strip())
     return JSONResponse(content=ingest_result)
 
 
@@ -527,6 +612,11 @@ async def create_design_mobile(
         logger.error(f"Mobile catalogue add failed for {design_id}: {e}")
         raise HTTPException(status_code=500, detail="Could not add this design to the catalogue. Please try again.")
 
+    clear_catalog_image_cache()
+    invalidate_catalog_cache()
+    resolved_new_image = _resolve_catalog_image_path(design_id, clean_name)
+    if resolved_new_image:
+        background_tasks.add_task(_get_or_create_thumbnail, resolved_new_image, design_id)
     return JSONResponse(content=ingest_result)
 
 
@@ -548,6 +638,7 @@ async def update_shoe_shelf_location(
         update_kwargs["production_status"] = production_status.strip()
 
     db.update_design_metadata(design_id, **update_kwargs)
+    invalidate_catalog_cache()
     return JSONResponse(content={
         "success": True, 
         "design_id": design_id, 
@@ -566,7 +657,7 @@ async def list_designs(
     limit: int = 100
 ):
     """Retrieve catalog shoe designs with optional filter, search, sort, and pagination."""
-    designs = db.get_all_designs()
+    designs = get_all_designs_cached()
     
     # Filter by category
     if category and category.strip():
@@ -623,6 +714,7 @@ async def update_design(design_id: str, payload: dict, request: Request):
     if not success:
         raise HTTPException(status_code=400, detail="No metadata attributes updated.")
 
+    invalidate_catalog_cache()
     return JSONResponse(content={"success": True, "design_id": design_id, "message": "Design metadata updated successfully."})
 
 
@@ -655,6 +747,7 @@ async def update_design_mobile(design_id: str, payload: dict, request: Request):
         raise HTTPException(status_code=400, detail="No metadata attributes updated.")
 
     success = db.update_design_metadata(design_id, **update_payload)
+    invalidate_catalog_cache()
     return JSONResponse(content={"success": True, "design_id": design_id, "updated": update_payload})
 
 
@@ -670,6 +763,7 @@ async def toggle_admin_design_status(design_id: str, payload: dict, request: Req
     is_archived = payload.get("is_archived")
 
     success = db.update_design_status(design_id, is_active=is_active, is_archived=is_archived)
+    invalidate_catalog_cache()
     return JSONResponse(content={"success": True, "design_id": design_id, "is_active": is_active, "is_archived": is_archived})
 
 
@@ -703,6 +797,7 @@ async def delete_catalog_design(design_id: str, request: Request):
     # 2. Delete design record from SQLite database
     db.delete_design(design_id)
     clear_catalog_image_cache()
+    invalidate_catalog_cache()
 
     return JSONResponse(content={"success": True, "message": f"Design '{design_id}' deleted successfully.", "design_id": design_id})
 
@@ -979,6 +1074,27 @@ async def get_admin_system_stats(request: Request):
     })
 
 
+@app.post("/api/admin/reindex")
+async def admin_reindex_catalog(request: Request):
+    """Trigger full FAISS index rebuild using color-aware embeddings (Admin only)."""
+    _ = await require_admin_user(request)
+    from scripts.rebuild_index_color import rebuild_color_index
+    success = await asyncio.to_thread(rebuild_color_index)
+    if not success:
+        raise HTTPException(status_code=500, detail="Catalog reindexing failed.")
+    clear_catalog_image_cache()
+    invalidate_catalog_cache()
+    # Force matcher to reload vector store
+    global _matcher_instance
+    _matcher_instance = None
+    stats = db.get_catalog_stats()
+    return JSONResponse(content={
+        "success": True,
+        "message": "Catalog successfully reindexed with full RGB color embeddings.",
+        "stats": stats
+    })
+
+
 # ==============================================================================
 # BULK DATA MANAGEMENT ENDPOINTS (CSV/EXCEL & PAIRED ZIP)
 # ==============================================================================
@@ -1054,6 +1170,8 @@ async def bulk_import_execute_endpoint(
         zip_images=zip_images,
         duplicate_handling=duplicate_handling
     )
+    clear_catalog_image_cache()
+    invalidate_catalog_cache()
 
     return JSONResponse(content=result)
 
@@ -1334,7 +1452,7 @@ MOBILE_DIR = FRONTEND_DIR / "mobile"
 if MOBILE_DIR.exists():
     app.mount("/mobile-static", StaticFiles(directory=str(MOBILE_DIR)), name="mobile_static")
 
-    for m_asset in ["mobile.css", "mobile.js", "hero_shoe_3d.jpg"]:
+    for m_asset in ["mobile.css", "mobile.js", "hero_shoe_3d.jpg", "config.js", "router.js", "brand-icon.png"]:
         m_path = MOBILE_DIR / m_asset
         if m_path.exists():
             def make_mobile_handler(p):
@@ -1344,7 +1462,18 @@ if MOBILE_DIR.exists():
             app.add_api_route(f"/{m_asset}", make_mobile_handler(m_path), methods=["GET"])
             app.add_api_route(f"/mobile/{m_asset}", make_mobile_handler(m_path), methods=["GET"])
 
+@app.get("/favicon.ico")
+async def favicon():
+    icon_path = MOBILE_DIR / "brand-icon.png"
+    if icon_path.exists():
+        return FileResponse(str(icon_path))
+    placeholder = FRONTEND_DIR / "placeholder.png"
+    if placeholder.exists():
+        return FileResponse(str(placeholder))
+    raise HTTPException(status_code=404)
+
 @app.get("/mobile")
+@app.get("/mobile/")
 async def serve_mobile():
     """Serve mobile application interface."""
     mobile_file = MOBILE_DIR / "index.html"

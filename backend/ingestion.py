@@ -206,10 +206,17 @@ def ingest_single_design(
             except Exception as e:
                 logger.warning(f"Could not auto-refresh footwear gate bank: {e}")
 
-        if background_tasks is not None:
-            background_tasks.add_task(_refresh_gate_bank)
-        else:
-            _refresh_gate_bank()
+        # 5b. Pre-warm WebP thumbnails for all registered images
+        for meta in registered_images:
+            try:
+                dest_p = str(meta["dest_path"])
+                from backend.main import _get_or_create_thumbnail
+                if background_tasks is not None:
+                    background_tasks.add_task(_get_or_create_thumbnail, dest_p, design_id)
+                else:
+                    _get_or_create_thumbnail(dest_p, design_id)
+            except Exception as e:
+                logger.warning(f"Thumbnail pre-warming notice for {design_id}: {e}")
 
         logger.info(f"Successfully ingested design '{name}' ({design_id}) with {len(embeddings)} reference images.")
         

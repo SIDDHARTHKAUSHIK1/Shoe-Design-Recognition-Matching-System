@@ -19,6 +19,7 @@ uvicorn>=0.22.0
 python-multipart>=0.0.6
 pydantic>=2.0.0
 requests>=2.31.0
+redis>=5.0.0
 
 # Rate limiting — hard import in backend/main.py, app will not boot without it
 slowapi>=0.1.9

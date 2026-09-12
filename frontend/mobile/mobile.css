@@ -441,6 +441,45 @@ body {
   border-left-color: #4F46E5; /* Indigo */
 }
 
+.match-img-box-mobile {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  max-height: 250px;
+  background-color: var(--md-sys-color-surface-container-low, #f8fafc);
+  border: 1px solid var(--md-sys-color-surface-variant, #e2e8f0);
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.match-img-box-mobile.loading-skeleton {
+  background: linear-gradient(90deg, var(--md-sys-color-surface-variant, #e2e8f0) 25%, var(--md-sys-color-surface, #f8fafc) 50%, var(--md-sys-color-surface-variant, #e2e8f0) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.match-img-box-mobile .match-img-element {
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: center;
+  border-radius: 10px;
+  display: block;
+  transition: transform 0.2s ease;
+}
+
 .match-badge {
   display: inline-flex;
   align-items: center;
@@ -454,6 +493,20 @@ body {
   margin-bottom: 10px;
 }
 
+.farma-shelf-chip {
+  background-color: var(--md-sys-color-secondary-container, #e0f2fe);
+  color: var(--md-sys-color-on-secondary-container, #0369a1);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  margin-bottom: 6px;
+}
+
 .location-chip {
   background-color: var(--md-sys-color-primary-container);
   color: var(--md-sys-color-on-primary-container);
@@ -464,6 +517,9 @@ body {
   border-radius: 10px;
   display: inline-flex;
   align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
   gap: 6px;
   margin-top: 10px;
 }

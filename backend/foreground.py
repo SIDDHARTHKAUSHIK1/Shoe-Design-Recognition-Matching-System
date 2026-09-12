@@ -64,13 +64,14 @@ class ForegroundIsolator:
 
         try:
             sess_opts = ort.SessionOptions()
-            sess_opts.intra_op_num_threads = 1
-            sess_opts.inter_op_num_threads = 1
+            cpu_threads = min(4, os.cpu_count() or 2)
+            sess_opts.intra_op_num_threads = cpu_threads
+            sess_opts.inter_op_num_threads = 2
             sess_opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
             self.session = ort.InferenceSession(str(self.model_path), sess_opts, providers=["CPUExecutionProvider"])
             self.input_name = self.session.get_inputs()[0].name
             self.output_name = self.session.get_outputs()[0].name
-            logger.info("ForegroundIsolator initialized successfully with U2-Netp on CPU.")
+            logger.info(f"ForegroundIsolator initialized successfully with U2-Netp on CPU ({cpu_threads} threads).")
         except Exception as e:
             logger.warning(f"Could not initialize ONNXRuntime session for U2-Netp: {e}")
             self.session = None
@@ -103,8 +104,16 @@ class ForegroundIsolator:
         t0 = time.time()
         orig_w, orig_h = image.size
 
+        # Cap working resolution to max 768px for sub-second CPU processing
+        working_img = image
+        if max(orig_w, orig_h) > 768:
+            scale = 768.0 / max(orig_w, orig_h)
+            working_img = image.resize((int(orig_w * scale), int(orig_h * scale)), Image.BILINEAR)
+        
+        work_w, work_h = working_img.size
+
         # Preprocess for U2-Netp: 320x320 normalized tensor
-        resized = image.convert("RGB").resize((320, 320), Image.BILINEAR)
+        resized = working_img.convert("RGB").resize((320, 320), Image.BILINEAR)
         img_np = np.array(resized).astype(np.float32) / 255.0
         # ImageNet normalization
         img_np = (img_np - [0.485, 0.456, 0.406]) / [0.229, 0.224, 0.225]
@@ -119,8 +128,8 @@ class ForegroundIsolator:
             logger.warning(f"Foreground segmentation inference failed: {e}")
             return image, None, {"cropped": False, "reason": "inference_error"}
 
-        # Upsample soft mask to original image resolution with linear interpolation
-        full_mask = cv2.resize(mask_320, (orig_w, orig_h), interpolation=cv2.INTER_LINEAR)
+        # Upsample soft mask to working image resolution with linear interpolation
+        full_mask = cv2.resize(mask_320, (work_w, work_h), interpolation=cv2.INTER_LINEAR)
         full_mask = np.clip(full_mask, 0.0, 1.0)
 
         # Binarize mask for coverage and bbox computation
@@ -149,7 +158,7 @@ class ForegroundIsolator:
 
         # Alpha composite footwear onto neutral studio background (248, 248, 248)
         # This completely zeroes out background texture, floor reflections, carpets, and shadows
-        orig_arr = np.array(image.convert("RGB")).astype(np.float32)
+        orig_arr = np.array(working_img.convert("RGB")).astype(np.float32)
         mask_3d = np.repeat(np.expand_dims(full_mask, axis=2), 3, axis=2)
         neutral_bg = np.array([248.0, 248.0, 248.0], dtype=np.float32)
         neutral_img_arr = orig_arr * mask_3d + neutral_bg * (1.0 - mask_3d)
@@ -177,8 +186,8 @@ class ForegroundIsolator:
 
         x_min = max(0, x_min - pad_w)
         y_min = max(0, y_min - pad_h)
-        x_max = min(orig_w, x_max + pad_w)
-        y_max = min(orig_h, y_max + pad_h)
+        x_max = min(work_w, x_max + pad_w)
+        y_max = min(work_h, y_max + pad_h)
 
         # Ensure valid crop dimension (at least 32x32)
         if (x_max - x_min) < 32 or (y_max - y_min) < 32:

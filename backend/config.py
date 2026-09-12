@@ -15,6 +15,7 @@ DATASET_DIR = BASE_DIR / "dataset"
 CONFIG_DIR = BASE_DIR / "config"
 UPLOADS_DIR = STORAGE_DIR / "uploads"
 CATALOG_IMAGES_DIR = STORAGE_DIR / "catalog_images"
+THUMBNAILS_DIR = STORAGE_DIR / "thumbnails"
 
 # Hard Data Separation: Training Data (Kaggle) vs. Production Catalog Data (Own Stock)
 DATA_DIR = BASE_DIR / "data"
@@ -26,6 +27,7 @@ STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 CONFIG_DIR.mkdir(parents=True, exist_ok=True)
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 CATALOG_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+THUMBNAILS_DIR.mkdir(parents=True, exist_ok=True)
 TRAINING_DATA_DIR.mkdir(parents=True, exist_ok=True)
 CATALOG_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -113,7 +115,7 @@ ENABLE_INVARIANT_HEAD = os.getenv("ENABLE_INVARIANT_HEAD", "true").lower() in ("
 INVARIANT_HEAD_PATH = Path(os.getenv("INVARIANT_HEAD_PATH", str(STORAGE_DIR / "models" / "background_invariant_head.pt")))
 
 # Color-Aware Multi-Component Scoring Configuration
-ENABLE_COLOR_AWARE_SCORING = os.getenv("ENABLE_COLOR_AWARE_SCORING", "false").lower() in ("true", "1", "t")
+ENABLE_COLOR_AWARE_SCORING = os.getenv("ENABLE_COLOR_AWARE_SCORING", "true").lower() in ("true", "1", "t")
 WEIGHT_DESIGN = float(os.getenv("WEIGHT_DESIGN", "0.85"))  # 85% DINOv2 visual texture/shape silhouette match
 WEIGHT_COLOR = float(os.getenv("WEIGHT_COLOR", "0.15"))    # 15% foreground color histogram match
 
@@ -129,3 +131,5 @@ TOP_K_MATCHES = 3
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8000"))
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "t")
+REDIS_URL = os.getenv("REDIS_URL", "redis://127.0.0.1:6379/0")
+CATALOG_CACHE_TTL_SECONDS = int(os.getenv("CATALOG_CACHE_TTL_SECONDS", "300"))

@@ -73,6 +73,53 @@ class ShoeMatcher:
         self.engine = EmbeddingEngine.get_instance()
         self.classifier = ZeroShotCategoryClassifier.get_instance()
         self.vector_store = VectorStore.get_instance()
+        self._ref_cache: Dict[int, Dict[str, Any]] = {}
+        self._ref_cache_ts: float = 0.0
+
+    def invalidate_cache(self):
+        """Immediately purge the in-memory reference cache on catalog changes."""
+        self._ref_cache = {}
+        self._ref_cache_ts = 0.0
+
+    def _get_ref_meta(self, faiss_id: int) -> Optional[Dict[str, Any]]:
+        now = time.time()
+        if not self._ref_cache or (now - self._ref_cache_ts > 15.0):
+            try:
+                all_refs = db.get_all_reference_images_with_metadata()
+                new_cache = {}
+                for r in all_refs:
+                    fid = r.get("faiss_id")
+                    if fid is not None:
+                        hist_raw = r.get("color_histogram")
+                        if hist_raw and isinstance(hist_raw, str):
+                            try:
+                                r["_parsed_hist"] = json.loads(hist_raw)
+                            except Exception:
+                                r["_parsed_hist"] = None
+                        else:
+                            r["_parsed_hist"] = None
+
+                        dom_raw = r.get("dominant_colors")
+                        if dom_raw and isinstance(dom_raw, str):
+                            try:
+                                r["_parsed_dom"] = json.loads(dom_raw)
+                            except Exception:
+                                r["_parsed_dom"] = []
+                        else:
+                            r["_parsed_dom"] = []
+
+                        new_cache[int(fid)] = r
+                self._ref_cache = new_cache
+                self._ref_cache_ts = now
+            except Exception as e:
+                logger.warning(f"Error updating in-memory ref cache: {e}")
+
+        meta = self._ref_cache.get(faiss_id)
+        if not meta:
+            meta = db.get_reference_image_by_faiss_id(faiss_id)
+            if meta:
+                self._ref_cache[faiss_id] = meta
+        return meta
 
     def match_image(
         self,
@@ -231,20 +278,17 @@ class ShoeMatcher:
             if faiss_id < 0:
                 continue
             
-            ref_meta = db.get_reference_image_by_faiss_id(int(faiss_id))
+            ref_meta = self._get_ref_meta(int(faiss_id))
             if not ref_meta:
                 continue
             
-            # Deduplicate by image file content
+            # Deduplicate by image file content/path
             img_path = ref_meta.get("image_path", "")
-            img_hash = _get_image_file_hash(img_path)
-            if img_hash and img_hash in seen_image_hashes:
+            if img_path in seen_image_hashes:
                 continue
-            seen_image_hashes.add(img_hash)
+            seen_image_hashes.add(img_path)
 
             ref_category = ref_meta.get("category", "")
-            # Visual matching is driven 100% by pure visual feature similarity (shape, laces, belts, stitching, sole contours)
-            # Catalog text metadata or text categories do not skew visual ranking.
             cat_bonus = 0.00
                 
             design_id = ref_meta["design_id"]
@@ -252,10 +296,9 @@ class ShoeMatcher:
             
             # Color-aware similarity scoring
             color_sim = 1.0
-            if ENABLE_COLOR_AWARE_SCORING and ref_meta.get("color_histogram"):
+            if ENABLE_COLOR_AWARE_SCORING and ref_meta.get("_parsed_hist"):
                 try:
-                    cand_hist = json.loads(ref_meta["color_histogram"])
-                    color_sim = ColorExtractor.compute_color_similarity(query_hist, cand_hist)
+                    color_sim = ColorExtractor.compute_color_similarity(query_hist, ref_meta["_parsed_hist"])
                 except Exception:
                     color_sim = 1.0
 
@@ -270,33 +313,48 @@ class ShoeMatcher:
                 combined_score = 0.85 * cosine_score + 0.15 * color_sim
                 confidence_pct = min(84.9, max(60.0, 60.0 + float(cosine_score) * 83.3))
 
-            cand_dominant = []
-            if ref_meta.get("dominant_colors"):
-                try:
-                    cand_dominant = json.loads(ref_meta["dominant_colors"])
-                except Exception:
-                    pass
+            # Color-contrast penalty: penalize high shape-similar but low color-similar candidates
+            # to prevent wrong-color shoes from outranking correct-color ones.
+            COLOR_CONTRAST_PENALTY_THRESHOLD = 0.40  # color_sim below this = "very different color"
+            COLOR_CONTRAST_PENALTY_STRENGTH = 0.08   # up to 8 points subtracted from combined_score
+            if ENABLE_COLOR_AWARE_SCORING and color_sim < COLOR_CONTRAST_PENALTY_THRESHOLD and cosine_score >= 0.700:
+                color_penalty = COLOR_CONTRAST_PENALTY_STRENGTH * (1.0 - color_sim / COLOR_CONTRAST_PENALTY_THRESHOLD)
+                combined_score = max(0.0, combined_score - color_penalty)
+                confidence_pct = max(60.0, confidence_pct - color_penalty * 100.0)
+
+            cand_dominant = ref_meta.get("_parsed_dom", [])
             
-            if design_id not in seen_designs or cosine_score > seen_designs[design_id]["cosine_similarity"]:
+            if design_id not in seen_designs or combined_score > seen_designs[design_id]["combined_score"]:
+                img_path = ref_meta.get("image_path") or ""
                 seen_designs[design_id] = {
                     "design_id": design_id,
                     "design_name": ref_meta["name"],
                     "category": ref_meta["category"],
-                    "description": ref_meta["description"],
+                    "description": ref_meta.get("description", ""),
                     "cosine_similarity": round(cosine_score, 4),
                     "color_similarity": round(color_sim, 4),
                     "combined_score": round(combined_score, 4),
                     "confidence_pct": round(confidence_pct, 2),
                     "dominant_colors": cand_dominant,
                     "best_matching_angle": ref_meta["angle"],
-                    "best_matching_image_path": ref_meta["image_path"],
+                    "best_matching_image_path": img_path,
+                    "best_matching_image_url": img_path,
+                    "image_path": img_path,
+                    "shelf_location": ref_meta.get("shelf_location") or "Warehouse Archive",
+                    "farma_shelf": ref_meta.get("farma_shelf") or "",
+                    "drawer": ref_meta.get("drawer") or "",
+                    "slot": ref_meta.get("slot") or "",
+                    "materials": ref_meta.get("materials") or "",
+                    "season": ref_meta.get("season") or "",
+                    "production_status": ref_meta.get("production_status") or "",
+                    "created_by": ref_meta.get("created_by") or "",
                     "faiss_id": int(faiss_id)
                 }
 
         # 6. Sort candidates strictly by visual similarity score (Top #1 most visually similar at top, followed by #2 and #3)
         sorted_candidates = sorted(
             seen_designs.values(),
-            key=lambda x: (x["cosine_similarity"], x["combined_score"]),
+            key=lambda x: (x["combined_score"], x["cosine_similarity"]),
             reverse=True
         )
 

@@ -572,6 +572,9 @@ def get_reference_image_by_faiss_id(faiss_id: int) -> Optional[Dict[str, Any]]:
                 d.description,
                 d.created_by,
                 d.shelf_location,
+                d.farma_shelf,
+                d.drawer,
+                d.slot,
                 d.materials,
                 d.season,
                 d.production_status
@@ -619,6 +622,38 @@ def get_all_reference_images() -> List[Dict[str, Any]]:
                 d.category as design_category
             FROM reference_images r
             JOIN designs d ON r.design_id = d.design_id
+            ORDER BY r.faiss_id ASC;
+        """)
+        return [dict(r) for r in cursor.fetchall()]
+
+
+def get_all_reference_images_with_metadata() -> List[Dict[str, Any]]:
+    """Get all active reference images with full design metadata for in-memory fast indexing."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                r.id,
+                r.design_id,
+                r.image_path,
+                r.angle,
+                r.faiss_id,
+                r.color_histogram,
+                r.dominant_colors,
+                d.name,
+                d.category,
+                d.description,
+                d.created_by,
+                d.shelf_location,
+                d.farma_shelf,
+                d.drawer,
+                d.slot,
+                d.materials,
+                d.season,
+                d.production_status
+            FROM reference_images r
+            JOIN designs d ON r.design_id = d.design_id
+            WHERE (d.is_active IS NULL OR d.is_active = 1) AND (d.is_archived IS NULL OR d.is_archived = 0)
             ORDER BY r.faiss_id ASC;
         """)
         return [dict(r) for r in cursor.fetchall()]
@@ -1078,3 +1113,7 @@ def unassign_slot(slot_id: int) -> bool:
         
         conn.commit()
         return True
+
+
+# Backward-compatible alias
+get_catalog_item_by_id = get_design

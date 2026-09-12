@@ -50,17 +50,33 @@
       }
     } catch (e) {}
 
-    if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+    const isNativeApp = !!(window.Capacitor && window.Capacitor.isNativePlatform());
+
+    if (isNativeApp) {
       try {
         const mode = localStorage.getItem("shoematch_mobile_target");
         if (mode === "emulator") {
           return "http://10.0.2.2:8000";
         }
       } catch (e) {}
-      // Otherwise fall through to SHOEMATCH_API_BASE (config.js)
+      // A native app has no same-origin server of its own — it must use the
+      // absolute deployed URL from config.js.
+      if (window.SHOEMATCH_API_BASE) {
+        const cfg = String(window.SHOEMATCH_API_BASE).trim();
+        if (cfg) return cfg.endsWith("/") ? cfg.slice(0, -1) : cfg;
+      }
+      return "";
     }
 
-    // Deployed configuration (frontend/config.js). Empty = same-origin.
+    // Not the native app: this page was actually served by a real HTTP(S) server
+    // (FastAPI — could be your local dev server, your LAN IP, or production itself).
+    // That server can answer every /api/... and /catalog_images/... request itself,
+    // so always prefer same-origin here instead of the hardcoded production default.
+    if (window.location && /^https?:$/.test(window.location.protocol)) {
+      return "";
+    }
+
+    // Fallback for any other context (e.g. a bare file:// preview with no server).
     if (window.SHOEMATCH_API_BASE) {
       const cfg = String(window.SHOEMATCH_API_BASE).trim();
       if (cfg) return cfg.endsWith("/") ? cfg.slice(0, -1) : cfg;
@@ -1413,6 +1429,7 @@
       }
 
       const matchData = await res.json();
+      preloadMatchImages(matchData.matches);
       renderMatchResults(matchData);
     } catch (err) {
       overlay.classList.add("hidden");
@@ -1663,50 +1680,59 @@
     // 1. Remove previous preload link tags
     document.querySelectorAll('link[data-match-preload]').forEach(el => el.remove());
 
-    // 2. Preload TOP 3 result images at MAX network priority
-    const top3 = matches.slice(0, 3);
-    top3.forEach((m, idx) => {
-      let rawImg = m.best_matching_image_url || m.image_path || (m.all_angles && m.all_angles[0] ? m.all_angles[0].image_path : '');
-      if (!rawImg && m.design_id) rawImg = `/catalog_images/${m.design_id}/photo_1.jpg`;
-      if (rawImg) {
-        const fullUrl = window.getApiUrl(rawImg);
-        const link = document.createElement('link');
-        link.rel = 'preload';
-        link.as = 'image';
-        link.href = fullUrl;
-        link.setAttribute('fetchpriority', idx === 0 ? 'high' : 'auto');
-        link.setAttribute('data-match-preload', 'true');
-        document.head.appendChild(link);
+    function createPreloadLink(rawImg, isHighPriority) {
+      if (!rawImg) return;
+      const fullUrl = window.getApiUrl(rawImg);
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = fullUrl;
+      link.setAttribute('fetchpriority', isHighPriority ? 'high' : 'low');
+      link.setAttribute('data-match-preload', 'true');
+      document.head.appendChild(link);
 
-        // Save to persistent cache & in-memory decode
-        prefetchImageToCache(fullUrl);
-        const img = new Image();
-        img.src = fullUrl;
-        if (img.decode) {
-          img.decode().catch(() => {});
-        }
+      prefetchImageToCache(fullUrl);
+      const img = new Image();
+      if ("fetchPriority" in img) img.fetchPriority = isHighPriority ? "high" : "low";
+      img.src = fullUrl;
+      if (img.decode) {
+        img.decode().catch(() => {});
       }
-    });
+    }
 
-    // 3. Defer ranks 4+ until top 3 are ready
+    // Stage 1 (Immediate - 0ms): Preload Top-1 image at MAX priority
+    if (matches.length > 0) {
+      const top1 = matches[0];
+      let rawImg1 = top1.best_matching_image_url || top1.best_matching_image_path || top1.image_path || (top1.all_angles && top1.all_angles[0] ? top1.all_angles[0].image_path : '');
+      if (!rawImg1 && top1.design_id) rawImg1 = `/catalog_images/${top1.design_id}/photo_1.jpg`;
+      createPreloadLink(rawImg1, true);
+    }
+
+    // Stage 2 (+50ms): Preload matches #2 and #3 with lower priority
+    setTimeout(() => {
+      matches.slice(1, 3).forEach(m => {
+        let rawImg = m.best_matching_image_url || m.best_matching_image_path || m.image_path || (m.all_angles && m.all_angles[0] ? m.all_angles[0].image_path : '');
+        if (!rawImg && m.design_id) rawImg = `/catalog_images/${m.design_id}/photo_1.jpg`;
+        createPreloadLink(rawImg, false);
+      });
+    }, 50);
+
+    // Stage 3: Angle thumbnails and ranks 4+ are deferred
     setTimeout(() => {
       matches.slice(3).forEach(m => {
-        let rawImg = m.best_matching_image_url || m.image_path || (m.all_angles && m.all_angles[0] ? m.all_angles[0].image_path : '');
+        let rawImg = m.best_matching_image_url || m.best_matching_image_path || m.image_path || (m.all_angles && m.all_angles[0] ? m.all_angles[0].image_path : '');
         if (rawImg) {
           const fullUrl = window.getApiUrl(rawImg);
           prefetchImageToCache(fullUrl);
-          const img = new Image();
-          img.src = fullUrl;
         }
       });
-    }, 800);
+    }, 400);
   }
 
   function renderMatchResults(data) {
     const alertContainer = document.getElementById("slipper-alert-container");
     const resultsContainer = document.getElementById("match-results-container");
 
-    preloadMatchImages(data.matches);
     alertContainer.classList.add("hidden");
     resultsContainer.innerHTML = "";
 
@@ -1727,7 +1753,7 @@
 
     rawMatches.forEach(m => {
       const designId = (m.design_id || m.id || "").toString().trim().toUpperCase();
-      let rawImg = m.best_matching_image_url || m.image_path || (m.all_angles && m.all_angles[0] ? m.all_angles[0].image_path : '');
+      let rawImg = m.best_matching_image_url || m.best_matching_image_path || m.image_path || (m.all_angles && m.all_angles[0] ? m.all_angles[0].image_path : '');
       if (!rawImg && designId) {
         rawImg = `/catalog_images/${designId}/photo_1.jpg`;
       }
@@ -1784,9 +1810,11 @@
       const locationText = m.shelf_location || m.location || catalogRef.shelf_location || "Warehouse Storage";
       const materialsText = m.materials || catalogRef.materials || "Standard";
       const farmaShelfText = (m.farma_shelf || catalogRef.farma_shelf || "").trim();
+      const drawerText = (m.drawer || catalogRef.drawer || "").trim();
+      const slotText = (m.slot || catalogRef.slot || "").trim();
 
       // Resolve reference photo URL from match object or angle list
-      let rawImg = m.best_matching_image_url || m.image_path || (m.all_angles && m.all_angles[0] ? m.all_angles[0].image_path : '');
+      let rawImg = m.best_matching_image_url || m.best_matching_image_path || m.image_path || (m.all_angles && m.all_angles[0] ? m.all_angles[0].image_path : '');
       if (!rawImg && catalogRef) {
         rawImg = catalogRef.thumbnail_path || (catalogRef.reference_images && catalogRef.reference_images[0] ? catalogRef.reference_images[0].image_path : '');
       }
@@ -1804,37 +1832,32 @@
       }
 
       card.innerHTML = `
-        <div class="match-badge" style="${rank === 1 ? 'background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); font-weight: 800;' : ''}">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="${rank === 1 ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <div class="match-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
           <span>#${rank} ${rank === 1 ? 'MOST RELEVANT MATCH' : 'MATCH'} • ${confidence}% CONFIDENCE</span>
         </div>
-        <div class="card-title" style="margin-top: 8px;">${escapeHtml(designName)}</div>
-        <div style="font-size: 0.8rem; color: var(--md-sys-color-outline); margin-bottom: 10px;">SKU: ${escapeHtml(designId)} • Category: ${escapeHtml(category)}</div>
+        <div class="card-title" style="margin-top: 8px; font-weight: 700; font-size: 1.05rem;">${escapeHtml(designName)}</div>
+        <div style="font-size: 0.8rem; color: var(--md-sys-color-outline); margin-bottom: 8px;">SKU: ${escapeHtml(designId)} • Category: ${escapeHtml(category)}</div>
         
-        <div style="position: relative; text-align: center; margin-bottom: 12px; border-radius: 12px; overflow: hidden; min-height: 140px; display: flex; align-items: center; justify-content: center;
-          ${rank <= 3 ? 'background-color: var(--md-sys-color-background); border: 1px solid var(--md-sys-color-surface-variant); padding: 8px;' : 'background: linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%); background-size:200% 100%; animation: catalogShimmer 1.4s infinite;'}">
+        <div class="match-img-box-mobile loading-skeleton" id="img-box-${rank}">
           <img src="${imgPath}" alt="${escapeHtml(designName)}"
-               loading="${rank <= 3 ? 'eager' : 'lazy'}"
+               loading="eager"
                decoding="async"
-               fetchpriority="${rank === 1 ? 'high' : rank <= 3 ? 'auto' : 'low'}"
-               style="width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px; transition: opacity 0.15s ease; ${rank <= 3 ? 'opacity:1;' : 'opacity:0;'}"
-               onload="this.style.opacity='1'; this.parentElement.style.animation='none'; this.parentElement.style.background='var(--md-sys-color-background)'; this.parentElement.style.border='1px solid var(--md-sys-color-surface-variant)'; this.parentElement.style.padding='8px';"
-               onerror="this.onerror=null; this.style.opacity='1'; this.parentElement.style.animation='none'; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23D97706\' stroke-width=\'2\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\'/><path d=\'M2 17l10 4 10-4\'/><path d=\'M12 3L2 8l10 5 10-5-10-5z\'/></svg>';" />
+               fetchpriority="${rank === 1 ? 'high' : 'low'}"
+               class="match-img-element"
+               onload="document.getElementById('img-box-${rank}')?.classList.remove('loading-skeleton');"
+               onerror="this.onerror=null; document.getElementById('img-box-${rank}')?.classList.remove('loading-skeleton'); this.src='/placeholder.png';" />
         </div>
         
-        <div style="font-size: 0.82rem; color: var(--md-sys-color-on-surface-variant); margin-bottom: 8px;">
+        <div style="font-size: 0.82rem; color: #475569; margin-bottom: 8px;">
           Size / Material: <strong>${escapeHtml(materialsText)}</strong>
         </div>
-
         ${farmaShelfText ? `
-        <div style="font-size: 0.82rem; color: var(--md-sys-color-secondary); font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; background-color: var(--md-sys-color-secondary-container); padding: 6px 10px; border-radius: 8px; width: fit-content;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-          <span>Farma Shelf: ${escapeHtml(farmaShelfText)}</span>
-        </div>
-        ` : ''}
-
+        <div class="farma-shelf-chip">
+          <span>Farma Shelf: <strong>${escapeHtml(farmaShelfText)}${drawerText ? ` • Drawer: ${escapeHtml(drawerText)}` : ''}${slotText ? ` • Slot: ${escapeHtml(slotText)}` : ''}</strong></span>
+        </div>` : ''}
         <div class="location-chip">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
           <span>${escapeHtml(locationText)}</span>
         </div>
       `;

@@ -10,34 +10,34 @@ window.getApiBaseUrl = function() {
     const saved = localStorage.getItem("shoematch_api_base_url");
     if (saved && saved.trim()) {
       let url = saved.trim();
-      if (location.protocol === "https:" && url.startsWith("http://") && !url.startsWith("http://localhost")) {
-        // Ignore stale HTTP IP in localStorage on HTTPS sites
-      } else {
-        return url.endsWith("/") ? url.slice(0, -1) : url;
-      }
+      return url.endsWith("/") ? url.slice(0, -1) : url;
     }
   } catch (e) {}
 
-  // Capacitor Native Platform Resolution
-  if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+  const isNativeApp = !!(window.Capacitor && window.Capacitor.isNativePlatform());
+
+  if (isNativeApp) {
     try {
       const mode = localStorage.getItem("shoematch_mobile_target");
       if (mode === "emulator") {
         return "http://10.0.2.2:8000";
       }
     } catch(e) {}
-    // Otherwise fall through to SHOEMATCH_API_BASE (config.js)
+    if (window.SHOEMATCH_API_BASE) {
+      const cfg = String(window.SHOEMATCH_API_BASE).trim();
+      if (cfg) return cfg.endsWith("/") ? cfg.slice(0, -1) : cfg;
+    }
+    return "";
+  }
+
+  // Not the native app: served by FastAPI or real HTTP(S) server
+  if (window.location && /^https?:$/.test(window.location.protocol)) {
+    return "";
   }
 
   if (window.SHOEMATCH_API_BASE) {
-    let cfg = String(window.SHOEMATCH_API_BASE).trim();
-    if (cfg) {
-      if (location.protocol === "https:" && cfg.startsWith("http://") && !cfg.startsWith("http://localhost")) {
-        // Ignore stale HTTP IP on HTTPS sites
-      } else {
-        return cfg.endsWith("/") ? cfg.slice(0, -1) : cfg;
-      }
-    }
+    const cfg = String(window.SHOEMATCH_API_BASE).trim();
+    if (cfg) return cfg.endsWith("/") ? cfg.slice(0, -1) : cfg;
   }
 
   return "";
@@ -1138,20 +1138,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function preloadMatchImages(matches) {
     if (!matches || !Array.isArray(matches)) return;
-    matches.forEach(m => {
-      if (m.best_matching_image_url) {
-        const img = new Image();
-        img.src = window.getImageUrl(m.best_matching_image_url);
+
+    function createPreloadLink(rawImg, isHighPriority) {
+      if (!rawImg) return;
+      const fullUrl = window.getImageUrl(rawImg);
+      const img = new Image();
+      if ("fetchPriority" in img) img.fetchPriority = isHighPriority ? "high" : "low";
+      img.src = fullUrl;
+      if (img.decode) {
+        img.decode().catch(() => {});
       }
-      if (m.all_angles && Array.isArray(m.all_angles)) {
-        m.all_angles.forEach(a => {
-          if (a.image_path) {
-            const img = new Image();
-            img.src = window.getImageUrl(a.image_path);
-          }
-        });
-      }
-    });
+    }
+
+    // Stage 1 (Immediate - 0ms): Preload Top-1 image at MAX priority
+    if (matches.length > 0) {
+      const top1 = matches[0];
+      const rawImg1 = top1.best_matching_image_url || top1.best_matching_image_path || top1.image_path || "";
+      createPreloadLink(rawImg1, true);
+    }
+
+    // Stage 2 (+50ms): Preload matches #2 and #3 with lower priority
+    setTimeout(() => {
+      matches.slice(1, 3).forEach(m => {
+        const rawImg = m.best_matching_image_url || m.best_matching_image_path || m.image_path || "";
+        createPreloadLink(rawImg, false);
+      });
+    }, 50);
   }
 
   function handleQueryFileSelect(e) {
@@ -1291,7 +1303,8 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderMatchResults(data) {
     elements.matchesList.innerHTML = "";
     elements.resultsLoading.style.display = "none";
-    preloadMatchImages(data.matches);
+    // preloadMatchImages already ran in executeVisualMatch the instant the
+    // response JSON parsed — do not warm the same 3 images twice.
 
     // Non-footwear guard: No shoe or slipper found
     if (data.is_footwear_detected === false || data.detected_category === "none") {
@@ -1366,7 +1379,7 @@ document.addEventListener("DOMContentLoaded", () => {
     elements.latencyText.textContent = `${data.latency_ms} ms`;
 
     // Render each match
-    matches.forEach((m) => {
+    matches.forEach((m, idx) => {
       const card = document.createElement("div");
       card.className = `match-item-card ${m.match_color}`;
       card.setAttribute("role", "button");
@@ -1378,15 +1391,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Build angle thumbnails
       let angleThumbsHtml = "";
+      const currentMatchImg = m.best_matching_image_url || m.best_matching_image_path || m.image_path || "";
       if (m.all_angles && m.all_angles.length > 0) {
         angleThumbsHtml = `
           <div class="angles-strip">
             <span style="font-size: 0.7rem; color: var(--text-muted);">Angles:</span>
             ${m.all_angles.map(a => `
               <img src="${getImageUrl(a.image_path)}" 
-                   class="angle-thumb ${a.image_path === m.best_matching_image_url ? 'active' : ''}" 
+                   class="angle-thumb ${a.image_path === currentMatchImg ? 'active' : ''}" 
                    title="Angle: ${a.angle}" 
-                   loading="eager" decoding="async"
+                   loading="lazy" decoding="async"
                    onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'1.5\'><path d=\'M20.24 12.24a6 6 0 0 0-8.49-8.49L3.5 12.00a6 6 0 0 0 8.49 8.49l8.25-8.25z\'/><path d=\'M16 8l-4 4\'/></svg>';"
                    onclick="event.stopPropagation(); swapMatchImage(this, '${m.design_id}')">
             `).join("")}
@@ -1397,8 +1411,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const shelfLocation = m.shelf_location || "Warehouse A - Rack 03 - Shelf B-02";
 
       card.innerHTML = `
-        <div class="match-img-box" id="img-box-${m.design_id}">
-          <img src="${getImageUrl(m.best_matching_image_url)}" alt="${m.design_name}" loading="eager" decoding="async" fetchpriority="high" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'1.5\'><path d=\'M20.24 12.24a6 6 0 0 0-8.49-8.49L3.5 12.00a6 6 0 0 0 8.49 8.49l8.25-8.25z\'/><path d=\'M16 8l-4 4\'/></svg>';">
+        <div class="match-img-box loading-skeleton" id="img-box-${m.design_id}">
+          <img src="${getImageUrl(currentMatchImg)}" alt="${m.design_name}" loading="eager" decoding="async" fetchpriority="${idx === 0 ? 'high' : 'low'}" onload="this.closest('.match-img-box').classList.remove('loading-skeleton')" onerror="this.onerror=null; this.closest('.match-img-box').classList.remove('loading-skeleton'); this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'1.5\'><path d=\'M20.24 12.24a6 6 0 0 0-8.49-8.49L3.5 12.00a6 6 0 0 0 8.49 8.49l8.25-8.25z\'/><path d=\'M16 8l-4 4\'/></svg>';">
           <span class="match-angle-tag">${m.best_matching_angle}</span>
         </div>
 
