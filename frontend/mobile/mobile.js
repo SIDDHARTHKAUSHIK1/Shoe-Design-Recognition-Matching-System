@@ -65,7 +65,7 @@
         const cfg = String(window.SHOEMATCH_API_BASE).trim();
         if (cfg) return cfg.endsWith("/") ? cfg.slice(0, -1) : cfg;
       }
-      return "";
+      return "https://shoe.aflix.co.in";
     }
 
     // Not the native app: this page was actually served by a real HTTP(S) server
