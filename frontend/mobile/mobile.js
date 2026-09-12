@@ -2504,6 +2504,13 @@
       uniqueItems.push(item);
     });
 
+    const catalogSubtitleEl = document.getElementById("catalog-page-subtitle");
+    if (catalogSubtitleEl) {
+      catalogSubtitleEl.textContent = uniqueItems.length === 0
+        ? "No designs registered yet"
+        : `${uniqueItems.length} design${uniqueItems.length === 1 ? '' : 's'} in catalogue`;
+    }
+
     if (uniqueItems.length === 0) {
       grid.innerHTML = `<div class="md-card" style="grid-column: 1 / -1;">No designs found.</div>`;
       return;
@@ -2872,20 +2879,22 @@
         const plainPwd = u.plain_password || u.password_plain || (u.username === "admin" ? "admin123" : u.username === "employee" ? "newemp789" : u.username === "john" ? "john123" : u.username === "ram" ? "ram123" : u.username === "doggy" ? "doggy123" : (u.password || "admin123"));
 
         item.innerHTML = `
-          <div class="admin-user-avatar">${escapeHtml(initial)}</div>
-          <div class="admin-user-info">
-            <div class="admin-user-name-row">
-              <span class="admin-user-name">${escapeHtml(displayName)}</span>
-              <span class="admin-role-chip ${roleChipClass}">${roleLabel}</span>
-            </div>
-            <div class="admin-user-meta">
-              <span>@${escapeHtml(u.username)}</span>
-              <span class="admin-user-pwd">
-                <span class="user-pwd-text" data-pwd="${escapeHtml(plainPwd)}">••••••••</span>
-                <button class="btn-toggle-pwd-view" title="Reveal/Hide Password">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                </button>
-              </span>
+          <div class="admin-user-row-top">
+            <div class="admin-user-avatar">${escapeHtml(initial)}</div>
+            <div class="admin-user-info">
+              <div class="admin-user-name-row">
+                <span class="admin-user-name">${escapeHtml(displayName)}</span>
+                <span class="admin-role-chip ${roleChipClass}">${roleLabel}</span>
+              </div>
+              <div class="admin-user-meta">
+                <span class="admin-user-username">@${escapeHtml(u.username)}</span>
+                <span class="admin-user-pwd">
+                  <span class="user-pwd-text" data-pwd="${escapeHtml(plainPwd)}">••••••••</span>
+                  <button class="btn-toggle-pwd-view" title="Reveal/Hide Password">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                </span>
+              </div>
             </div>
           </div>
 

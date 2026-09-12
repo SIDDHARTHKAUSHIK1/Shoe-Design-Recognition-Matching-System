@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- Mobile Native Material 3 Stylesheet -->
-  <link rel="stylesheet" href="mobile.css?v=20260912s">
+  <link rel="stylesheet" href="mobile.css?v=20260913c">
 </head>
 <body>
 
@@ -23,7 +23,7 @@
         <span class="brand-icon-badge">
           <img src="/mobile-static/brand-icon.png" alt="ShoeMatch AI" class="brand-icon-img" />
         </span>
-        <span style="font-weight: 700; color: var(--md-sys-color-on-surface); white-space: nowrap; display: inline-block;">ShoeMatch AI</span>
+        <span style="font-weight: 700; color: var(--md-sys-color-on-surface); white-space: nowrap; display: inline-block;">GS Footwear</span>
         <span class="brand-badge" id="role-badge">Admin</span>
       </div>
 
@@ -51,7 +51,7 @@
           </button>
         </div>
 
-        <div class="studio-hero-card">
+        <div class="studio-hero-card curvy-decor">
           <div class="studio-hero-icon">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </div>
@@ -98,6 +98,12 @@
 
       <!-- TAB 2: CATALOG -->
       <section id="tab-catalog" class="tab-pane">
+        <div class="catalog-page-header">
+          <div>
+            <div class="catalog-page-title">Catalog</div>
+            <div class="catalog-page-subtitle" id="catalog-page-subtitle">Browse registered shoe designs</div>
+          </div>
+        </div>
         <div class="catalog-search-wrap hidden" id="catalog-search-wrap">
           <div class="search-bar-pro">
             <span class="search-bar-pro-icon">
@@ -121,40 +127,56 @@
         </div>
 
         <!-- Catalog Overview -->
-        <div class="admin-section-card" id="admin-total-design-log-card">
+        <div class="admin-section-card admin-hero-card curvy-decor" id="admin-total-design-log-card">
           <div class="admin-section-header">
-            <div>
-              <div class="admin-section-title">Catalog Overview</div>
-              <div class="admin-section-subtitle">Live counts of registered shoe designs</div>
+            <div class="admin-section-header-left">
+              <div class="admin-section-icon admin-section-icon--blue">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20.59 13.41L11 3.83 3.83 11l9.58 9.59a2 2 0 0 0 2.83 0l4.35-4.35a2 2 0 0 0 0-2.83z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+              </div>
+              <div>
+                <div class="admin-section-title">Catalog Overview</div>
+                <div class="admin-section-subtitle">Live counts of registered shoe designs</div>
+              </div>
             </div>
           </div>
 
           <div class="admin-stats-grid">
-            <div class="admin-stat-tile">
+            <div class="admin-stat-tile admin-stat-tile--blue">
+              <svg class="admin-stat-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20.59 13.41L11 3.83 3.83 11l9.58 9.59a2 2 0 0 0 2.83 0l4.35-4.35a2 2 0 0 0 0-2.83z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
               <div class="admin-stat-value" id="stat-total-designs-count">0</div>
               <div class="admin-stat-label">Total Designs</div>
             </div>
-            <div class="admin-stat-tile">
+            <div class="admin-stat-tile admin-stat-tile--amber">
+              <svg class="admin-stat-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
               <div class="admin-stat-value" id="stat-total-categories-count">0</div>
               <div class="admin-stat-label">Categories</div>
             </div>
-            <div class="admin-stat-tile">
+            <div class="admin-stat-tile admin-stat-tile--teal">
+              <svg class="admin-stat-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
               <div class="admin-stat-value" id="stat-total-shelves-count">0</div>
               <div class="admin-stat-label">Farma Shelves</div>
             </div>
           </div>
 
-          <div class="admin-summary-box" id="admin-design-log-summary">
-            Loading catalog status...
+          <div class="admin-summary-box">
+            <div class="admin-summary-text" id="admin-design-log-summary">
+              Loading catalog status...
+            </div>
+            <svg class="admin-summary-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
           </div>
         </div>
 
         <!-- Create and Manage User Section (Admin Only) -->
         <div class="admin-section-card" id="admin-user-management-card" style="display: none;">
           <div class="admin-section-header">
-            <div>
-              <div class="admin-section-title">Team Members</div>
-              <div class="admin-section-subtitle">Manage admin and employee accounts</div>
+            <div class="admin-section-header-left">
+              <div class="admin-section-icon admin-section-icon--blue">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+              </div>
+              <div>
+                <div class="admin-section-title">Team Members</div>
+                <div class="admin-section-subtitle">Manage admin and employee accounts</div>
+              </div>
             </div>
             <button class="studio-header-add-btn" id="btn-open-create-user" title="Create User">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><path d="M12 5v14M5 12h14"/></svg>
@@ -171,9 +193,14 @@
         <!-- Recent Activity History Section (Bottom of Admin Panel) -->
         <div class="admin-section-card" id="admin-activity-history-card">
           <div class="admin-section-header">
-            <div>
-              <div class="admin-section-title">Recent Activity</div>
-              <div class="admin-section-subtitle">Audit log of searches, catalog updates, and account actions</div>
+            <div class="admin-section-header-left">
+              <div class="admin-section-icon admin-section-icon--amber">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+              </div>
+              <div>
+                <div class="admin-section-title">Recent Activity</div>
+                <div class="admin-section-subtitle">Audit log of searches, catalog updates, and account actions</div>
+              </div>
             </div>
             <div style="display: flex; gap: 6px;">
               <button class="admin-icon-action-btn" id="btn-refresh-activity-logs" title="Refresh">
@@ -204,7 +231,7 @@
         </div>
 
         <!-- Identity Card: Avatar, Name, Role & Status -->
-        <div class="profile-identity-card">
+        <div class="profile-identity-card curvy-decor">
           <div class="profile-avatar-wrap">
             <div class="profile-avatar">
               <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>
@@ -349,7 +376,7 @@
 
       <button class="nav-tab nav-tab-scan" id="nav-tab-scan" title="Scan a Shoe">
         <div class="nav-scan-fab">
-<img src="https://cdn-icons-png.flaticon.com/512/1671/1671142.png" alt="Scan" class="nav-scan-icon" />         
+          <svg class="nav-scan-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
         </div>
       </button>
 
@@ -379,7 +406,7 @@
             <div class="login-brand-icon">
               <img src="/mobile-static/brand-icon.png" alt="ShoeMatch AI" class="login-brand-icon-img" />
             </div>
-            <h1 class="login-brand-text">ShoeMatch AI</h1>
+            <h1 class="login-brand-text">GS Footwear</h1>
             <p class="login-tagline">
               <span>Snap It</span><i>&bull;</i><span>Match It</span><i>&bull;</i><span>Locate It</span>
             </p>
@@ -988,6 +1015,6 @@
   <!-- Mobile Logic & Router -->
   <script src="config.js"></script>
   <script src="router.js"></script>
-  <script src="mobile.js?v=20260912s"></script>
+  <script src="mobile.js?v=20260913b"></script>
 </body>
 </html>
