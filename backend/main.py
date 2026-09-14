@@ -409,27 +409,9 @@ async def match_shoe_design(
         raise
     except Exception as e:
         logger.error(f"Unhandled error in match_shoe_design: {e}", exc_info=True)
-        return JSONResponse(
-            status_code=200,
-            content={
-                "success": True,
-                "detected_category": "shoe",
-                "is_footwear_detected": True,
-                "category_confidence_pct": 92.5,
-                "matches": [
-                    {
-                        "design_id": "SHOE-037",
-                        "design_name": "Velocity Knit Sock-Fit / Leather Oxford",
-                        "category": "Formal Shoe",
-                        "description": "Authentic production shoe design.",
-                        "combined_score": 0.885,
-                        "confidence_pct": 92.5,
-                        "best_matching_angle": "side",
-                        "best_matching_image_path": "/static/hero_shoe.png"
-                    }
-                ],
-                "message": "Visual search executed successfully."
-            }
+        raise HTTPException(
+            status_code=500,
+            detail="Visual search failed while processing this image. Please try again — if it keeps happening, contact support with the time of this attempt so the server log can be checked."
         )
 
 

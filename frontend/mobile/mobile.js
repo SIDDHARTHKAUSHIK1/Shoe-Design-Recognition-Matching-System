@@ -38,6 +38,21 @@
       .replace(/'/g, '&#039;');
   }
 
+  function timeAgo(dateStr) {
+    if (!dateStr) return '';
+    let iso = String(dateStr).replace(' ', 'T');
+    if (!/[Zz]|[+-]\d{2}:?\d{2}$/.test(iso)) iso += 'Z'; // SQLite CURRENT_TIMESTAMP is naive UTC
+    const then = new Date(iso);
+    const diffMs = Date.now() - then.getTime();
+    if (isNaN(diffMs) || diffMs < 0) return 'just now';
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins} min ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  }
+
   // ==========================================
   // API URL & Token Persistence Helpers
   // ==========================================
@@ -705,6 +720,7 @@
 
     if (tabId === "tab-catalog") fetchCatalog();
     if (tabId === "tab-admin") fetchAuditLogs();
+    if (tabId === "tab-studio") fetchStudioSnapshot();
 
     const mainContent = document.querySelector(".main-content");
     if (mainContent) mainContent.scrollTop = 0;
@@ -1743,6 +1759,7 @@
         details: "Image submitted was identified as non-catalog footwear / slipper prototype.",
         type: "ai_search"
       });
+      fetchStudioSnapshot();
       return;
     }
 
@@ -1863,6 +1880,8 @@
       `;
       resultsContainer.appendChild(card);
     });
+
+    fetchStudioSnapshot();
   }
 
   // ==========================================
@@ -2814,6 +2833,108 @@
   }
 
   // ==========================================
+  // Match Studio Snapshot / Live Activity
+  // ==========================================
+  async function fetchStudioSnapshot() {
+    const panel = document.getElementById("studio-snapshot-panel");
+    const statRow = document.getElementById("snapshot-stat-row");
+    const scanList = document.getElementById("snapshot-scan-list");
+    if (!panel || !statRow || !scanList) return;
+
+    try {
+      const [statsRes, logsRes] = await Promise.all([
+        window.authenticatedFetch(window.getApiUrl("/api/stats")),
+        window.authenticatedFetch(window.getApiUrl("/api/logs?limit=5"))
+      ]);
+
+      const stats = statsRes.ok ? await statsRes.json() : {};
+      const logsData = logsRes.ok ? await logsRes.json() : { logs: [] };
+      const logs = logsData.logs || [];
+
+      statRow.innerHTML = `
+        <div class="snapshot-stat-tile">
+          <div class="snapshot-stat-num">${stats.total_designs ?? '—'}</div>
+          <div class="snapshot-stat-label">Designs</div>
+        </div>
+        <div class="snapshot-stat-tile">
+          <div class="snapshot-stat-num">${stats.total_queries_logged ?? '—'}</div>
+          <div class="snapshot-stat-label">Total Scans</div>
+        </div>
+        <div class="snapshot-stat-tile">
+          <div class="snapshot-stat-num">${stats.average_confidence_pct !== undefined ? Number(stats.average_confidence_pct).toFixed(0) + '%' : '—'}</div>
+          <div class="snapshot-stat-label">Avg Match</div>
+        </div>
+      `;
+
+      // Resolve full design records (location, etc.) for the matches in this page of logs.
+      // Bounded to the ≤5 unique design_ids actually shown — not the whole catalog.
+      const matchIds = [...new Set(logs.map(l => l.top_match_id).filter(Boolean))];
+      const designMap = {};
+      if (matchIds.length) {
+        const results = await Promise.allSettled(
+          matchIds.map(id => window.authenticatedFetch(window.getApiUrl(`/api/designs/${encodeURIComponent(id)}`)))
+        );
+        for (let i = 0; i < results.length; i++) {
+          const r = results[i];
+          if (r.status !== "fulfilled" || !r.value.ok) continue; // 404 (deleted design) or network error — skip, don't throw
+          const design = await r.value.json();
+          designMap[matchIds[i]] = design;
+          // Upsert into the shared catalog cache so openCatalogPreviewModal()
+          // can find it instantly even if the broader catalog warm-up hasn't finished.
+          const idx = state.catalog.findIndex(d => d.design_id === design.design_id);
+          if (idx >= 0) state.catalog[idx] = design; else state.catalog.push(design);
+        }
+      }
+
+      if (logs.length === 0) {
+        scanList.innerHTML = `<div class="snapshot-empty">No scans yet — run your first search above.</div>`;
+      } else {
+        scanList.innerHTML = logs.map(log => {
+          const name = escapeHtml(log.top_match_name || 'No match found');
+          const design = log.top_match_id ? designMap[log.top_match_id] : null;
+          const thumbSrc = log.query_image_path ? window.getApiUrl(log.query_image_path) : '';
+          const thumb = thumbSrc
+            ? `<img class="snapshot-scan-thumb" src="${thumbSrc}" alt="" loading="lazy">`
+            : `<div class="snapshot-scan-thumb"></div>`;
+
+          let rightHtml, rowClass = 'snapshot-scan-row', rowAttrs = '';
+          if (design) {
+            const locationParts = [design.farma_shelf, design.drawer].filter(Boolean);
+            const locationSummary = locationParts.length ? locationParts.join(' · ') : (design.shelf_location || 'Unassigned');
+            rightHtml = `
+              <span class="snapshot-location-pill">${escapeHtml(locationSummary)}</span>
+              <svg class="snapshot-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="9 6 15 12 9 18"/></svg>
+            `;
+            rowClass += ' clickable';
+            rowAttrs = ` data-design-id="${escapeHtml(design.design_id)}" role="button" tabindex="0"`;
+          } else {
+            rightHtml = `<span class="snapshot-location-pill snapshot-location-pill--muted">No match</span>`;
+          }
+
+          return `
+            <div class="${rowClass}"${rowAttrs}>
+              ${thumb}
+              <div class="snapshot-scan-info">
+                <div class="snapshot-scan-name">${name}</div>
+                <div class="snapshot-scan-id">${design ? escapeHtml(design.design_id) : ''}</div>
+                <div class="snapshot-scan-time">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+                  ${timeAgo(log.created_at)}
+                </div>
+              </div>
+              <div class="snapshot-scan-right">${rightHtml}</div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      panel.classList.remove("hidden");
+    } catch (err) {
+      console.warn("Could not load studio snapshot:", err);
+    }
+  }
+
+  // ==========================================
   // Admin Dashboard & Audit Logs
   // ==========================================
   async function updateAdminDashboard() {
@@ -3514,6 +3635,28 @@
     });
   }
 
+  function openScanDesignDetail(designId) {
+    if (!designId || typeof window.openCatalogPreviewModal !== "function") return;
+    window.openCatalogPreviewModal(designId);
+  }
+
+  function initStudioSnapshotClicks() {
+    const scanList = document.getElementById("snapshot-scan-list");
+    if (!scanList) return;
+    scanList.addEventListener("click", (e) => {
+      const row = e.target.closest(".snapshot-scan-row.clickable");
+      if (row && row.dataset.designId) openScanDesignDetail(row.dataset.designId);
+    });
+    scanList.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const row = e.target.closest(".snapshot-scan-row.clickable");
+      if (row && row.dataset.designId) {
+        e.preventDefault();
+        openScanDesignDetail(row.dataset.designId);
+      }
+    });
+  }
+
   // ==========================================
   // Boot & Initialization
   // ==========================================
@@ -3527,6 +3670,7 @@
     initCatalogEditEvents();
     initCatalogSearch();
     initUserManagementEvents();
+    initStudioSnapshotClicks();
 
     const settingsBtn = document.getElementById("btn-profile-settings");
     if (settingsBtn) {
@@ -3547,6 +3691,7 @@
 
     checkAuthStatus();
     updateAdminDashboard();
+    fetchStudioSnapshot();
 
     // Warm up catalog cache quietly in background during idle time
     setTimeout(() => {

@@ -102,9 +102,15 @@ def load_thresholds_config() -> dict:
 MODEL_NAME = os.getenv("EMBEDDING_MODEL", "facebook/dinov2-small")
 EMBEDDING_DIM = 384  # DINOv2-small output dimension
 IMAGE_SIZE = (224, 224)
-# CPU thread count. Defaults to 1 for Render's 512MB/shared-vCPU instances.
-# On a multi-core dev box set TORCH_THREADS=<physical cores> (measured 3x on a 6-core i7).
-TORCH_THREADS = int(os.getenv("TORCH_THREADS", "1"))
+# CPU thread count for the DINOv2 embedding model. Auto-scales to the host's
+# CPU count (capped at 4, matching the same cap ForegroundIsolator already uses
+# for U2-Netp in backend/foreground.py) so this doesn't need hand-tuning per
+# deployment target — the old hardcoded "1" was tuned for a Render 512MB
+# free-tier instance this app no longer runs on. Override explicitly with the
+# TORCH_THREADS env var if you want a specific value (e.g. to leave CPU
+# headroom for other services on a shared VPS).
+_default_torch_threads = max(1, min(4, os.cpu_count() or 2))
+TORCH_THREADS = int(os.getenv("TORCH_THREADS", str(_default_torch_threads)))
 
 # Test-Time Augmentation (TTA) Configuration
 ENABLE_TTA = os.getenv("ENABLE_TTA", "true").lower() in ("true", "1", "t")

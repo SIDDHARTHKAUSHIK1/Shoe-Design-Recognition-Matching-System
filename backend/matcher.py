@@ -293,34 +293,40 @@ class ShoeMatcher:
                 
             design_id = ref_meta["design_id"]
             cosine_score = float(score)
-            
-            # Color-aware similarity scoring
-            color_sim = 1.0
-            if ENABLE_COLOR_AWARE_SCORING and ref_meta.get("_parsed_hist"):
-                try:
-                    color_sim = ColorExtractor.compute_color_similarity(query_hist, ref_meta["_parsed_hist"])
-                except Exception:
-                    color_sim = 1.0
+
+            def _color_sim():
+                # Computed lazily — only the two branches below ever read it,
+                # never the 0.300-0.699 cosine band, which is most candidates
+                # on a typical query and previously paid for this anyway.
+                if ENABLE_COLOR_AWARE_SCORING and ref_meta.get("_parsed_hist"):
+                    try:
+                        return ColorExtractor.compute_color_similarity(query_hist, ref_meta["_parsed_hist"])
+                    except Exception:
+                        return 1.0
+                return 1.0
 
             # High-precision visual similarity scoring
             if cosine_score >= 0.700:
+                color_sim = _color_sim()
                 combined_score = cosine_score
                 confidence_pct = min(99.9, max(95.0, 95.0 + float(cosine_score - 0.700) * 16.3))
+
+                # Color-contrast penalty: penalize high shape-similar but low color-similar candidates
+                # to prevent wrong-color shoes from outranking correct-color ones.
+                COLOR_CONTRAST_PENALTY_THRESHOLD = 0.40  # color_sim below this = "very different color"
+                COLOR_CONTRAST_PENALTY_STRENGTH = 0.08   # up to 8 points subtracted from combined_score
+                if ENABLE_COLOR_AWARE_SCORING and color_sim < COLOR_CONTRAST_PENALTY_THRESHOLD:
+                    color_penalty = COLOR_CONTRAST_PENALTY_STRENGTH * (1.0 - color_sim / COLOR_CONTRAST_PENALTY_THRESHOLD)
+                    combined_score = max(0.0, combined_score - color_penalty)
+                    confidence_pct = max(60.0, confidence_pct - color_penalty * 100.0)
             elif cosine_score >= 0.300:
+                color_sim = 1.0  # never consumed in this band — same value it effectively had before
                 combined_score = cosine_score
                 confidence_pct = min(94.9, max(85.0, 85.0 + float(cosine_score - 0.300) * 24.7))
             else:
+                color_sim = _color_sim()
                 combined_score = 0.85 * cosine_score + 0.15 * color_sim
                 confidence_pct = min(84.9, max(60.0, 60.0 + float(cosine_score) * 83.3))
-
-            # Color-contrast penalty: penalize high shape-similar but low color-similar candidates
-            # to prevent wrong-color shoes from outranking correct-color ones.
-            COLOR_CONTRAST_PENALTY_THRESHOLD = 0.40  # color_sim below this = "very different color"
-            COLOR_CONTRAST_PENALTY_STRENGTH = 0.08   # up to 8 points subtracted from combined_score
-            if ENABLE_COLOR_AWARE_SCORING and color_sim < COLOR_CONTRAST_PENALTY_THRESHOLD and cosine_score >= 0.700:
-                color_penalty = COLOR_CONTRAST_PENALTY_STRENGTH * (1.0 - color_sim / COLOR_CONTRAST_PENALTY_THRESHOLD)
-                combined_score = max(0.0, combined_score - color_penalty)
-                confidence_pct = max(60.0, confidence_pct - color_penalty * 100.0)
 
             cand_dominant = ref_meta.get("_parsed_dom", [])
             
@@ -363,6 +369,7 @@ class ShoeMatcher:
         # Margin and Ambiguity Analysis
         thresholds = load_thresholds_config()
         cat_cfg = thresholds.get(detected_category, thresholds.get("global", {}))
+        rejection_th = float(cat_cfg.get("rejection_threshold", 0.15))
 
         top1_sim = sorted_matches[0]["combined_score"] if sorted_matches else 0.0
         top2_sim = sorted_matches[1]["combined_score"] if len(sorted_matches) > 1 else 0.0
