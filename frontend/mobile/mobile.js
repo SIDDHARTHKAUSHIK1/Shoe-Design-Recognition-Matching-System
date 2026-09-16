@@ -18,6 +18,39 @@
   window.addEventListener('orientationchange', autoDetectScreenLayout, { passive: true });
   autoDetectScreenLayout();
 
+  // ==========================================
+  // Splash Screen Management
+  // ==========================================
+  function initSplashScreen() {
+    const splashScreen = document.getElementById('splash-screen');
+    if (!splashScreen) return;
+
+    // Respect reduced-motion preference
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      splashScreen.remove();
+      return;
+    }
+
+    let hidden = false;
+    function hideSplashScreen() {
+      if (hidden) return;
+      hidden = true;
+      splashScreen.classList.add('splash-hidden');
+      window.scrollTo(0, 0);
+      setTimeout(() => {
+        splashScreen.remove();
+      }, 500);
+    }
+
+    // Auto-hide after 2.8s or when app is ready
+    setTimeout(hideSplashScreen, 2800);
+    
+    // Tap to skip
+    splashScreen.addEventListener('click', hideSplashScreen);
+  }
+
+  document.addEventListener('DOMContentLoaded', initSplashScreen);
+
   // State Management
   const state = {
     user: null,

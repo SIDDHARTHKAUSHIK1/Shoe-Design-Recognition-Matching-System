@@ -186,37 +186,30 @@ body {
 
 .brand-icon-badge {
   position: relative;
-  width: 26px;
-  height: 26px;
-  min-width: 26px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: linear-gradient(155deg, #003567 0%, #0E3789 44%, #1A6BD7 76%, #1A6BD7 100%);
-  box-shadow:
-    0 5px 10px -3px #1D68CC,
-    0 2px 4px -2px rgba(0, 0, 0, 0.16),
-    inset 0 1px 2px rgba(255, 255, 255, 0.6);
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .brand-icon-badge::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.08) 42%, rgba(255, 255, 255, 0) 56%);
-  pointer-events: none;
+  display: none;
 }
 
 .brand-icon-img {
   position: relative;
   z-index: 1;
-  width: 15px;
-  height: 15px;
-  object-fit: contain;
-  filter: brightness(0) invert(1);
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  filter: none;
 }
 
 .brand-title span {
@@ -1117,6 +1110,164 @@ mark.highlight {
 button:focus-visible, input:focus-visible {
   outline: 2px solid var(--md-sys-color-secondary);
   outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Edge-to-Edge Full-Bleed Animated Splash Screen
+   ========================================================================== */
+.splash-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100dvh;
+  background: #010e28;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2147483000; /* must beat .login-screen-overlay's 99999 */
+  overflow: hidden;
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0s linear 0s;
+}
+
+.splash-container.splash-hidden {
+  opacity: 0;
+  transform: scale(1.05);
+  visibility: hidden;
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0s linear 0.6s;
+  pointer-events: none;
+}
+
+.splash-bg-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
+  animation: splashZoomIn 3.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes splashZoomIn {
+  0% {
+    transform: scale(1.06);
+    filter: brightness(0.92);
+  }
+  100% {
+    transform: scale(1.0);
+    filter: brightness(1.0);
+  }
+}
+
+/* Dynamic Floating Shoes Layer */
+.splash-shoes-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  animation: splashShoesFloat 2.6s ease-in-out infinite alternate;
+}
+
+.splash-shoes-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
+  filter: drop-shadow(0 12px 28px rgba(0, 160, 255, 0.5));
+  animation: splashShoesEntrance 1.0s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.splash-shoes-glow {
+  position: absolute;
+  bottom: calc(18% + var(--safe-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(65vw, 320px);
+  height: 38px;
+  background: radial-gradient(ellipse at center, rgba(0, 210, 255, 0.45) 0%, rgba(0, 120, 255, 0.15) 50%, transparent 75%);
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(10px);
+  animation: splashGlowPulse 2.6s ease-in-out infinite alternate;
+}
+
+@keyframes splashShoesEntrance {
+  0% {
+    opacity: 0;
+    transform: translateY(32px) scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes splashShoesFloat {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-9px) rotate(0.4deg);
+  }
+  100% {
+    transform: translateY(-16px) rotate(-0.3deg);
+  }
+}
+
+@keyframes splashGlowPulse {
+  0% {
+    transform: translateX(-50%) scale(0.92);
+    opacity: 0.45;
+  }
+  100% {
+    transform: translateX(-50%) scale(1.2);
+    opacity: 0.95;
+  }
+}
+
+.splash-loading-bar-wrap {
+  position: absolute;
+  bottom: calc(46px + var(--safe-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(55vw, 240px);
+  height: 3.5px;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: 0 0 12px rgba(0, 180, 255, 0.35);
+  z-index: 2;
+}
+
+.splash-loading-bar-fill {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%);
+  border-radius: 999px;
+  animation: splashLoadProgress 2.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes splashLoadProgress {
+  0% { width: 0%; }
+  40% { width: 45%; }
+  75% { width: 85%; }
+  100% { width: 100%; }
 }
 
 /* ==========================================================================
