@@ -1330,26 +1330,17 @@ button:focus-visible, input:focus-visible {
 
 .login-brand-icon {
   position: relative;
-  width: 58px;
-  height: 58px;
-  border-radius: 17px;
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(155deg, #003567 0%, #0E3789  44%, #1A6BD7  76%, #1A6BD7  100%);
-  box-shadow:
-    0 12px 26px -8px #1D68CC,
-    0 4px 10px -4px rgba(0, 0, 0, 0.16),
-    inset 0 2px 3px rgba(255, 255, 255, 0.6),
-    inset 0 -6px 12px -4px rgba(120, 53, 15, 0.5);
   overflow: hidden;
+  box-shadow: 0 8px 20px -4px rgba(24, 82, 201, 0.35);
 }
 .login-brand-icon::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.08) 42%, rgba(255, 255, 255, 0) 56%);
-  pointer-events: none;
+  display: none;
 }
 .login-brand-icon svg {
   position: relative;
@@ -1359,11 +1350,11 @@ button:focus-visible, input:focus-visible {
 .login-brand-icon-img {
   position: relative;
   z-index: 1;
-  width: 34px;
-  height: 34px;
-  object-fit: contain;
-  /* force the black line-art icon to pure white */
-  filter: brightness(0) invert(1) drop-shadow(0 2px 3px rgba(120, 53, 15, 0.5));
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 18px;
+  filter: none;
 }
 
 .login-brand-text {
